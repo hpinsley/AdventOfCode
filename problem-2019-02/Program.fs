@@ -2,21 +2,17 @@
 
 open System.IO
 
-let rec cycle xs = seq { yield! xs; yield! cycle xs }
 
-let getRepeatingValues (file: string): seq<int> =
+let getRepeatingValues (file: string): array<int> =
     printf "Reading from file %s\n" file
 
-    let numbers = File.ReadAllLines file
-                |> Array.map int
-                |> Array.toList
+    File.ReadAllLines file
+        |> Array.map int
 
-    printf "Read %d numbers" (List.length numbers)
-    cycle numbers
+let rec computeDup (iteration: int) (priorSum: int) (seen: Set<int>) (values: array<int>): int =
 
-let rec computeDup (iteration: int) (priorSum: int) (seen: Set<int>) (sequence: seq<int>): int =
-
-    let num = Seq.head sequence
+    let length = Array.length values
+    let num = Array.get values (iteration % length)
     let nextSum = priorSum + num
 
     let _ = if iteration % 1000 = 0
@@ -29,14 +25,14 @@ let rec computeDup (iteration: int) (priorSum: int) (seen: Set<int>) (sequence: 
     if (Set.contains nextSum seen)
         then nextSum
         else
-            computeDup (iteration + 1) nextSum (Set.add nextSum seen) (Seq.tail sequence)
+            computeDup (iteration + 1) nextSum (Set.add nextSum seen) values
 
 
 [<EntryPoint>]
 let main argv =
     let textFile = "/Users/howard.pinsley/dev/adventofcode/problem-2019-02/input.txt"
-    let sequence = getRepeatingValues textFile
-    let firstRepeat = computeDup 0 0 (Set.empty) sequence
+    let values = getRepeatingValues textFile
+    let firstRepeat = computeDup 0 0 (Set.empty) values
 
     printf "The first repeat is %d" firstRepeat
     0 // return an integer exit code
