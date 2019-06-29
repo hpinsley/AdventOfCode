@@ -14,6 +14,17 @@
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,
             "console": "internalConsole"
+        },
+        {
+            "name": "Problem 2019-02",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build02",
+            "program": "${workspaceFolder}/problem-2019-02/bin/Debug/netcoreapp2.1/problem-2019-02.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "stopAtEntry": false,
+            "console": "internalConsole"
         }
     ]
 }
