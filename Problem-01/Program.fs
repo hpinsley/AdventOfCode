@@ -30,7 +30,7 @@ let rec computeDup (iteration: int) (priorSum: int) (seen: Set<int>) (values: ar
 
 [<EntryPoint>]
 let main argv =
-    let textFile = "/Users/howard.pinsley/dev/adventofcode/problem-2019-02/input.txt"
+    let textFile = "/Users/howard.pinsley/dev/adventofcode/problem-01/input.txt"
     let values = getRepeatingValues textFile
     let firstRepeat = computeDup 0 0 (Set.empty) values
 

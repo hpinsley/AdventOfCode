@@ -6,20 +6,7 @@
         {
             "label": "build01",
             "options": {
-                "cwd": "problem-2019-01"
-            },
-            "command": "dotnet build",
-            "type": "shell",
-            "group": "build",
-            "presentation": {
-                "reveal": "silent"
-            },
-            "problemMatcher": "$msCompile"
-        },
-        {
-            "label": "build02",
-            "options": {
-                "cwd": "problem-2019-02"
+                "cwd": "Problem-01"
             },
             "command": "dotnet build",
             "type": "shell",
