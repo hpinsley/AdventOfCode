@@ -48,5 +48,16 @@
             "stopAtEntry": false,
             "console": "internalConsole"
         }
+        ,{
+            "name": "Problem 2018-05",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build05",
+            "program": "${workspaceFolder}/Problem-05/bin/Debug/netcoreapp2.1/problem-05.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "stopAtEntry": false,
+            "console": "internalConsole"
+        }
     ]
 }
