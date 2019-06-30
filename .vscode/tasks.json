@@ -28,6 +28,19 @@
                 "reveal": "silent"
             },
             "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "build03",
+            "options": {
+                "cwd": "Problem-03"
+            },
+            "command": "dotnet build",
+            "type": "shell",
+            "group": "build",
+            "presentation": {
+                "reveal": "silent"
+            },
+            "problemMatcher": "$msCompile"
         }
     ]
 }
