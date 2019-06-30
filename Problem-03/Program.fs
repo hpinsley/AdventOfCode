@@ -11,6 +11,11 @@ type Spec =
       height: int
     }
 
+let specToUnits spec =
+  seq { for h in 0 .. (spec.height - 1) do
+        for w in 0 .. (spec.width - 1) do
+        yield (spec.left + w, spec.top + h) }
+
 let parseClaimFromString str =
     let pattern = "#(\d+) @ (\d+),(\d+): (\d+)x(\d+)";
     let m = Regex.Match(str, pattern)
@@ -40,6 +45,32 @@ let main argv =
     printfn "Read %d lines" (List.length values)
     printfn "Read %d specs" (List.length specs)
 
-    let last = List.last specs
-    printfn "Sample: %A" last
+    // If we map each spec to the units consumed, then we can mark using a set each i,j tuple
+    // that's been seen.
+
+    let consumed =
+      specs
+        |> Seq.collect specToUnits
+        |> Seq.toList
+
+    let reduced =
+      consumed
+        |> List.fold (fun state square ->
+                        let (seenOnce, seenMultiple) = state
+                        let seenMultiple_ = if (Set.contains square seenOnce) then Set.add square seenMultiple else seenMultiple
+                        let seenOnce_ = Set.add square seenOnce
+                        (seenOnce_, seenMultiple_)
+                      )
+                      (Set.empty, Set.empty)
+
+    printfn "Consumed has %d elements" (List.length consumed)
+
+    let (seenOnce, seenMultiple) = reduced
+
+    printfn "Seen once: %d" <| Set.count seenOnce
+    printfn "Seen multiple: %d" <| Set.count seenMultiple
+
+    let seenOnlyOnce = Set.difference seenOnce seenMultiple
+    printfn "Seen only once: %d" <| Set.count seenOnlyOnce
+
     0 // return an integer exit code
