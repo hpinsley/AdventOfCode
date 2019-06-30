@@ -12,9 +12,10 @@ type Spec =
     }
 
 let specToUnits spec =
-  seq { for h in 0 .. (spec.height - 1) do
+  [     for h in 0 .. (spec.height - 1) do
         for w in 0 .. (spec.width - 1) do
-        yield (spec.left + w, spec.top + h) }
+        yield (spec.left + w, spec.top + h)
+  ]
 
 let parseClaimFromString str =
     let pattern = "#(\d+) @ (\d+),(\d+): (\d+)x(\d+)";
@@ -50,8 +51,7 @@ let main argv =
 
     let consumed =
       specs
-        |> Seq.collect specToUnits
-        |> Seq.toList
+        |> List.collect specToUnits
 
     let reduced =
       consumed
@@ -68,9 +68,18 @@ let main argv =
     let (seenOnce, seenMultiple) = reduced
 
     printfn "Seen once: %d" <| Set.count seenOnce
-    printfn "Seen multiple: %d" <| Set.count seenMultiple
+    printfn "Seen multiple: %d (part I answer)" <| Set.count seenMultiple
 
     let seenOnlyOnce = Set.difference seenOnce seenMultiple
     printfn "Seen only once: %d" <| Set.count seenOnlyOnce
 
+    let solution =
+        specs
+          |> List.find (fun spec ->
+                          spec
+                            |> specToUnits
+                            |> List.forall (fun used -> Set.contains used seenOnlyOnce)
+                        )
+
+    printfn "Solution for part two: %A" solution
     0 // return an integer exit code
