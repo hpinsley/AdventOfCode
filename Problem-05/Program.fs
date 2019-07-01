@@ -7,21 +7,24 @@ let cancels (c1:char) (c2:char) =
     c1 <> c2 && Char.IsLetter(c1) && Char.ToLower c1 = Char.ToLower c2
 
 let rec reactString (prevChar: char option) (chars:char list) =
-
     seq {
-        match (prevChar, chars) with
-            | (Some p, []) ->
-                yield p
-            | (Some p, c :: rest)->
-                if (cancels p c) then
-                    yield! reactString None rest
-                else
-                    yield p
-                    yield! reactString (Some c) rest
-            | (None, c :: rest) ->
-                    yield! reactString (Some c) rest
-            | (None, []) ->
-                ()
+        match prevChar with
+            | Some p ->
+                match chars with
+                    | c :: rest ->
+                        if (cancels p c) then
+                            yield! reactString None rest
+                        else
+                            yield p
+                            yield! reactString (Some c) rest
+                    | [] ->
+                        yield p
+            | None ->
+                match chars with
+                    | [] ->
+                        ()
+                    | c :: rest ->
+                        yield! reactString (Some c) rest
     }
 
 let getData (file: string): string =
