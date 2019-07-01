@@ -1,4 +1,4 @@
-﻿// Learn more about F# at http://fsharp.org
+﻿module Year2018Day03
 
 open System.IO
 open System.Text.RegularExpressions
@@ -34,9 +34,8 @@ let getData (file: string): array<string> =
     printf "Reading from file %s\n" file
     File.ReadAllLines file
 
-[<EntryPoint>]
-let main argv =
-    let textFile = "/Users/howard.pinsley/dev/adventofcode/problem-03/input.txt"
+let solve =
+    let textFile = "InputFiles/input-2018-03.txt"
     let values = getData textFile
                   |> Array.toList
 
@@ -82,4 +81,3 @@ let main argv =
                         )
 
     printfn "Solution for part two: %A" solution
-    0 // return an integer exit code
