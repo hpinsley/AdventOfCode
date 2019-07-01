@@ -40,11 +40,26 @@ let rec processString (str:String) =
                 |> String.Concat
     if (reduced.Length < str.Length)
     then
-        printfn "Reduced to %d" reduced.Length
+        // printfn "Reduced to %d" reduced.Length
         processString reduced
     else
         str
 
+let testUnitType (data:string) (unitType:char) =
+    printfn "Testing unit %A" unitType
+    let lowerc = Char.ToLower unitType
+    let upperc = Char.ToUpper unitType
+
+    let newData = data
+                    |> Seq.toList
+                    |> Seq.filter (fun c -> c <> lowerc && c <> upperc)
+                    |> Array.ofSeq
+                    |> String.Concat
+
+    printfn "After eliminating upper and lower %c we have %d chars" unitType newData.Length
+
+    let reduced = processString newData
+    (unitType, reduced.Length)
 
 [<EntryPoint>]
 let main argv =
@@ -56,5 +71,13 @@ let main argv =
     printfn "Read data of length %d" (String.length data)
     let reduced = processString data
     printfn "Reduced has length %d" reduced.Length
+
+    let unitTypes = ['a'..'z']
+    let best =
+        unitTypes
+            |> List.map (testUnitType data)
+            |> List.minBy (fun (c, codelen) -> codelen)
+
+    printfn "Best is %A" best
 
     0 // return an integer exit code
