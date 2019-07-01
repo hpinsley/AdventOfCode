@@ -1,7 +1,6 @@
-﻿// Learn more about F# at http://fsharp.org
+﻿module Year2018Day01
 
 open System.IO
-
 
 let getRepeatingValues (file: string): array<int> =
     printf "Reading from file %s\n" file
@@ -28,11 +27,10 @@ let rec computeDup (iteration: int) (priorSum: int) (seen: Set<int>) (values: ar
             computeDup (iteration + 1) nextSum (Set.add nextSum seen) values
 
 
-[<EntryPoint>]
-let main argv =
-    let textFile = "/Users/howard.pinsley/dev/adventofcode/problem-01/input.txt"
+let solve =
+    let textFile = "InputFiles/input-2018-01.txt"
+
     let values = getRepeatingValues textFile
     let firstRepeat = computeDup 0 0 (Set.empty) values
 
     printf "The first repeat is %d" firstRepeat
-    0 // return an integer exit code

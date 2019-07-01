@@ -1,7 +1,6 @@
-﻿// Learn more about F# at http://fsharp.org
+﻿module Year2018Day02
 
 open System.IO
-
 
 let getData (file: string): array<string> =
     printf "Reading from file %s\n" file
@@ -21,9 +20,8 @@ let diffCount ((s1,s2)) =
         |> Seq.map (fun (c1, c2) -> if c1 = c2 then 0 else 1)
         |> Seq.sum
 
-[<EntryPoint>]
-let main argv =
-    let textFile = "/Users/howard.pinsley/dev/adventofcode/problem-02/input.txt"
+let solve =
+    let textFile = "InputFiles/input-2018-02.txt"
     let values = getData textFile |> Array.toList
 
     printfn "The file contains %d lines" (List.length values)
@@ -49,4 +47,3 @@ let main argv =
             |> List.head
 
     printfn "%A\n" best
-    0 // return an integer exit code
