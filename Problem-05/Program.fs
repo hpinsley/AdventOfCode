@@ -6,28 +6,21 @@ open System.Text.RegularExpressions
 let cancels (c1:char) (c2:char) =
     c1 <> c2 && Char.IsLetter(c1) && Char.ToLower c1 = Char.ToLower c2
 
-let rec reactString (prevChar: char option) (chars:Char[]) =
-
-    let nextChar = if chars.Length = 0 then None else Some chars.[0]
-    let n = chars.Length
-
-    if (n < 100)
-    then
-        printfn "Substring is %d chars" n
+let rec reactString (prevChar: char option) (chars:char list) =
 
     seq {
-        match (prevChar, nextChar) with
-            | (Some p, None) ->
+        match (prevChar, chars) with
+            | (Some p, []) ->
                 yield p
-            | (Some p, Some c)->
+            | (Some p, c :: rest)->
                 if (cancels p c) then
-                    yield! reactString None (chars.[1..n-1])
+                    yield! reactString None rest
                 else
                     yield p
-                    yield! reactString (Some c) (chars.[1..n-1])
-            | (None, Some c) ->
-                    yield! reactString (Some c) (chars.[1..n-1])
-            | (None, None) ->
+                    yield! reactString (Some c) rest
+            | (None, c :: rest) ->
+                    yield! reactString (Some c) rest
+            | (None, []) ->
                 ()
     }
 
@@ -37,7 +30,8 @@ let getData (file: string): string =
 
 let rec processString (str:String) =
     let reduced =
-            str.ToCharArray()
+            str
+                |> Seq.toList
                 |> reactString None
                 |> Seq.toList
                 |> String.Concat
