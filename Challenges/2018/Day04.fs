@@ -1,4 +1,4 @@
-﻿// Learn more about F# at http://fsharp.org
+﻿module Year2018Day04
 
 open System.IO
 open System.Text.RegularExpressions
@@ -47,9 +47,8 @@ let getSleepiestMinuteAndTimes (sleepTimes: (int * int) list) =
         |> List.countBy (fun (guard, minute) -> minute)
         |> List.maxBy (fun (minute, count) -> count)
 
-[<EntryPoint>]
-let main argv =
-    let textFile = "/Users/howard.pinsley/dev/adventofcode/problem-04/input.txt"
+let solve =
+    let textFile = "InputFiles/input-2018-04.txt"
     let values = getData textFile
                   |> Array.toList
                   |> List.sort
@@ -116,5 +115,3 @@ let main argv =
 
     printfn "Best is guard %d at minute %d" guard minute
     printfn "Part 2 solution is %d" (guard * minute)
-
-    0 // return an integer exit code
