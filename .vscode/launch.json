@@ -15,49 +15,5 @@
             "stopAtEntry": false,
             "console": "internalConsole"
         }
-        ,{
-            "name": "Problem 2018-02",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build02",
-            "program": "${workspaceFolder}/Problem-02/bin/Debug/netcoreapp2.1/problem-02.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}",
-            "stopAtEntry": false,
-            "console": "internalConsole"
-        }
-        ,{
-            "name": "Problem 2018-03",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build03",
-            "program": "${workspaceFolder}/Problem-03/bin/Debug/netcoreapp2.1/problem-03.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}",
-            "stopAtEntry": false,
-            "console": "internalConsole"
-        }
-        ,{
-            "name": "Problem 2018-04",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build04",
-            "program": "${workspaceFolder}/Problem-04/bin/Debug/netcoreapp2.1/problem-04.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}",
-            "stopAtEntry": false,
-            "console": "internalConsole"
-        }
-        ,{
-            "name": "Problem 2018-05",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build05",
-            "program": "${workspaceFolder}/Problem-05/bin/Debug/netcoreapp2.1/problem-05.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}",
-            "stopAtEntry": false,
-            "console": "internalConsole"
-        }
     ]
 }
