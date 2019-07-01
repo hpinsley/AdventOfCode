@@ -5,11 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Problem 2018-01",
+            "name": "Driver",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "build01",
-            "program": "${workspaceFolder}/Problem-01/bin/Debug/netcoreapp2.1/problem-01.dll",
+            "preLaunchTask": "build-driver",
+            "program": "${workspaceFolder}/bin/Debug/netcoreapp2.1/Driver.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,

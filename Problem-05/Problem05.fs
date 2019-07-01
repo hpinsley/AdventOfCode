@@ -1,11 +1,22 @@
-﻿// Learn more about F# at http://fsharp.org
+﻿module Year2018Day05
+
 open System
 open System.IO
 open System.Text.RegularExpressions
 
-let cancels (c1:char) (c2:char) =
-    c1 <> c2 && Char.IsLetter(c1) && Char.ToLower c1 = Char.ToLower c2
+// let remainingPolymer =
+//     let processUnit polymer ch =
+//         match polymer with
+//         | x :: xs when abs (ch - x) = 32 -> xs
+//         | xs -> ch :: xs
+//     Seq.fold processUnit []
 
+let cancels (c1:char) (c2:char) =
+    // 97-65 = 32
+    let diff = ((int c1) - (int c2))
+    diff = 32 || diff = -32
+
+// This is pretty slow.  The fold solution above is way better.
 let rec reactString (prevChar: char option) (chars:char list) =
     seq {
         match prevChar with
@@ -61,8 +72,7 @@ let testUnitType (data:string) (unitType:char) =
     let reduced = processString newData
     (unitType, reduced.Length)
 
-[<EntryPoint>]
-let main argv =
+let solve =
     let textFile = "/Users/howard.pinsley/dev/adventofcode/problem-05/input.txt"
     let testdata = getData textFile
     let sampledata = "dabAcCaCBAcCcaDA"
