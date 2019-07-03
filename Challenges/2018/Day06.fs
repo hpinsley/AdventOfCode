@@ -5,7 +5,8 @@ open System.IO
 open Common
 
 type Coordinate =
-    Coordinate of int * int
+    | Unoccupied
+    | Coordinate of int * int
 
 let getCoords (inputLine: string) =
     let v = inputLine.Split(",")
@@ -23,6 +24,9 @@ let getBounds (points: seq<int * int>) =
     let yMax = points |> Seq.map y |> Seq.max
     (xMax + 1, yMax + 1)
 
+let setCoordinate (arr: Coordinate [,]) (x,y) =
+    arr.[y,x] <- Coordinate (x, y)
+
 let solve =
     // let testdata = Common.getChallengeData 2018 6
     let testdata = Common.getSampleDataAsArray 2018 6
@@ -34,8 +38,10 @@ let solve =
     printfn "Bounds: %O" bounds
 
     let arr =
-        Array2D.init (x bounds) (y bounds) (fun y x -> Coordinate (x,y))
+        Array2D.create (y bounds) (x bounds) Unoccupied
 
+    points |>
+        Array.map (setCoordinate arr) |> ignore
     // arr.[0,0] <- 5
 
     printfn "Array is\n%A" arr
