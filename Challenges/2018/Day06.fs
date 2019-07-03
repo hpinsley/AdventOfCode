@@ -4,28 +4,41 @@ open System
 open System.IO
 open Common
 
-type Coordinate =
+type OccupiedCell = int * int
+
+type CellState =
     | Unoccupied
-    | Coordinate of int * int
+    | Occupied of OccupiedCell
+
+type ClosestCoordinate =
+    | None
+    | Neighbor of OccupiedCell
+
+let distance (x1, y1) (x2, y2) =
+    (abs (x2 - x1)) + (abs (y2 - y1))
 
 let getCoords (inputLine: string) =
     let v = inputLine.Split(",")
                 |> Array.map parseInt
     (v.[0], v.[1])
 
-let x (t:int * int): int =
+let xCoord (t:int * int): int =
     fst t
 
-let y (t:int * int): int =
+let yCoord (t:int * int): int =
     snd t
 
 let getBounds (points: seq<int * int>) =
-    let xMax = points |> Seq.map x |> Seq.max
-    let yMax = points |> Seq.map y |> Seq.max
+    let xMax = points |> Seq.map xCoord |> Seq.max
+    let yMax = points |> Seq.map yCoord |> Seq.max
     (xMax + 1, yMax + 1)
 
-let setCoordinate (arr: Coordinate [,]) (x,y) =
-    arr.[y,x] <- Coordinate (x, y)
+let setCoordinate (arr: CellState [,]) (x,y) =
+    arr.[x, y] <- Occupied <| OccupiedCell (x, y)
+
+// Given the entire coordinate space, find the closest occ
+let getClosestCoord (arr:CellState [,]) (x: int) (y: int) coord =
+    Unoccupied
 
 let solve =
     // let testdata = Common.getChallengeData 2018 6
@@ -38,11 +51,14 @@ let solve =
     printfn "Bounds: %O" bounds
 
     let arr =
-        Array2D.create (y bounds) (x bounds) Unoccupied
+        Array2D.create (xCoord bounds) (yCoord bounds) Unoccupied
 
     points |>
         Array.map (setCoordinate arr) |> ignore
     // arr.[0,0] <- 5
+
+    let closestCoord =
+        Array2D.mapi (getClosestCoord arr) arr
 
     printfn "Array is\n%A" arr
     ()
