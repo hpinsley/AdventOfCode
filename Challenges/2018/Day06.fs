@@ -108,21 +108,7 @@ let printClosest (closestCoord: (int * int ) option [,]) =
                     | Some (x, y) -> (sprintf "[%d,%d]" x y)
                     | _ -> "[.,.]"
 
-let solve =
-    let testdata = Common.getChallengeDataAsArray 2018 6
-    //let testdata = Common.getSampleDataAsArray 2018 6
-
-    let points = testdata |> Array.map getPoints |> List.ofArray
-
-    // List.map (printfn "%O") points |> ignore
-    let bounds = getBounds points
-    printfn "Bounds: %O" bounds
-
-    let state =
-        Array2D.create (xCoord bounds) (yCoord bounds) Unoccupied
-
-    points |>
-        List.map (setCoordinate state) |> ignore
+let solvePart1 (state: CellState [,]) (points:(int * int) list) =
 
     let closestCoord =
         Array2D.mapi (getClosestCoord points) state
@@ -143,5 +129,24 @@ let solve =
                                     | Infinite -> None)
             |> List.maxBy (fun ((x, y), a) -> a)
 
-    printfn "\n\n%A" biggestArea
+    printfn "Part (1)\n%A" biggestArea
+    ()
+
+let solvePart2 (state: CellState [,]) (points:(int * int) list) =
+    printfn "\n\nPart (2)\n"
+    ()
+
+let solve =
+    //let testdata = Common.getChallengeDataAsArray 2018 6
+    let testdata = Common.getSampleDataAsArray 2018 6
+
+    let points = testdata |> Array.map getPoints |> List.ofArray
+    let bounds = getBounds points
+    let state = Array2D.create (xCoord bounds) (yCoord bounds) Unoccupied
+    points |>
+        List.map (setCoordinate state) |> ignore
+
+    solvePart1 state points
+    solvePart2 state points
+
     ()
