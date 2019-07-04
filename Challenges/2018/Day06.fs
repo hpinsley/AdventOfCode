@@ -109,8 +109,8 @@ let printClosest (closestCoord: (int * int ) option [,]) =
                     | _ -> "[.,.]"
 
 let solve =
-    //let testdata = Common.getChallengeDataAsArray 2018 6
-    let testdata = Common.getSampleDataAsArray 2018 6
+    let testdata = Common.getChallengeDataAsArray 2018 6
+    //let testdata = Common.getSampleDataAsArray 2018 6
 
     let points = testdata |> Array.map getPoints |> List.ofArray
 
@@ -127,9 +127,9 @@ let solve =
     let closestCoord =
         Array2D.mapi (getClosestCoord points) state
 
-    printOccupied state
-    printfn "\n-------"
-    printClosest closestCoord
+    // printOccupied state
+    // printfn "\n-------"
+    // printClosest closestCoord
 
     let biggestArea =
         points
