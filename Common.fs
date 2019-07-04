@@ -2,6 +2,10 @@ module Common
 
 open System.IO
 
+let dump label o =
+    printfn "\n%s:\n%A" label o
+    o
+
 let getSampleDataFilespec year month =
     sprintf "InputFiles/Sample-%04d-%02d.txt" year month
 

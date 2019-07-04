@@ -76,7 +76,7 @@ let solve =
     let textFile = "InputFiles/input-2018-05.txt"
     let testdata = getData textFile
     let sampledata = "dabAcCaCBAcCcaDA"
-    let data = sampledata
+    let data = testdata
 
     printfn "Read data of length %d" (String.length data)
     let reduced = processString data

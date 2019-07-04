@@ -66,12 +66,13 @@ let getArea (closestCoord: ((int * int ) option [,])) (x:int, y:int): Area =
         x = 0 || y = 0 || x = (rows - 1) || y = (cols - 1)
     let closestToCoord =
         closestCoord
-            |> Seq.cast<(int * int) option>
-            |> Seq.choose (fun closest ->
+            |> Array2D.mapi (fun x y closest -> ((x, y), closest))
+            |> Seq.cast<(int * int) * ((int * int) option)>
+            |> Seq.choose (fun ((r, c), closest) ->
                                 match closest with
                                 | Some (x1, y1) ->
                                     if (x1 = x && y1 = y)
-                                        then Some (x1, y1)
+                                        then Some (r, c)
                                         else None
 
                                 | None -> None)
@@ -108,8 +109,8 @@ let printClosest (closestCoord: (int * int ) option [,]) =
                     | _ -> "[.,.]"
 
 let solve =
-    let testdata = Common.getChallengeDataAsArray 2018 6
-    // let testdata = Common.getSampleDataAsArray 2018 6
+    //let testdata = Common.getChallengeDataAsArray 2018 6
+    let testdata = Common.getSampleDataAsArray 2018 6
 
     let points = testdata |> Array.map getPoints |> List.ofArray
 
@@ -122,23 +123,20 @@ let solve =
 
     points |>
         List.map (setCoordinate state) |> ignore
-    // arr.[0,0] <- 5
-
-
-    // printfn "Array is\n%A" arr
 
     let closestCoord =
         Array2D.mapi (getClosestCoord points) state
 
-    // printOccupied state
-    // printfn "\n-------"
-    // printClosest closestCoord
+    printOccupied state
+    printfn "\n-------"
+    printClosest closestCoord
 
     let biggestArea =
         points
             |> List.map (fun (x,y) ->
                             ((x,y), getArea closestCoord (x,y))
                         )
+            |> dump "points and area"
             |> List.choose (fun ((x,y), area) ->
                                 match area with
                                     | Finite a -> Some ((x,y), a)
