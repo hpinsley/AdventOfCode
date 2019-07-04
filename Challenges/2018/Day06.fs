@@ -132,13 +132,28 @@ let solvePart1 (state: CellState [,]) (points:(int * int) list) =
     printfn "Part (1)\n%A" biggestArea
     ()
 
-let solvePart2 (state: CellState [,]) (points:(int * int) list) =
-    printfn "\n\nPart (2)\n"
+let getDistanceToAllPoints (points:(int * int) list) (x:int, y:int) : int =
+    points
+        |> List.sumBy (fun (coordX, coordY) -> distance (x,y) (coordX, coordY))
+
+
+let solvePart2 (state: CellState [,]) (maxDist: int) (points:(int * int) list) =
+
+    let rows = Array2D.length1 state
+    let cols = Array2D.length2 state
+
+    let closeArea = seq {for r in 0 .. (rows - 1) do for c in 0 .. (cols - 1) -> (r,c)}
+                        |> Seq.map (fun (x, y) -> ((x,y), getDistanceToAllPoints points (x,y)))
+                        |> Seq.filter (fun (p, dist) -> dist <= maxDist )
+                        |> Seq.length
+
+
+    printfn "\n\nPart (2): %d\n" closeArea
     ()
 
 let solve =
-    //let testdata = Common.getChallengeDataAsArray 2018 6
-    let testdata = Common.getSampleDataAsArray 2018 6
+    let testdata = Common.getChallengeDataAsArray 2018 6
+    //let testdata = Common.getSampleDataAsArray 2018 6
 
     let points = testdata |> Array.map getPoints |> List.ofArray
     let bounds = getBounds points
@@ -147,6 +162,6 @@ let solve =
         List.map (setCoordinate state) |> ignore
 
     solvePart1 state points
-    solvePart2 state points
+    solvePart2 state 9999 points
 
     ()
