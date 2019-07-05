@@ -165,8 +165,8 @@ let solvePartTwo (workerCount: int) (durationFunc: char -> int) (dependencies: (
     step workers durationFunc dependencies 0
 
 let solve =
-    //let testdata = Common.getChallengeDataAsArray 2018 7
-    let testdata = Common.getSampleDataAsArray 2018 7
+    let testdata = Common.getChallengeDataAsArray 2018 7
+    //let testdata = Common.getSampleDataAsArray 2018 7
     dump "data" testdata
     let pairs = testdata
                     |> List.ofArray
@@ -185,13 +185,12 @@ let solve =
 
     dump "Dependencies" dependencies
 
-    // solvePartOne dependencies |> ignore
+    solvePartOne dependencies |> ignore
 
-    let durationFunc c = (int c - 65 + 1) + 0
-    //let durationFunc c = (int c - 65 + 1) + 60
+    //let durationFunc c = (int c - 65 + 1) + 0
+    let durationFunc c = (int c - 65 + 1) + 60
 
-    printfn "Duration of %c is %d" 'A' (durationFunc 'A')
-    solvePartTwo 2 durationFunc dependencies
+    solvePartTwo 5 durationFunc dependencies
         |> printfn "Solution to part 2 is %d"
 
     ()
