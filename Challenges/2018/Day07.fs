@@ -14,6 +14,13 @@ type Worker =
     | Idle
     | WorkingOn of Task
 
+let isIdle worker = match worker with
+                        | Idle -> true
+                        | WorkingOn _ -> false
+
+let isBusy = (not << isIdle)
+let allIdle = not << (List.exists isBusy)
+
 let rec buildDependencies (dependencies: (char * char list) list) (newPair: (char * char)): (char * char list) list =
     let (newpred, newsucc) = newPair
     match dependencies with
@@ -30,6 +37,19 @@ let getNextToExecute (dependencies: (char * char list) list) =
         |> List.map (fun (s, _) -> s)
         |> List.sort
         |> List.tryHead
+
+let getNextCompletedTask (workers: Worker list) : Task option =
+
+    let tasks = workers |> List.choose (fun worker ->
+                                            match worker with
+                                                | Idle -> None
+                                                | WorkingOn task -> Some task)
+
+    if tasks.Length = 0
+        then None
+    else
+        List.minBy (fun task -> task.endTime) tasks
+            |> Some
 
 let startTask (next:char) (dependencies: (char * char list) list): (char * char list) list =
     dependencies
@@ -68,15 +88,81 @@ let solvePartOne (dependencies: (char * char list) list) =
     dump "Part (1): Step order:" stepOrder
     stepOrder
 
-let solvePartTwo (workerCount: int) (durationFunc: char -> int) (dependencies: (char * char list) list) =
+let rec idleWorker (whoIsWorkingOnTask:char) (workers: Worker list) : Worker list =
+    match workers with
+        | [] -> []
+        | worker :: rest ->
+            match worker with
+                | Idle ->
+                    worker :: idleWorker whoIsWorkingOnTask rest
+                | WorkingOn task when task.name = whoIsWorkingOnTask ->
+                    Idle :: rest
+                | _ ->
+                    worker :: idleWorker whoIsWorkingOnTask rest
+
+// Add a task to the worker list.  If there is an available worker return
+// Some workers otherwise none if there are no available workers
+let rec addTaskToWorkList (taskName: char) (currentTime: int) (durationFunc: char -> int) (workers: Worker list) : (Worker list) option =
+    match workers with
+        | [] -> None
+        | worker :: others ->
+            match worker with
+                | Idle ->
+                    let activeWorker = WorkingOn { name = taskName; startTime = currentTime; endTime = currentTime + durationFunc taskName }
+                    Some (activeWorker :: others)
+                | busyWorker ->
+                    match addTaskToWorkList taskName currentTime durationFunc others with
+                        | None ->
+                            None
+                        | Some revisedWorkerList ->
+                            Some (busyWorker :: revisedWorkerList)
+
+let rec step (workers: Worker list) (durationFunc: char -> int) (dependencies: (char * char list) list) (startTime:int) :int =
+    match getNextToExecute dependencies with
+        | None ->
+            // There is nothing to do.  Let's see if some workers are working and can be complete
+            match getNextCompletedTask workers with
+                | None ->
+                    startTime               //
+                | Some completedTask ->
+                    step
+                        (idleWorker completedTask.name workers)
+                        durationFunc
+                        (endTask completedTask.name dependencies)
+                        completedTask.endTime
+
+        | Some taskName ->      // There is work to do
+            // Try to add it to an idle worker
+            match addTaskToWorkList taskName startTime durationFunc workers with
+                | Some revisedWorkers ->    // Found a worker
+                    step
+                        revisedWorkers
+                        durationFunc
+                        (startTask taskName dependencies) // Make sure we mark it as started
+                        startTime
+                 | None ->
+                    // We get here if there is work to do but we have no idle workers
+                    // We have to advance the clock to finish the next task
+                        match getNextCompletedTask workers with
+                            | None ->
+                                startTime
+                            | Some completedTask ->
+                                step
+                                    (idleWorker completedTask.name workers)
+                                    durationFunc
+                                    (endTask completedTask.name dependencies)
+                                    completedTask.endTime
+
+
+
+
+
+let solvePartTwo (workerCount: int) (durationFunc: char -> int) (dependencies: (char * char list) list) : int =
     printfn "\nPart II has %d workders and %d steps" workerCount dependencies.Length
     let workers = List.replicate workerCount Idle
     dump "workers:" workers
 
-    let stepOrder = orderSteps dependencies
-                        |> Array.ofList
-                        |> String
-    stepOrder
+    step workers durationFunc dependencies 0
 
 let solve =
     //let testdata = Common.getChallengeDataAsArray 2018 7
@@ -99,11 +185,13 @@ let solve =
 
     dump "Dependencies" dependencies
 
-    solvePartOne dependencies |> ignore
+    // solvePartOne dependencies |> ignore
 
     let durationFunc c = (int c - 65 + 1) + 0
     //let durationFunc c = (int c - 65 + 1) + 60
 
     printfn "Duration of %c is %d" 'A' (durationFunc 'A')
-    solvePartTwo 2 durationFunc dependencies |> ignore
+    solvePartTwo 2 durationFunc dependencies
+        |> printfn "Solution to part 2 is %d"
+
     ()
