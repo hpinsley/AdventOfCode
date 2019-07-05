@@ -34,3 +34,4 @@ let getSampleDataAsArray year month : string [] =
 
 let trim (s:string) : string = s.Trim()
 let parseInt = trim >> int
+let inline tuple2 a b = a,b
