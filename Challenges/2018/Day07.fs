@@ -5,18 +5,15 @@ open System.IO
 open Common
 
 
-let buildDependencies (successors: (char * char list) list) (newPair: (char * char)): (char * char list) list =
-    let rec addPair (dependencies: (char * char list) list) (newPair: (char * char)): (char * char list) list =
-        let (newpred, newsucc) = newPair
-        match dependencies with
-            | [] -> [newsucc, [newpred]]
-            | (s, plist) as firstDependency :: remainingDependencies ->
-                if (s = newsucc) then
-                    (s, newpred :: plist) :: remainingDependencies
-                else
-                    firstDependency :: addPair remainingDependencies newPair
-
-    addPair successors newPair
+let rec buildDependencies (dependencies: (char * char list) list) (newPair: (char * char)): (char * char list) list =
+    let (newpred, newsucc) = newPair
+    match dependencies with
+        | [] ->
+            [newsucc, [newpred]]
+        | (s, plist) :: remainingDependencies when (s = newsucc) ->
+            (s, newpred :: plist) :: remainingDependencies
+        | firstDependency :: remainingDependencies ->
+            firstDependency :: buildDependencies remainingDependencies newPair
 
 let solve =
     //let testdata = Common.getChallengeDataAsArray 2018 7
