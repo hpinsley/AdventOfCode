@@ -7,7 +7,7 @@ open Common
 type GameState = {
     numberOfPlayers: int;
     lastMarbleValue: int;
-    playerScores: int list;
+    playerScores: int [];
     currentMarbleIndex: int;
     numberOfMarblesOnBoard: int;
     board: int [];
@@ -24,7 +24,7 @@ let buildInitialBoard numberOfPlayers lastMarbleValue =
     {
         numberOfPlayers = numberOfPlayers;
         lastMarbleValue = lastMarbleValue;
-        playerScores = List.init numberOfPlayers (fun _ -> 0)
+        playerScores = Array.init numberOfPlayers (fun _ -> 0)
         currentMarbleIndex = 0;
         numberOfMarblesOnBoard = 1;
         board = Array.zeroCreate lastMarbleValue
@@ -56,8 +56,7 @@ let play23 (game:GameState) (marbleValue:int): GameState =
 
     // printfn "Scored %d + %d = %d (from index removed at %d)" marbleValue removeScore moveScore removeIndex
 
-    let newScores = List.mapi (fun i score -> if i = game.currentPlayer then score + moveScore else score) game.playerScores
-
+    game.playerScores.[game.currentPlayer] <- game.playerScores.[game.currentPlayer] + moveScore
     // We want to remove the marble at newIndex.  Shift the array left
 
     let itemsToCopy = game.numberOfMarblesOnBoard - removeIndex - 1
@@ -68,7 +67,7 @@ let play23 (game:GameState) (marbleValue:int): GameState =
 
     let nextPlayer = (game.currentPlayer + 1) % game.numberOfPlayers
 
-    { game with playerScores = newScores; numberOfMarblesOnBoard = numberOfMarblesOnBoard; currentMarbleIndex = removeIndex; currentPlayer = nextPlayer }
+    { game with numberOfMarblesOnBoard = numberOfMarblesOnBoard; currentMarbleIndex = removeIndex; currentPlayer = nextPlayer }
 
 let playMarble (game:GameState) (marbleValue:int): GameState =
     //printfn "Playing marble %d with board\n%A" marbleValue game
@@ -96,7 +95,7 @@ let solvePartOne  =
 
     // dump "player scores" finalBoard.playerScores
 
-    printfn "Max score is %d" <| List.max finalBoard.playerScores
+    printfn "Max score is %d" <| Array.max finalBoard.playerScores
     //dump "Final board" finalBoard
 
     ()
