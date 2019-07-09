@@ -11,22 +11,29 @@ type DimStats =
         min: int;
         max: int;
         range: int;
+        stddev: float;
     }
 type PointAnalysis =
     {
         rows: DimStats;
         cols: DimStats;
+        jointStdDev: float;
     }
 
 let analyzePoints (points:((int * int) * (int * int)) list): PointAnalysis =
-    let rows = points |> List.map (fun ((_,y),(_,_)) -> y) |> Set.ofList
-    let cols = points |> List.map (fun ((x,_),(_,_)) -> x) |> Set.ofList
-    let minRow = Set.minElement rows
-    let maxRow = Set.maxElement rows
-    let minCol = Set.minElement cols
-    let maxCol = Set.maxElement cols
-    let numRows = Set.count rows
-    let numCols = Set.count rows
+    let rows = points |> List.map (fun ((_,y),(_,_)) -> y)
+    let rowSet = Set.ofList rows
+    let cols = points |> List.map (fun ((x,_),(_,_)) -> x)
+    let colSet = Set.ofList cols
+    let minRow = Set.minElement rowSet
+    let maxRow = Set.maxElement rowSet
+    let minCol = Set.minElement colSet
+    let maxCol = Set.maxElement colSet
+    let numRows = Set.count rowSet
+    let numCols = Set.count rowSet
+    let rowStd = stdDevList rows
+    let colStd = stdDevList cols
+    let jointStdDev = rowStd * colStd
 
     {
         rows = {
@@ -34,13 +41,17 @@ let analyzePoints (points:((int * int) * (int * int)) list): PointAnalysis =
             min = minRow;
             max = maxRow;
             range = maxRow - minRow;
+            stddev = stdDevList rows;
         };
         cols = {
             count = numCols;
             min = minCol;
             max = maxCol;
             range = maxCol - minCol;
-        }
+            stddev = stdDevList cols
+        };
+
+        jointStdDev = jointStdDev;
     }
 
 let plotPoints (points:((int * int) * (int * int)) list) =
@@ -90,22 +101,43 @@ let parseLine (line:string) : ((int * int) * (int * int)) =
     let vy = int matchResult.Groups.[4].Value
     ((x,y),(vx,vy))
 
+let rec simulate (priorStdDev:float) (points:((int * int) * (int * int)) list) =
+    let candidate = movePoints points
+    let analysis = analyzePoints candidate
+    let newStdDev = analysis.jointStdDev
+
+    if (newStdDev > priorStdDev)
+    then
+        points
+    else
+        printfn "%A" newStdDev
+        simulate newStdDev candidate
+
 let solvePartOne (points:((int * int) * (int * int)) list)  =
     printfn "Starting part one with %d points" points.Length
-    let moved =
-        points
-            |> movePoints |> plotPoints
-            |> movePoints |> plotPoints
-            |> movePoints |> plotPoints
+    points |> analyzePoints |> printfn "%A"
+    // let moved =
+    //     points
+    //         |> movePointsBy 1 |> analyzePoints |> fun a -> a.jointStdDev |> printfn "\n%A"
+    //     points
+    //         |> movePointsBy 2 |> analyzePoints |> fun a -> a.jointStdDev |> printfn "\n%A"
+    //     points
+    //         |> movePointsBy 3 |> analyzePoints |> fun a -> a.jointStdDev |> printfn "\n%A"
+    //     points
+    //         |> movePointsBy 4 |> analyzePoints |> fun a -> a.jointStdDev |> printfn "\n%A"
 
+    //     points |> movePointsBy 3 |> dump "final"
+
+    let result = simulate (float Single.MaxValue) points
+    plotPoints result
     ()
 
 let solvePartTwo  =
     ()
 
 let solve =
-    //let testdata = Common.getChallengeDataAsArray 2018 10
-    let testdata = Common.getSampleDataAsArray 2018 10
+    let testdata = Common.getChallengeDataAsArray 2018 10
+    //let testdata = Common.getSampleDataAsArray 2018 10
     //dump "data" testdata
 
     let points = testdata

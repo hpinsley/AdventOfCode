@@ -35,3 +35,14 @@ let getSampleDataAsArray year month : string [] =
 let trim (s:string) : string = s.Trim()
 let parseInt = trim >> int
 let inline tuple2 a b = a,b
+
+// The following example computes the average of a list.
+let averageList list = (List.fold (fun acc elem -> acc + float elem) 0.0 list / float list.Length)
+
+// The following example computes the standard deviation of a list.
+// The standard deviation is computed by taking the square root of the
+// sum of the variances, which are the differences between each value
+// and the average.
+let stdDevList list =
+    let avg = averageList list
+    sqrt (List.fold (fun acc elem -> acc + (float elem - avg) ** 2.0 ) 0.0 list / float list.Length)
