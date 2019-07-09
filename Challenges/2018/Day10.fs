@@ -116,24 +116,10 @@ let rec simulate (priorStdDev:float) (moveCount:int) (points:((int * int) * (int
 let solvePartOne (points:((int * int) * (int * int)) list)  =
     printfn "Starting part one with %d points" points.Length
     points |> analyzePoints |> printfn "%A"
-    // let moved =
-    //     points
-    //         |> movePointsBy 1 |> analyzePoints |> fun a -> a.jointStdDev |> printfn "\n%A"
-    //     points
-    //         |> movePointsBy 2 |> analyzePoints |> fun a -> a.jointStdDev |> printfn "\n%A"
-    //     points
-    //         |> movePointsBy 3 |> analyzePoints |> fun a -> a.jointStdDev |> printfn "\n%A"
-    //     points
-    //         |> movePointsBy 4 |> analyzePoints |> fun a -> a.jointStdDev |> printfn "\n%A"
-
-    //     points |> movePointsBy 3 |> dump "final"
 
     let (result, moveCount) = simulate (float Single.MaxValue) 0 points
-    plotPoints result
+    plotPoints result |> ignore
     printfn "Result obtained in %d 'moves'" moveCount
-    ()
-
-let solvePartTwo  =
     ()
 
 let solve =
