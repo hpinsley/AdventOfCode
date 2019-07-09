@@ -16,5 +16,6 @@ let main argv =
     //Year2018Day07.solve
     //Year2018Day08.solve
     //Year2018Day09.solve
-    Year2018Day10.solve
+    //Year2018Day10.solve
+    Year2018Day11.solve
     0 // return an integer exit code
