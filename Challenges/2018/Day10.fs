@@ -101,17 +101,17 @@ let parseLine (line:string) : ((int * int) * (int * int)) =
     let vy = int matchResult.Groups.[4].Value
     ((x,y),(vx,vy))
 
-let rec simulate (priorStdDev:float) (points:((int * int) * (int * int)) list) =
+let rec simulate (priorStdDev:float) (moveCount:int) (points:((int * int) * (int * int)) list) =
     let candidate = movePoints points
     let analysis = analyzePoints candidate
     let newStdDev = analysis.jointStdDev
 
     if (newStdDev > priorStdDev)
     then
-        points
+        (points, moveCount)
     else
-        printfn "%A" newStdDev
-        simulate newStdDev candidate
+        // printfn "%A" newStdDev
+        simulate newStdDev (moveCount + 1) candidate
 
 let solvePartOne (points:((int * int) * (int * int)) list)  =
     printfn "Starting part one with %d points" points.Length
@@ -128,8 +128,9 @@ let solvePartOne (points:((int * int) * (int * int)) list)  =
 
     //     points |> movePointsBy 3 |> dump "final"
 
-    let result = simulate (float Single.MaxValue) points
+    let (result, moveCount) = simulate (float Single.MaxValue) 0 points
     plotPoints result
+    printfn "Result obtained in %d 'moves'" moveCount
     ()
 
 let solvePartTwo  =
