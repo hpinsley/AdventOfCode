@@ -6,6 +6,8 @@ open System.Collections.Generic
 open Common
 open System.Text.RegularExpressions
 
+let MaxGrid = 300
+
 let extractHundreds n =
     if (n < 100) then 0
     else
@@ -18,6 +20,8 @@ let powerHard serialNumber x y  =
         |> (+) -5
 
 let mutable hardCalls = 0
+let mutable hardFullGridCalls = 0
+let mutable softFullGridCalls = 0
 
 let memoizePowerFunction () =
     let cache = Dictionary<(int*int*int),int>()
@@ -52,8 +56,8 @@ let solvePartOne () =
     let (mx, my, ms) =
         seq {
             for s in 3..3 do
-            for x in 1..(300-(s-1)) do
-            for y in 1..(300-(s-1)) -> (x,y,s)
+            for x in 1..(MaxGrid-(s-1)) do
+            for y in 1..(MaxGrid-(s-1)) -> (x,y,s)
         } |> Seq.maxBy (fun (x,y,s) -> gridPower gridSerialNumber x y s)
 
     printfn "Part I: %A (size %d) with value %d" (mx,my) ms (gridPower gridSerialNumber mx my ms)
@@ -65,21 +69,20 @@ let solvePartTwo () =
     // Inner function to compute gridpower of size s at x,y.  First see if we have
     // memoized the value of size s-1 at the same corner.  If so, we only need to
     // compute the power for the bottom and right edges of the grid of size s
-    let folder (dict:Map<(int * int * int), int>) v =
+    let folder (dict:Dictionary<(int * int * int), int>) v =
         let (x,y,s) = v
+        let priorKey = (x,y,s-1)
 
         // let powerFun = memoizePowerFunction()
-
-        let result =
-            match Map.tryFind (x, y, s - 1) dict with
-                | None ->
-                    gridPower gridSerialNumber x y s
-                | Some subtotal ->
-                    subtotal +
+        let newValueForState =
+            if dict.ContainsKey(priorKey)
+            then
+                softFullGridCalls <- softFullGridCalls + 1
+                dict.[priorKey]
+                        +
                         (
                             seq { for x1 in x..x+s-1 -> (x1, y + s - 1) }
                                 |> Seq.sumBy (fun (x0, y0) -> powerFun gridSerialNumber x0 y0)
-
                         )
                         +
                         (
@@ -87,21 +90,26 @@ let solvePartTwo () =
                             seq { for y1 in y..y+s-2 -> (x + s - 1, y1) }
                                 |> Seq.sumBy (fun (x0, y0) -> powerFun gridSerialNumber x0 y0)
                         )
+            else
+                hardFullGridCalls <- hardFullGridCalls + 1
+                let computed = gridPower gridSerialNumber x y s
+                computed
 
-        let newMap = Map.add (x,y,s) result dict
-        newMap
+        dict.Add(v, newValueForState)
+        dict
 
-    let initialDict = Map.ofSeq Seq.empty<(int * int * int) * int>
+    let initialDict = new Dictionary<(int * int * int), int>()
 
     let finalValues =
         seq {
-            for s in sizeGenerator 4 do
-            for x in 1..(300-(s-1)) do
-            for y in 1..(300-(s-1)) -> (x,y,s)
+            for s in sizeGenerator MaxGrid do
+            for x in 1..(MaxGrid-(s-1)) do
+            for y in 1..(MaxGrid-(s-1)) -> (x,y,s)
         } |> Seq.fold folder initialDict
 
-    let ((mx, my, ms),mv) = Map.toSeq finalValues
-                            |> Seq.maxBy (fun ((_,_,_),v) -> v)
+    let ((mx, my, ms),mv) = finalValues
+                                |> Seq.map (fun kvp -> (kvp.Key, kvp.Value))
+                                |> Seq.maxBy (fun ((_,_,_),v) -> v)
 
     printfn "Part II:%A (size %d) with value %d" (mx,my) ms mv
     ()
@@ -109,5 +117,5 @@ let solvePartTwo () =
 let solve () =
     // solvePartOne()
     solvePartTwo()
-    printfn "done with %d hard calls" hardCalls
+    printfn "done with %d hard calls and %d hard full grid calls and %d soft" hardCalls hardFullGridCalls softFullGridCalls
     ()
