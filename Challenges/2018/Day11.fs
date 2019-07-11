@@ -102,7 +102,7 @@ let solvePartTwo () =
 
     let finalValues =
         seq {
-            for s in sizeGenerator MaxGrid do
+            for s in sizeGenerator 20 do
             for x in 1..(MaxGrid-(s-1)) do
             for y in 1..(MaxGrid-(s-1)) -> (x,y,s)
         } |> Seq.fold folder initialDict
@@ -115,7 +115,7 @@ let solvePartTwo () =
     ()
 
 let solve () =
-    // solvePartOne()
+    //solvePartOne()
     solvePartTwo()
     printfn "done with %d hard calls and %d hard full grid calls and %d soft" hardCalls hardFullGridCalls softFullGridCalls
     ()
