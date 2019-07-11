@@ -17,6 +17,8 @@ let powerHard serialNumber x y  =
         |> extractHundreds
         |> (+) -5
 
+let mutable hardCalls = 0
+
 let memoizePowerFunction () =
     let cache = Dictionary<(int*int*int),int>()
     printfn "Created cache"
@@ -25,6 +27,7 @@ let memoizePowerFunction () =
         if (cache.ContainsKey(t)) then
             cache.[t]
         else
+            hardCalls <- hardCalls + 1
             let v = powerHard sn x y
             cache.[t] <- v
             v
@@ -92,7 +95,7 @@ let solvePartTwo () =
 
     let finalValues =
         seq {
-            for s in sizeGenerator 20 do
+            for s in sizeGenerator 4 do
             for x in 1..(300-(s-1)) do
             for y in 1..(300-(s-1)) -> (x,y,s)
         } |> Seq.fold folder initialDict
@@ -106,5 +109,5 @@ let solvePartTwo () =
 let solve () =
     // solvePartOne()
     solvePartTwo()
-    printfn "done"
+    printfn "done with %d hard calls" hardCalls
     ()
