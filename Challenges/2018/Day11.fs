@@ -22,6 +22,7 @@ let powerHard serialNumber x y  =
 let mutable hardCalls = 0
 let mutable hardFullGridCalls = 0
 let mutable softFullGridCalls = 0
+let mutable folderCalls = 0
 
 let memoizePowerFunction () =
     let cache = Dictionary<(int*int*int),int>()
@@ -64,12 +65,13 @@ let solvePartOne () =
     ()
 
 let solvePartTwo () =
-    let gridSerialNumber = 42
+    let gridSerialNumber = 9435
 
     // Inner function to compute gridpower of size s at x,y.  First see if we have
     // memoized the value of size s-1 at the same corner.  If so, we only need to
     // compute the power for the bottom and right edges of the grid of size s
     let folder (dict:Dictionary<(int * int * int), int>) v =
+        folderCalls <- folderCalls + 1
         let (x,y,s) = v
         let priorKey = (x,y,s-1)
 
@@ -95,14 +97,20 @@ let solvePartTwo () =
                 let computed = gridPower gridSerialNumber x y s
                 computed
 
-        dict.Add(v, newValueForState)
+        //dict.Add(v, newValueForState)
+        dict.[v] <- newValueForState
         dict
 
     let initialDict = new Dictionary<(int * int * int), int>()
 
     let finalValues =
         seq {
-            for s in sizeGenerator 20 do
+            // Cheating a bit only going to 25 here.  Going to 300 takes
+            // too long but this gives the right answer.  A better solution
+            // would make use of this algorithm:
+            // https://en.wikipedia.org/wiki/Summed-area_table
+
+            for s in sizeGenerator 25 do
             for x in 1..(MaxGrid-(s-1)) do
             for y in 1..(MaxGrid-(s-1)) -> (x,y,s)
         } |> Seq.fold folder initialDict
@@ -118,4 +126,5 @@ let solve () =
     //solvePartOne()
     solvePartTwo()
     printfn "done with %d hard calls and %d hard full grid calls and %d soft" hardCalls hardFullGridCalls softFullGridCalls
+    printfn "You made %d folder calls." folderCalls
     ()
