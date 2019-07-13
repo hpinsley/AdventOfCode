@@ -28,6 +28,24 @@ let testPattern pattern =
     let result = patternToInt pattern
     printfn "Pattern %s = %d" pattern result
 
+// Given an array of strings of the form:
+// ..### => .
+// Construct an index between 0..31 for the left hand side where the # are binary 1
+// and the . is binary 0.  This is the index.  And the right hand side is true (#) or false
+// (.)
+
+let buildRules (encodedRules:string array) =
+    let splitLines = encodedRules |> Array.map (fun line -> line.Split(" => "))
+
+    let rules = (Array.map ((fun [|pattern;aliveIndicator|] -> (pattern,aliveIndicator)) >> ruleToIndexAndBool) splitLines)
+                    |> Array.fold
+                            (fun (rules:bool array) (arrayIndex:int, alive:bool) ->
+                                rules.[arrayIndex] <- alive
+                                rules
+                             )
+                            (Array.init 32 (fun _ -> false))
+    rules
+
 let solvePartOne () =
     printfn "Starting part 1"
 
@@ -41,16 +59,8 @@ let solve() =
     //let testdata = Common.getChallengeDataAsArray 2018 12
     let testdata = Common.getSampleDataAsArray 2018 12
     dump "data" testdata
-    let rules = testdata.[2..]
-                    |> Array.map (fun line -> line.Split(" => "))
-                    |> Array.map (fun [|p;r|] -> (p,r))
-                    |> Array.map ruleToIndexAndBool
-                    |> Array.fold
-                            (fun (rules:bool array) (arrayIndex, alive) ->
-                                rules.[arrayIndex] <- alive
-                                rules
-                             )
-                            (Array.init 32 (fun _ -> false))
+
+    let rules = buildRules testdata.[2..]
 
     printfn "Rules:\n%A\n" rules
     solvePartOne()
