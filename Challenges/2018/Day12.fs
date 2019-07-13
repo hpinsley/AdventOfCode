@@ -80,27 +80,27 @@ let getStateAtIndexes (stateArray: bool array) (indexesToCheck: int array) =
     indexesToCheck
         |> Array.map (fun index -> if index >= 0 && index <= maxIndex then stateArray.[index] else false)
 
-let generate (rules:bool[]) (vstate:bool array) (currentPlant:int) =
+let generate (rules:bool[]) ((vstate, currentPlant):(bool[] * int)) =
     let (extendedArray, newCurrentPlantIndex) = extendState vstate currentPlant
     printfn "Extended %A" extendedArray
 
-    let x =
+    let nextGeneration =
         extendedArray
             |> Array.mapi (fun index _ -> [|index-2;index-1;index;index+1;index+2|])
             |> Array.map (getStateAtIndexes extendedArray)
             |> Array.map boolsToInt     // Find matching rule
             |> Array.map (fun ruleIndex -> rules.[ruleIndex])
 
-    printfn "%A" x
+    (nextGeneration, newCurrentPlantIndex)
+
 
 let solvePartOne (rules:bool array) (initialState: bool list) =
     printfn "Starting part 1"
     let vstate = Array.ofList initialState
-    let initialCount = vstate.Length
-    printfn "Initially, there are %d pots" initialCount
-    printfn "%A" vstate
 
-    let result = generate rules vstate 0
+    let result = generate rules (vstate, 0)
+
+    printfn "%A" result
     ()
 
 let solvePartTwo () =
@@ -115,8 +115,8 @@ let solve() =
     let rules = buildRules testdata.[2..]
     let intialState = buildInitialState testdata.[0]
 
-    printfn "Rules:\n%A\n" rules
-    printfn "Initial state: %A" intialState
+    // printfn "Rules:\n%A\n" rules
+    // printfn "Initial state: %A" intialState
 
     solvePartOne rules intialState
 
