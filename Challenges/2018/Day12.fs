@@ -45,7 +45,12 @@ let solve() =
                     |> Array.map (fun line -> line.Split(" => "))
                     |> Array.map (fun [|p;r|] -> (p,r))
                     |> Array.map ruleToIndexAndBool
-                    |> Array.fold (fun a r -> a) (Array.init 32)
+                    |> Array.fold
+                            (fun (rules:bool array) (arrayIndex, alive) ->
+                                rules.[arrayIndex] <- alive
+                                rules
+                             )
+                            (Array.init 32 (fun _ -> false))
 
     printfn "Rules:\n%A\n" rules
     solvePartOne()
