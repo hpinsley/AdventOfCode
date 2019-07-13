@@ -5,6 +5,19 @@ open System.IO
 open Common
 open System.Text.RegularExpressions
 
+// The sequence of bools are bits for constructing an Int by shifting
+let boolsToInt (bools:bool seq) : int =
+    let rec build boolList prior =
+        match boolList with
+            | alive :: rest ->
+                let shifted = prior <<< 1
+                let v = shifted + (if alive then 1 else 0)
+                build rest v
+            | [] ->
+                prior
+
+    build (List.ofSeq bools) 0
+
 let patternToInt (pattern:string) : int =
     let rec build pattern prior =
         match pattern with
@@ -46,9 +59,48 @@ let buildRules (encodedRules:string array) =
                             (Array.init 32 (fun _ -> false))
     rules
 
-let solvePartOne () =
-    printfn "Starting part 1"
+let buildInitialState (line:string) : bool list =
+    line.Replace("initial state: ", "")
+        |> Seq.toList
+        |> List.map ((=) '#')
 
+// We need to extend the state left by two in case a new plant can emerge.  Also right
+// by two.  We also have to shift the currentPlantIndex
+let extendState (vstate:bool array) (currentPlant:int) =
+    let extended = Array.concat
+                    [|
+                        [|false; false|];
+                        vstate;
+                        [|false; false|]
+                    |]
+    (extended, currentPlant + 2)
+
+let getStateAtIndexes (stateArray: bool array) (indexesToCheck: int array) =
+    let maxIndex = stateArray.Length - 1
+    indexesToCheck
+        |> Array.map (fun index -> if index >= 0 && index <= maxIndex then stateArray.[index] else false)
+
+let generate (rules:bool[]) (vstate:bool array) (currentPlant:int) =
+    let (extendedArray, newCurrentPlantIndex) = extendState vstate currentPlant
+    printfn "Extended %A" extendedArray
+
+    let x =
+        extendedArray
+            |> Array.mapi (fun index _ -> [|index-2;index-1;index;index+1;index+2|])
+            |> Array.map (getStateAtIndexes extendedArray)
+            |> Array.map boolsToInt     // Find matching rule
+            |> Array.map (fun ruleIndex -> rules.[ruleIndex])
+
+    printfn "%A" x
+
+let solvePartOne (rules:bool array) (initialState: bool list) =
+    printfn "Starting part 1"
+    let vstate = Array.ofList initialState
+    let initialCount = vstate.Length
+    printfn "Initially, there are %d pots" initialCount
+    printfn "%A" vstate
+
+    let result = generate rules vstate 0
     ()
 
 let solvePartTwo () =
@@ -61,8 +113,12 @@ let solve() =
     dump "data" testdata
 
     let rules = buildRules testdata.[2..]
+    let intialState = buildInitialState testdata.[0]
 
     printfn "Rules:\n%A\n" rules
-    solvePartOne()
+    printfn "Initial state: %A" intialState
+
+    solvePartOne rules intialState
+
     //solvePartTwo()
     ()
