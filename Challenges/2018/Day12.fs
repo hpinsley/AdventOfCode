@@ -82,7 +82,7 @@ let getStateAtIndexes (stateArray: bool array) (indexesToCheck: int array) =
 
 let generate (rules:bool[]) ((vstate, currentPlant):(bool[] * int)) =
     let (extendedArray, newCurrentPlantIndex) = extendState vstate currentPlant
-    printfn "Extended %A" extendedArray
+    // printfn "Extended %A" extendedArray
 
     let nextGeneration =
         extendedArray
@@ -98,9 +98,21 @@ let solvePartOne (rules:bool array) (initialState: bool list) =
     printfn "Starting part 1"
     let vstate = Array.ofList initialState
 
-    let result = generate rules (vstate, 0)
+    // let result = generate rules (vstate, 0)
 
-    printfn "%A" result
+    let folder = fun (state:(bool[] * int)) index -> generate rules state
+
+    let (finalState, currentIndex) = [1..20]
+                                        |> Seq.fold folder (vstate, 0)
+
+    let answer =
+        finalState
+            |> Array.mapi (fun index hasPlant -> (index - currentIndex, hasPlant))
+            |> Array.sumBy (fun (plantNumber, isAlive) -> if isAlive then plantNumber else 0)
+
+    // printfn "%A" finalState.[currentIndex..]
+    printfn "Answer to part I is %d" answer
+
     ()
 
 let solvePartTwo () =
@@ -108,8 +120,8 @@ let solvePartTwo () =
     ()
 
 let solve() =
-    //let testdata = Common.getChallengeDataAsArray 2018 12
-    let testdata = Common.getSampleDataAsArray 2018 12
+    let testdata = Common.getChallengeDataAsArray 2018 12
+    //let testdata = Common.getSampleDataAsArray 2018 12
     dump "data" testdata
 
     let rules = buildRules testdata.[2..]
