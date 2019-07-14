@@ -80,9 +80,29 @@ let getStateAtIndexes (stateArray: bool array) (indexesToCheck: int array) =
     indexesToCheck
         |> Array.map (fun index -> if index >= 0 && index <= maxIndex then stateArray.[index] else false)
 
-let generate (rules:bool[]) ((vstate, currentPlant):(bool[] * int)) =
+// Take a shifted array of bools and where the current index is and return a list
+// of alive plant numbers
+let cononicalizeState (currentIndex: int) (vstate:bool[]) =
+    vstate
+        |> Array.mapi (fun index hasPlant -> (index - currentIndex, hasPlant))
+        |> Array.choose (fun (plantNumber, isAlive) -> if isAlive then Some plantNumber else None)
+
+let globalDictionary = new System.Collections.Generic.Dictionary<string, string>()
+
+let plantNumbersToKey (plantNumbers: int[]) : string =
+    plantNumbers
+        |> Array.map (fun pno -> pno.ToString())
+        |> String.concat ","
+
+let generate (rules:bool[]) ((vstate, currentPlant, canonicalized):(bool[] * int * int[])) =
     let (extendedArray, newCurrentPlantIndex) = extendState vstate currentPlant
     // printfn "Extended %A" extendedArray
+
+    let lookupKey = plantNumbersToKey canonicalized
+    // printfn "Key length: %d" lookupKey.Length
+
+    if (globalDictionary.ContainsKey(lookupKey)) then
+        raise (new Exception(lookupKey))
 
     let nextGeneration =
         extendedArray
@@ -91,25 +111,25 @@ let generate (rules:bool[]) ((vstate, currentPlant):(bool[] * int)) =
             |> Array.map boolsToInt     // Find matching rule
             |> Array.map (fun ruleIndex -> rules.[ruleIndex])
 
-    (nextGeneration, newCurrentPlantIndex)
+    let newCanonicalized = cononicalizeState newCurrentPlantIndex nextGeneration
+    let newLookupKey = plantNumbersToKey newCanonicalized
 
-// Take a shifted array of bools and where the current index is and return a list
-// of alive plant numbers
-let cononicalizeState (currentIndex: int) (vstate:bool[]) =
-    vstate
-        |> Array.mapi (fun index hasPlant -> (index - currentIndex, hasPlant))
-        |> Array.choose (fun (plantNumber, isAlive) -> if isAlive then Some plantNumber else None)
+    globalDictionary.[lookupKey] <- newLookupKey
+    (nextGeneration, newCurrentPlantIndex, newCanonicalized)
+
 
 let solvePartOne (rules:bool array) (initialState: bool list) =
     printfn "Starting part 1"
     let vstate = Array.ofList initialState
+    let canonicalized = cononicalizeState 0 vstate
 
     // let result = generate rules (vstate, 0)
 
-    let folder = fun (state:(bool[] * int)) index -> generate rules state
-    let generations = 20
-    let (finalState, currentIndex) = [1..generations]
-                                        |> Seq.fold folder (vstate, 0)
+    let folder = fun (state:(bool[] * int * int[])) index -> generate rules state
+    let generations = 10000
+    let (finalState, currentIndex, finalCanonicalized) =
+            [1..generations]
+                    |> Seq.fold folder (vstate, 0, canonicalized)
 
     let answer =
         finalState
@@ -117,7 +137,7 @@ let solvePartOne (rules:bool array) (initialState: bool list) =
             |> Array.sum
 
     // printfn "%A" finalState.[currentIndex..]
-    printfn "Answer to part I is %d" answer
+    printfn "Answer to part I for %d generations is %d" generations answer
 
     ()
 
@@ -126,8 +146,8 @@ let solvePartTwo () =
     ()
 
 let solve() =
-    //let testdata = Common.getChallengeDataAsArray 2018 12
-    let testdata = Common.getSampleDataAsArray 2018 12
+    let testdata = Common.getChallengeDataAsArray 2018 12
+    //let testdata = Common.getSampleDataAsArray 2018 12
     dump "data" testdata
 
     let rules = buildRules testdata.[2..]
