@@ -59,10 +59,12 @@ let buildRules (encodedRules:string array) =
                             (Array.init 32 (fun _ -> false))
     rules
 
-let buildInitialState (line:string) : bool list =
+let buildInitialState (line:string) : int[] =
     line.Replace("initial state: ", "")
-        |> Seq.toList
-        |> List.map ((=) '#')
+            |> Seq.toList
+            |> Seq.mapi (fun index c -> (index, c = '#'))
+            |> Seq.choose (fun (plantNo, alive) -> if alive then Some plantNo else None)
+            |> Array.ofSeq
 
 // We need to extend the state left by two in case a new plant can emerge.  Also right
 // by two.  We also have to shift the currentPlantIndex
@@ -80,6 +82,24 @@ let getStateAtIndexes (stateArray: bool array) (indexesToCheck: int array) =
     indexesToCheck
         |> Array.map (fun index -> if index >= 0 && index <= maxIndex then stateArray.[index] else false)
 
+let convertListOfPlantsToBoolArrayAndCurrentPlantIndex (alivePlants:int[]): (bool[] * int) =
+    let firstPlantNumber = alivePlants.[0]
+    let lastPlantNumber = alivePlants.[alivePlants.Length - 1]
+    let initialArraySize = (lastPlantNumber - firstPlantNumber) + 1
+    let vstate = Array.init initialArraySize (fun _ -> false)
+
+    alivePlants
+        |> Array.iter (fun aliveIndex -> vstate.[aliveIndex - firstPlantNumber] <- true) |> ignore
+
+    let finalState = Array.concat
+                        [|
+                              [|false; false|]
+                            ; vstate
+                            ; [|false; false|]
+                        |]
+    let currentPlantIndex = 2 - firstPlantNumber
+    (finalState, currentPlantIndex)
+
 // Take a shifted array of bools and where the current index is and return a list
 // of alive plant numbers
 let cononicalizeState (currentIndex: int) (vstate:bool[]) =
@@ -94,12 +114,12 @@ let plantNumbersToKey (plantNumbers: int[]) : string =
         |> Array.map (fun pno -> pno.ToString())
         |> String.concat ","
 
-let generate (rules:bool[]) ((vstate, currentPlant, canonicalized):(bool[] * int * int[])) =
-    let (extendedArray, newCurrentPlantIndex) = extendState vstate currentPlant
+let generate (rules:bool[]) (alivePlants:int[]) =
+    let (extendedArray, newCurrentPlantIndex) = convertListOfPlantsToBoolArrayAndCurrentPlantIndex alivePlants
     // printfn "Extended %A" extendedArray
 
-    let lookupKey = plantNumbersToKey canonicalized
-    // printfn "Key length: %d" lookupKey.Length
+    let lookupKey = plantNumbersToKey alivePlants
+    printfn "Key length: %d: %A" lookupKey.Length lookupKey
 
     if (globalDictionary.ContainsKey(lookupKey)) then
         raise (new Exception(lookupKey))
@@ -111,29 +131,25 @@ let generate (rules:bool[]) ((vstate, currentPlant, canonicalized):(bool[] * int
             |> Array.map boolsToInt     // Find matching rule
             |> Array.map (fun ruleIndex -> rules.[ruleIndex])
 
-    let newCanonicalized = cononicalizeState newCurrentPlantIndex nextGeneration
-    let newLookupKey = plantNumbersToKey newCanonicalized
-
+    let newAlivePlants = cononicalizeState newCurrentPlantIndex nextGeneration
+    let newLookupKey = plantNumbersToKey newAlivePlants
     globalDictionary.[lookupKey] <- newLookupKey
-    (nextGeneration, newCurrentPlantIndex, newCanonicalized)
+    newAlivePlants
 
 
-let solvePartOne (rules:bool array) (initialState: bool list) =
+let solvePartOne (rules:bool array) (initialState: int[]) =
     printfn "Starting part 1"
-    let vstate = Array.ofList initialState
-    let canonicalized = cononicalizeState 0 vstate
 
     // let result = generate rules (vstate, 0)
 
-    let folder = fun (state:(bool[] * int * int[])) index -> generate rules state
-    let generations = 10000
-    let (finalState, currentIndex, finalCanonicalized) =
+    let folder = fun (state:int[]) _ -> generate rules state
+    let generations = 20
+    let final =
             [1..generations]
-                    |> Seq.fold folder (vstate, 0, canonicalized)
+                    |> Seq.fold folder initialState
 
     let answer =
-        finalState
-            |> cononicalizeState currentIndex
+        final
             |> Array.sum
 
     // printfn "%A" finalState.[currentIndex..]
@@ -146,8 +162,8 @@ let solvePartTwo () =
     ()
 
 let solve() =
-    let testdata = Common.getChallengeDataAsArray 2018 12
-    //let testdata = Common.getSampleDataAsArray 2018 12
+    //let testdata = Common.getChallengeDataAsArray 2018 12
+    let testdata = Common.getSampleDataAsArray 2018 12
     dump "data" testdata
 
     let rules = buildRules testdata.[2..]
