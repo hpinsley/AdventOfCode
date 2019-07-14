@@ -93,6 +93,12 @@ let generate (rules:bool[]) ((vstate, currentPlant):(bool[] * int)) =
 
     (nextGeneration, newCurrentPlantIndex)
 
+// Take a shifted array of bools and where the current index is and return a list
+// of alive plant numbers
+let cononicalizeState (currentIndex: int) (vstate:bool[]) =
+    vstate
+        |> Array.mapi (fun index hasPlant -> (index - currentIndex, hasPlant))
+        |> Array.choose (fun (plantNumber, isAlive) -> if isAlive then Some plantNumber else None)
 
 let solvePartOne (rules:bool array) (initialState: bool list) =
     printfn "Starting part 1"
@@ -107,8 +113,7 @@ let solvePartOne (rules:bool array) (initialState: bool list) =
 
     let answer =
         finalState
-            |> Array.mapi (fun index hasPlant -> (index - currentIndex, hasPlant))
-            |> Array.choose (fun (plantNumber, isAlive) -> if isAlive then Some plantNumber else None)
+            |> cononicalizeState currentIndex
             |> Array.sum
 
     // printfn "%A" finalState.[currentIndex..]
