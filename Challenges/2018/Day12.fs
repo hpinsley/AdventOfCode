@@ -101,14 +101,15 @@ let solvePartOne (rules:bool array) (initialState: bool list) =
     // let result = generate rules (vstate, 0)
 
     let folder = fun (state:(bool[] * int)) index -> generate rules state
-
-    let (finalState, currentIndex) = [1..20]
+    let generations = 20
+    let (finalState, currentIndex) = [1..generations]
                                         |> Seq.fold folder (vstate, 0)
 
     let answer =
         finalState
             |> Array.mapi (fun index hasPlant -> (index - currentIndex, hasPlant))
-            |> Array.sumBy (fun (plantNumber, isAlive) -> if isAlive then plantNumber else 0)
+            |> Array.choose (fun (plantNumber, isAlive) -> if isAlive then Some plantNumber else None)
+            |> Array.sum
 
     // printfn "%A" finalState.[currentIndex..]
     printfn "Answer to part I is %d" answer
@@ -120,8 +121,8 @@ let solvePartTwo () =
     ()
 
 let solve() =
-    let testdata = Common.getChallengeDataAsArray 2018 12
-    //let testdata = Common.getSampleDataAsArray 2018 12
+    //let testdata = Common.getChallengeDataAsArray 2018 12
+    let testdata = Common.getSampleDataAsArray 2018 12
     dump "data" testdata
 
     let rules = buildRules testdata.[2..]
