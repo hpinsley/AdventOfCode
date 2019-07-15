@@ -60,11 +60,13 @@ let buildRules (encodedRules:string array) =
     rules
 
 let buildInitialState (line:string) : int[] =
-    line.Replace("initial state: ", "")
+    let vstate =
+        line.Replace("initial state: ", "")
             |> Seq.toList
             |> Seq.mapi (fun index c -> (index, c = '#'))
             |> Seq.choose (fun (plantNo, alive) -> if alive then Some plantNo else None)
             |> Array.ofSeq
+    vstate
 
 // We need to extend the state left by two in case a new plant can emerge.  Also right
 // by two.  We also have to shift the currentPlantIndex
@@ -114,15 +116,16 @@ let plantNumbersToKey (plantNumbers: int[]) : string =
         |> Array.map (fun pno -> pno.ToString())
         |> String.concat ","
 
-let generate (rules:bool[]) (alivePlants:int[]) =
+let generate (rules:bool[]) (alivePlants:int[]) (generation:int) =
     let (extendedArray, newCurrentPlantIndex) = convertListOfPlantsToBoolArrayAndCurrentPlantIndex alivePlants
     // printfn "Extended %A" extendedArray
 
+    printfn "Generation %d sum is %d" generation (Array.sum alivePlants)
     let lookupKey = plantNumbersToKey alivePlants
-    printfn "Key length: %d: %A" lookupKey.Length lookupKey
+    //printfn "Key length: %d: %A" lookupKey.Length lookupKey
 
     if (globalDictionary.ContainsKey(lookupKey)) then
-        raise (new Exception(lookupKey))
+        raise (new Exception("Got " + lookupKey))
 
     let nextGeneration =
         extendedArray
@@ -142,10 +145,10 @@ let solvePartOne (rules:bool array) (initialState: int[]) =
 
     // let result = generate rules (vstate, 0)
 
-    let folder = fun (state:int[]) _ -> generate rules state
-    let generations = 20
+    let folder = fun (state:int[]) (generation:int) -> generate rules state generation
+    let generations = 300
     let final =
-            [1..generations]
+            [0..generations-1]
                     |> Seq.fold folder initialState
 
     let answer =
@@ -159,11 +162,23 @@ let solvePartOne (rules:bool array) (initialState: int[]) =
 
 let solvePartTwo () =
     printfn "Starting part 2"
+    printfn "The sums start increasing uniformally after a few hundered iterations so we don't need to simulate to 50,000,000,000"
+    // y = mx + b
+    // m = 65
+    // (x1, y1) = (300, 20456)
+    // (x2, y2) = (50,000,000,000, y2)
+    // (y2 - 20456) / (50,000,000,000 - 300) = 65
+    // (y2 - 20456) = 65 * (50,000,000,000 - 300)
+    // (y2 = 65 * (50,000,000,000 - 300) + 20456
+
+    let y2 = 65L * (50000000000L - 300L) + 20456L
+
+    printfn "End of part 2: Answer %A" y2
     ()
 
 let solve() =
-    //let testdata = Common.getChallengeDataAsArray 2018 12
-    let testdata = Common.getSampleDataAsArray 2018 12
+    let testdata = Common.getChallengeDataAsArray 2018 12
+    //let testdata = Common.getSampleDataAsArray 2018 12
     dump "data" testdata
 
     let rules = buildRules testdata.[2..]
@@ -173,6 +188,5 @@ let solve() =
     // printfn "Initial state: %A" intialState
 
     solvePartOne rules intialState
-
-    //solvePartTwo()
+    solvePartTwo()
     ()
