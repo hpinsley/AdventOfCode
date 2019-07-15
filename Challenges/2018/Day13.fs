@@ -71,6 +71,23 @@ let solve() =
                          )
 
     printfn "%A" track
+
+    let cartList =
+        seq { for r in 0..height - 1 do
+              for c in 0..width - 1 do
+              yield (r,c)
+            }
+            |> Seq.fold (fun carts (r,c) ->
+                                match charGrid.[r,c] with
+                                    | 'v' -> (r,c) :: carts
+                                    | '^' -> (r,c) :: carts
+                                    | '<' -> (r,c) :: carts
+                                    | '>' -> (r,c) :: carts
+                                    | _ -> carts
+                         ) []
+
+    printfn "%A" cartList
+    
     solvePartOne()
     //solvePartTwo()
     ()
