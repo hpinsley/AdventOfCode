@@ -206,8 +206,8 @@ let prepareInputData (testdata:string[]) =
     (track, cartList)
 
 let solve() =
-    //let testdata = Common.getChallengeDataAsArray 2018 13
-    let testdata = Common.getSampleDataAsArray 2018 13
+    let testdata = Common.getChallengeDataAsArray 2018 13
+    //let testdata = Common.getSampleDataAsArray 2018 13
     //dump "data" testdata
 
     let (track, carts) = prepareInputData testdata

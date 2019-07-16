@@ -1,0 +1,9 @@
+/Top Left
+/Bottom Right
+    dr = -dc
+    dc = -dr
+
+\Top Right
+\Bottom Left
+    dr = dc
+    dc = dr
