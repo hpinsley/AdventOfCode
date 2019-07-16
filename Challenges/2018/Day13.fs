@@ -13,6 +13,8 @@ type Cart = {
     turnCount: int;
 }
 
+type IntersectionChoice = Left | Straight | Right
+
 type TrackPart =
     | OffTheTrack
     | Intersection
@@ -20,8 +22,73 @@ type TrackPart =
     | VerticalSegment
     | Turn
 
-let solvePartOne () =
+let getNextTurn turnCount =
+    match turnCount % 3 with
+        | 0 -> Left
+        | 1 -> Straight
+        | 2 -> Right
+
+let turnRight (cart:Cart) =
+    { cart with
+        row = cart.row + cart.dc;
+        col = cart.col - cart.dr;
+        dr = cart.dc;
+        dc = -cart.dr;
+    }
+
+let turnLeft (cart:Cart) =
+    { cart with
+        row = cart.row - cart.dc;
+        col = cart.col + cart.dr;
+        dr = -cart.dc;
+        dc = cart.dr;
+    }
+
+let goStraight (cart:Cart) =
+    {
+        cart with
+            row = cart.row + cart.dr;
+            col = cart.col + cart.dc;
+    }
+
+let moveThroughIntersection (cart:Cart) =
+    match getNextTurn cart.turnCount with
+        | Left ->
+            { turnLeft cart with turnCount = cart.turnCount + 1; }
+        | Straight ->
+            { goStraight cart with turnCount = cart.turnCount + 1; }
+        | Right ->
+            { turnRight cart with turnCount = cart.turnCount + 1; }
+
+let moveThroughHorizontalSegment (cart:Cart) =
+    { cart with col = cart.col + cart.dc }
+
+let moveThroughVerticalSegment (cart:Cart) =
+    { cart with row = cart.row + cart.dr }
+
+let turn (cart:Cart) =
+    if (cart.dc < 0) then
+
+let move (track:TrackPart[,]) (movedCarts:Cart list) (cart:Cart) =
+    let r = cart.row
+    let c = cart.col
+    let trackPart = track.[r,c]
+
+    let movedCart =
+        match trackPart with
+            | OffTheTrack -> failwith "Off the track!"
+            | Intersection -> moveThroughIntersection cart
+            | HorizontalSegment -> moveThroughHorizontalSegment cart
+            | VerticalSegment -> moveThroughVerticalSegment cart
+            | Turn -> turn cart
+
+    movedCarts
+
+let solvePartOne (track:TrackPart[,]) (carts:Cart list) =
     printfn "Starting part 1"
+    carts
+        |> List.sortBy (fun cart -> (cart.row, cart.col))
+        |> List.fold (move track) []
     ()
 
 let solvePartTwo () =
@@ -97,7 +164,6 @@ let solve() =
     //dump "data" testdata
 
     let (track, carts) = prepareInputData testdata
-    printfn "%A" carts
-    solvePartOne()
+    solvePartOne track carts
     //solvePartTwo()
     ()
