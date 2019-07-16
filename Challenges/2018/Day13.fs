@@ -92,13 +92,50 @@ let move (track:TrackPart[,]) (movedCarts:Cart list) (cart:Cart) =
             | VerticalSegment -> moveThroughVerticalSegment cart
             | Turn c -> turn cart c
 
-    movedCarts
+    movedCart :: movedCarts
 
-let solvePartOne (track:TrackPart[,]) (carts:Cart list) =
-    printfn "Starting part 1"
+let tick (track:TrackPart[,]) (carts:Cart list) =
     carts
         |> List.sortBy (fun cart -> (cart.row, cart.col))
         |> List.fold (move track) []
+
+let findCollisions (carts:Cart list) =
+    let collisions = carts
+                        |> List.groupBy (fun c -> (c.row, c.col))
+                        |> List.choose (fun ((r, c),carts) ->
+                                            if carts.Length > 1
+                                                then Some (r,c)
+                                                else None
+                                        )
+    collisions
+
+let rec tickUntilCollison (track:TrackPart[,]) (carts:Cart list) iteration =
+
+    printfn "Iteration %d" iteration
+
+    let collisions = findCollisions carts
+
+    match collisions with
+        | [] ->
+                let movedCarts = tick track carts
+                tickUntilCollison track movedCarts (iteration + 1)
+
+        | collided -> collided
+
+
+let solvePartOne (track:TrackPart[,]) (carts:Cart list) =
+    printfn "Starting part 1"
+    // carts
+    //     |> tick track
+    //     |> printfn "%A"
+
+    let collisions = tickUntilCollison track carts 0
+    match collisions with
+        | [collision] ->
+                        let (y, x) = collision
+                        printfn "Solution is %A" (x,y)
+        | other ->
+                        printfn "Found %d collisions" (other.Length)
     ()
 
 let solvePartTwo () =
@@ -169,8 +206,8 @@ let prepareInputData (testdata:string[]) =
     (track, cartList)
 
 let solve() =
-    let testdata = Common.getChallengeDataAsArray 2018 13
-    //let testdata = Common.getSampleDataAsArray 2018 13
+    //let testdata = Common.getChallengeDataAsArray 2018 13
+    let testdata = Common.getSampleDataAsArray 2018 13
     //dump "data" testdata
 
     let (track, carts) = prepareInputData testdata
