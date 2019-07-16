@@ -20,7 +20,7 @@ type TrackPart =
     | Intersection
     | HorizontalSegment
     | VerticalSegment
-    | Turn
+    | Turn of Char
 
 let getNextTurn turnCount =
     match turnCount % 3 with
@@ -66,8 +66,18 @@ let moveThroughHorizontalSegment (cart:Cart) =
 let moveThroughVerticalSegment (cart:Cart) =
     { cart with row = cart.row + cart.dr }
 
-let turn (cart:Cart) =
-    if (cart.dc < 0) then
+let turn (cart:Cart) (c:Char) =
+    let (dr, dc) =
+        match c with
+            | '/' -> (-cart.dc, -cart.dr)
+            | '\\' -> (cart.dc, cart.dr)
+
+    { cart with
+        row = cart.row + dr;
+        col = cart.col + dc;
+        dr = dr;
+        dc = dc;
+    }
 
 let move (track:TrackPart[,]) (movedCarts:Cart list) (cart:Cart) =
     let r = cart.row
@@ -80,7 +90,7 @@ let move (track:TrackPart[,]) (movedCarts:Cart list) (cart:Cart) =
             | Intersection -> moveThroughIntersection cart
             | HorizontalSegment -> moveThroughHorizontalSegment cart
             | VerticalSegment -> moveThroughVerticalSegment cart
-            | Turn -> turn cart
+            | Turn c -> turn cart c
 
     movedCarts
 
@@ -132,8 +142,8 @@ let prepareInputData (testdata:string[]) =
                                    | ' ' -> OffTheTrack
                                    | '-' -> HorizontalSegment
                                    | '|' -> VerticalSegment
-                                   | '/' -> Turn
-                                   | '\\' -> Turn
+                                   | '/' -> Turn c
+                                   | '\\' -> Turn c
                                    | 'v' -> VerticalSegment
                                    | '^' -> VerticalSegment
                                    | '<' -> HorizontalSegment
