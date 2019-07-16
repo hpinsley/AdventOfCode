@@ -29,11 +29,7 @@ let solvePartTwo () =
     printfn "End of part 2"
     ()
 
-let solve() =
-    //let testdata = Common.getChallengeDataAsArray 2018 13
-    let testdata = Common.getSampleDataAsArray 2018 13
-    dump "data" testdata
-
+let prepareInputData (testdata:string[]) =
     let width =
         testdata
             |> Array.map (fun line -> line.Length)
@@ -48,6 +44,7 @@ let solve() =
     let height = testdata.Length
 
     printfn "We need to create a %d x %d grid." width height
+
     // let charGrid = Array2D.init height width (fun row col -> sprintf "row%dCol%d" row col)
     let charGrid = Array2D.init height width (fun row col -> ' ')
     let track = Array2D.init height width (fun _ _ -> OffTheTrack)
@@ -58,7 +55,7 @@ let solve() =
                                 |> ignore
                        )
 
-    printfn "%A" charGrid
+    // printfn "%A" charGrid
 
     charGrid
         |> Array2D.iteri (fun row col c ->
@@ -78,8 +75,6 @@ let solve() =
                             track.[row,col] <- trackType
                          )
 
-    printfn "%A" track
-
     let cartList =
         seq { for r in 0..height - 1 do
               for c in 0..width - 1 do
@@ -94,8 +89,15 @@ let solve() =
                                     | _ -> carts
                          ) []
 
-    printfn "%A" cartList
+    (track, cartList)
 
+let solve() =
+    let testdata = Common.getChallengeDataAsArray 2018 13
+    //let testdata = Common.getSampleDataAsArray 2018 13
+    //dump "data" testdata
+
+    let (track, carts) = prepareInputData testdata
+    printfn "%A" carts
     solvePartOne()
     //solvePartTwo()
     ()
