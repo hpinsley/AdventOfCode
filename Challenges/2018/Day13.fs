@@ -5,6 +5,14 @@ open System.IO
 open Common
 open System.Text.RegularExpressions
 
+type Cart = {
+    row: int;
+    col: int;
+    dr: int;
+    dc: int;
+    turnCount: int;
+}
+
 type TrackPart =
     | OffTheTrack
     | Intersection
@@ -79,15 +87,15 @@ let solve() =
             }
             |> Seq.fold (fun carts (r,c) ->
                                 match charGrid.[r,c] with
-                                    | 'v' -> (r,c) :: carts
-                                    | '^' -> (r,c) :: carts
-                                    | '<' -> (r,c) :: carts
-                                    | '>' -> (r,c) :: carts
+                                    | 'v' -> { row = r; col = c; dr = 1; dc = 0; turnCount = 0} :: carts
+                                    | '^' -> { row = r; col = c; dr = -1; dc = 0; turnCount = 0} :: carts
+                                    | '<' -> { row = r; col = c; dr = 0; dc = -1; turnCount = 0} :: carts
+                                    | '>' -> { row = r; col = c; dr = 0; dc = 1; turnCount = 0} :: carts
                                     | _ -> carts
                          ) []
 
     printfn "%A" cartList
-    
+
     solvePartOne()
     //solvePartTwo()
     ()
