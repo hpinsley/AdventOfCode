@@ -112,6 +112,12 @@ let findCollisions (carts:Cart list) =
 let rec tickUntilCollison (track:TrackPart[,]) (carts:Cart list) iteration =
 
     printfn "Iteration %d" iteration
+    carts
+        |> List.map (fun c -> (c.row,c.col))
+        |> List.map (fun t -> (sprintf "%d,%d,%A" (fst t) (snd t) track.[fst t,snd t]))
+        |> String.concat ";"
+        |> printfn "I:%d %s" iteration
+        |> ignore
 
     let collisions = findCollisions carts
 
@@ -206,8 +212,8 @@ let prepareInputData (testdata:string[]) =
     (track, cartList)
 
 let solve() =
-    let testdata = Common.getChallengeDataAsArray 2018 13
-    //let testdata = Common.getSampleDataAsArray 2018 13
+    //let testdata = Common.getChallengeDataAsArray 2018 13
+    let testdata = Common.getSampleDataAsArray 2018 13
     //dump "data" testdata
 
     let (track, carts) = prepareInputData testdata
