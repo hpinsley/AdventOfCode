@@ -79,24 +79,36 @@ let turn (cart:Cart) (c:Char) =
         dc = dc;
     }
 
+type GameState = {
+    track: TrackPart[,];
+    unmovedCarts: Cart list;
+    movedCarts: Cart list;
+    tickCount: int;
+    collisions: Cart list;
+}
+
+let orderCarts (carts:Cart list) : (Cart list) =
+    carts |> List.sortBy (fun cart -> (cart.row, cart.col))
+
+let moveCart (cart: Cart) (trackPart:TrackPart) : Cart =
+    match trackPart with
+        | OffTheTrack -> failwith "Off the track!"
+        | Intersection -> moveThroughIntersection cart
+        | HorizontalSegment -> moveThroughHorizontalSegment cart
+        | VerticalSegment -> moveThroughVerticalSegment cart
+        | Turn c -> turn cart c
+
 let move (track:TrackPart[,]) (movedCarts:Cart list) (cart:Cart) =
     let r = cart.row
     let c = cart.col
     let trackPart = track.[r,c]
 
-    let movedCart =
-        match trackPart with
-            | OffTheTrack -> failwith "Off the track!"
-            | Intersection -> moveThroughIntersection cart
-            | HorizontalSegment -> moveThroughHorizontalSegment cart
-            | VerticalSegment -> moveThroughVerticalSegment cart
-            | Turn c -> turn cart c
-
+    let movedCart = moveCart cart trackPart
     movedCart :: movedCarts
 
 let tick (track:TrackPart[,]) (carts:Cart list) =
     carts
-        |> List.sortBy (fun cart -> (cart.row, cart.col))
+        |> orderCarts
         |> List.fold (move track) []
 
 let findCollisions (carts:Cart list) =
@@ -128,8 +140,58 @@ let rec tickUntilCollison (track:TrackPart[,]) (carts:Cart list) iteration =
 
         | collided -> collided
 
+let haveCollided c1 c2 =
+    c1.row = c2.row && c1.col = c2.col
+
+let findCollisionsInLists (movedCart:Cart) (unmoved:Cart list) (moved:Cart list) =
+    let c1 =
+        unmoved
+            |> List.filter (haveCollided movedCart)
+    let c2 =
+        moved
+            |> List.filter (haveCollided movedCart)
+
+    List.concat [c1; c2]
+
+let rec solver (state:GameState) =
+    match state.unmovedCarts with
+        | [] ->
+            printfn "Moving to tick count %d" (state.tickCount + 1)
+            solver {
+                state with
+                    unmovedCarts = orderCarts state.movedCarts;
+                    movedCarts = [];
+                    tickCount = state.tickCount + 1
+            }
+
+        | cart :: remainingUnmoved ->
+            let trackPart = state.track.[cart.row, cart.col]
+            let movedCart = moveCart cart trackPart
+            let collisions = findCollisionsInLists movedCart remainingUnmoved state.movedCarts
+            match collisions with
+                | [] ->
+                    solver {
+                        state with
+                            unmovedCarts = remainingUnmoved;
+                            movedCarts = movedCart :: state.movedCarts;
+                    }
+                | collided ->
+                    { state with collisions = collided }
 
 let solvePartOne (track:TrackPart[,]) (carts:Cart list) =
+    let state = {
+        track = track;
+        unmovedCarts = carts;
+        movedCarts = [];
+        tickCount = 0;
+        collisions = []
+    }
+
+    let solved = solver state
+    printfn "%A" solved.collisions
+    ()
+
+let solvePartOneOld (track:TrackPart[,]) (carts:Cart list) =
     printfn "Starting part 1"
     // carts
     //     |> tick track
@@ -209,11 +271,12 @@ let prepareInputData (testdata:string[]) =
                                     | _ -> carts
                          ) []
 
-    (track, cartList)
+
+    (track, orderCarts cartList)
 
 let solve() =
-    //let testdata = Common.getChallengeDataAsArray 2018 13
-    let testdata = Common.getSampleDataAsArray 2018 13
+    let testdata = Common.getChallengeDataAsArray 2018 13
+    //let testdata = Common.getSampleDataAsArray 2018 13
     //dump "data" testdata
 
     let (track, carts) = prepareInputData testdata
