@@ -9,6 +9,9 @@ let dump label o =
 let getSampleDataFilespec year month =
     sprintf "InputFiles/Sample-%04d-%02d.txt" year month
 
+let getSampleDataFilespecForPart year month part =
+    sprintf "InputFiles/Sample-%04d-%02d-part%02d.txt" year month part
+
 let getChallengeDataFilespec year month =
     sprintf "InputFiles/input-%04d-%02d.txt" year month
 
@@ -29,6 +32,11 @@ let getSampleData year month: string =
 
 let getSampleDataAsArray year month : string [] =
     let file = getSampleDataFilespec year month
+    printf "Reading from file %s\n" file
+    File.ReadAllLines file
+
+let getSampleDataForPartAsArray year month part : string [] =
+    let file = getSampleDataFilespecForPart year month part
     printf "Reading from file %s\n" file
     File.ReadAllLines file
 
