@@ -164,6 +164,8 @@ let filterCollisionsOutOfLists (movedCart:Cart) (unmoved:Cart list) (moved:Cart 
             |> List.filter cleanCart
     let collisionDetected = u.Length <> unmoved.Length || m.Length <> moved.Length
 
+    if (collisionDetected) then printfn "Collision detected at %A" movedCart
+
     (collisionDetected, u, m)
 
 let rec solver (state:GameState) =
@@ -219,12 +221,59 @@ let solvePartOneOld (track:TrackPart[,]) (carts:Cart list) =
                         printfn "Found %d collisions" (other.Length)
     ()
 
+let getCartChar (cart: Cart) : char =
+    match cart.dr with
+        | -1 -> '^'
+        | 1 -> 'v'
+        | _ -> match cart.dc with
+                | -1 -> '<'
+                | 1 -> '>'
+                | _ -> '?'
+
+let getTrackChar (part:TrackPart) : char =
+    match part with
+        | OffTheTrack -> ' '
+        | Intersection -> '+'
+        | HorizontalSegment -> '-'
+        | VerticalSegment -> '|'
+        | Turn c -> c
+
+let getMapChar (carts:Cart list) (row:int) (col:int) (trackPart:TrackPart) : char =
+    match List.filter (fun cart -> cart.row = row && cart.col = col) carts with
+        | [] -> getTrackChar trackPart
+        | [c] -> getCartChar c
+        | _ -> 'X'
+
+let buildVisualMap (track:TrackPart[,]) (carts: Cart list)  : char[,] =
+    track |> Array2D.mapi (getMapChar carts)
+
+let printGameState (state:GameState) =
+    printfn "\n\n-------------------------------------\n"
+    let carts = List.concat [state.unmovedCarts; state.movedCarts]
+    let map = buildVisualMap state.track carts
+    let rows = Array2D.length1 state.track
+    let cols = Array2D.length2 state.track
+
+    [0..rows - 1]
+        |> List.iter (fun r ->
+                            let s =
+                                [0..cols-1]
+                                    |> List.fold (fun (line:string) (c:int) ->
+                                                    let charToAppend = map.[r,c]
+                                                    line + (string charToAppend)
+                                                 ) ""
+
+                            printfn "%s" s
+                        )
+
 let rec solver2 (state:GameState) =
     //printfn "Tick count: %d: Moved: %A Unmoved: %A" state.tickCount state.movedCarts state.unmovedCarts
 
     match state.unmovedCarts with
         | [] ->
             printfn "Moving to tick count %d" (state.tickCount + 1)
+            printGameState state
+
             solver2 {
                 state with
                     unmovedCarts = orderCarts state.movedCarts;
@@ -255,6 +304,7 @@ let solvePartTwo (track:TrackPart[,]) (carts:Cart list) =
         collisions = []
     }
 
+    printGameState state
     let solved = solver2 state
     printfn "%A %A" solved.movedCarts solved.unmovedCarts
     ()
