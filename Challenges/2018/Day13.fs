@@ -272,28 +272,27 @@ let rec solver2 (state:GameState) =
     match state.unmovedCarts with
         | [] ->
             printfn "Moving to tick count %d" (state.tickCount + 1)
-            printGameState state
+            //printGameState state
 
-            solver2 {
-                state with
-                    unmovedCarts = orderCarts state.movedCarts;
-                    movedCarts = [];
-                    tickCount = state.tickCount + 1
-            }
+            if (state.movedCarts.Length < 2) then
+                state
+            else
+                solver2 {
+                    state with
+                        unmovedCarts = orderCarts state.movedCarts;
+                        movedCarts = [];
+                        tickCount = state.tickCount + 1
+                }
 
         | cart :: remainingUnmoved ->
             let trackPart = state.track.[cart.row, cart.col]
             let movedCart = moveCart cart trackPart
             let (collisionDetected, _unmoved, _moved) = filterCollisionsOutOfLists movedCart remainingUnmoved state.movedCarts
-            match List.concat [_unmoved; _moved] with
-                | [survivor] ->
-                    { state with unmovedCarts = _unmoved; movedCarts = _moved }
-                | _ ->
-                    solver2 {
-                        state with
-                            unmovedCarts = _unmoved;
-                            movedCarts = if collisionDetected then  _moved else movedCart :: _moved
-                    }
+            solver2 {
+                state with
+                    unmovedCarts = _unmoved;
+                    movedCarts = if collisionDetected then  _moved else movedCart :: _moved
+            }
 
 let solvePartTwo (track:TrackPart[,]) (carts:Cart list) =
     let state = {
@@ -304,7 +303,7 @@ let solvePartTwo (track:TrackPart[,]) (carts:Cart list) =
         collisions = []
     }
 
-    printGameState state
+    //printGameState state
     let solved = solver2 state
     printfn "%A %A" solved.movedCarts solved.unmovedCarts
     ()
@@ -373,10 +372,9 @@ let prepareInputData (testdata:string[]) =
     (track, orderCarts cartList)
 
 let solve() =
-    // let testdata = Common.getChallengeDataAsArray 2018 13
+    let testdata = Common.getChallengeDataAsArray 2018 13
     // let testdata = Common.getSampleDataAsArray 2018 13
-    // getSampleDataFilespecForPart
-    let testdata = Common.getSampleDataForPartAsArray 2018 13 2
+    // let testdata = Common.getSampleDataForPartAsArray 2018 13 2
 
     // dump "data" testdata
 
