@@ -31,10 +31,43 @@ let matchesPattern (pattern:int list) (recipeBoard:int[]) (recipeCount:int) : bo
             |> Seq.forall id
 
 
-let rec playRound (state:GameState) : GameState =
+let rec playRound1 (state:GameState) : GameState =
     // printfn "_______________\n%A" state
 
-    // if (state.roundsCompleted % 1000 = 0) then printfn "Round %d" state.roundsCompleted
+    if (state.roundsCompleted % 100000 = 0) then printfn "Round %d" state.roundsCompleted
+
+    let scoreSum = List.sumBy (fun elf -> state.recipeBoard.[elf.currentRecipeIndex]) state.elves
+    let digits = if scoreSum < 10 then [scoreSum] else [scoreSum / 10; scoreSum % 10]
+    let stateWithNewRecipes =
+        digits
+            |> List.fold
+            (fun s recipeScore ->
+
+                s.recipeBoard.[s.recipeCount] <- recipeScore
+                let _state = { s with recipeCount = s.recipeCount + 1}
+                _state
+            ) state
+
+    let elves = stateWithNewRecipes.elves
+                    |> List.map (fun elf ->
+                                    let score = stateWithNewRecipes.recipeBoard.[elf.currentRecipeIndex]
+                                    let toMove = 1 + score
+                                    { currentRecipeIndex = (elf.currentRecipeIndex + toMove) % stateWithNewRecipes.recipeCount }
+                                )
+    let stateWithElves = { stateWithNewRecipes with elves = elves }
+
+    let state_ = {stateWithElves with roundsCompleted = stateWithElves.roundsCompleted + 1}
+
+    if (state_.recipeCount >= (state_.initialRecipeCount + state_.toGenerateRecipeCount))
+    then
+        state_
+    else
+        playRound1 state_
+
+let rec playRound2 (state:GameState) : GameState =
+    // printfn "_______________\n%A" state
+
+    if (state.roundsCompleted % 100000 = 0) then printfn "Round %d" state.roundsCompleted
 
     let scoreSum = List.sumBy (fun elf -> state.recipeBoard.[elf.currentRecipeIndex]) state.elves
     let digits = if scoreSum < 10 then [scoreSum] else [scoreSum / 10; scoreSum % 10]
@@ -50,7 +83,8 @@ let rec playRound (state:GameState) : GameState =
                         | Some pattern ->
                             if (matchesPattern pattern _state.recipeBoard _state.recipeCount)
                             then
-                                printfn "EARLY MATCH at %d" _state.recipeCount
+                                printfn "EARLY MATCH at %d" (_state.recipeCount - pattern.Length)
+                                failwith "Got an early match"
                 _state
             ) state
 
@@ -65,23 +99,31 @@ let rec playRound (state:GameState) : GameState =
     let state_ = {stateWithElves with roundsCompleted = stateWithElves.roundsCompleted + 1}
 
     match state_.target with
-        | None ->
-            if (state_.recipeCount >= (state_.initialRecipeCount + state_.toGenerateRecipeCount))
-            then
-                state_
-            else
-                playRound state_
+        | None -> failwith "Expect a target"
         | Some pattern ->
             if (matchesPattern pattern state_.recipeBoard state_.recipeCount)
             then
                 state_
             else
-                playRound state_
+                playRound2 state_
 
 let solvePartOne (state:GameState) : unit =
     printfn "Starting part one"
     printfn "%A" state
-    let finalState =  playRound state
+    let finalState =  playRound1 state
+    let answer = finalState.recipeBoard
+                    |> Seq.skip finalState.initialRecipeCount
+                    |> Seq.take finalState.toGenerateRecipeCount
+                    |> Seq.map string
+                    |> String.concat ""
+
+    printfn "%A" finalState
+    printfn "The answer is [%s]" answer
+
+let solvePartTwo (state:GameState) : unit =
+    printfn "Starting part two"
+    printfn "%A" state
+    let finalState =  playRound2 state
     let answer = finalState.recipeBoard
                     |> Seq.skip finalState.initialRecipeCount
                     |> Seq.take finalState.toGenerateRecipeCount
@@ -97,8 +139,10 @@ let solve() =
     // let target = Some [5;1;5;8;9]
 
     let initalRecipeCount = 768071
-    let target = Some [6;5;4;8;1;0;3;9;1;0]
-    //let target = None
+    let target = None
+
+    let initalRecipeCount = 76807100
+    let target = Some [7;6;8;0;7;1]
 
     let toGenerateRecipeCount = 10
 
@@ -120,5 +164,6 @@ let solve() =
         target = target
     }
 
-    solvePartOne initialState
+    //solvePartOne initialState
+    solvePartTwo initialState
     ()
