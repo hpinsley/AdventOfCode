@@ -5,7 +5,6 @@ open System.IO
 open Common
 open System.Text.RegularExpressions
 
-//type UnitType = Elf | Goblin
 type Unit =
       Elf of int * int
     | Goblin of int * int
@@ -16,8 +15,6 @@ type Cell =
     | Wall
 
 let buildInitialGame (lines:string[]) : Cell[,] =
-    let t = 3,200
-    let e = Elf t
 
     let rows = lines.Length
     let cols = lines |> Array.map (fun line -> line.Length) |> Array.max
@@ -38,5 +35,5 @@ let solve() =
     //let testdata = Common.getSampleDataAsArray 2018 15
     dump "data" testdata
     let game = buildInitialGame testdata
-
+    printfn "\n%A" game
     ()
