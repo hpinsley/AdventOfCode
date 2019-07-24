@@ -14,6 +14,18 @@ type Cell =
     | Occupied of Unit
     | Wall
 
+let mapCellToChar (c:Cell) : char =
+    match c with
+        | Empty -> '.'
+        | Wall -> '#'
+        | Occupied unit ->
+            match unit with
+                | Elf _ -> 'E'
+                | Goblin _ -> 'G'
+
+let printGrid grid =
+    Common.printGrid grid mapCellToChar
+
 let buildInitialGame (lines:string[]) : Cell[,] =
 
     let rows = lines.Length
@@ -22,8 +34,8 @@ let buildInitialGame (lines:string[]) : Cell[,] =
                                         match lines.[row].[col] with
                                             | '.' -> Empty
                                             | '#' -> Wall
-                                            | 'E' -> Occupied (Elf (row, col))
-                                            | 'G' -> Occupied (Goblin (row, col))
+                                            | 'E' -> Occupied (Elf (3, 200))
+                                            | 'G' -> Occupied (Goblin (3, 200))
                                             | _ -> failwith "Unexpected character"
                                         )
 
@@ -41,26 +53,14 @@ let getUnits (game:Cell[,]) =
                                 | Occupied unit -> Some unit
                                 | _ -> None)
 
-let mapCellToChar (c:Cell) : char =
-    match c with
-        | Empty -> '.'
-        | Wall -> '#'
-        | Occupied unit ->
-            match unit with
-                | Elf _ -> 'E'
-                | Goblin _ -> 'G'
-
-let printGrid grid =
-    Common.printGrid grid mapCellToChar
-
 let solve() =
     printfn "Day 15"
-    let testdata = Common.getChallengeDataAsArray 2018 15
-    //let testdata = Common.getSampleDataAsArray 2018 15
+    //let testdata = Common.getChallengeDataAsArray 2018 15
+    let testdata = Common.getSampleDataAsArray 2018 15
     //dump "data" testdata
     let game = buildInitialGame testdata
 
     printGrid game
-    
+
     printfn "Units: %A" (getUnits game)
     ()
