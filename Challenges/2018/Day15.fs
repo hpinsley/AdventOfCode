@@ -64,7 +64,13 @@ let getPlayersInOrder (game:Cell[,]) =
                                 | _ -> None)
         |> List.sortBy (fun player -> (player.row, player.col))
 
+let noFoes players =
+    (List.forall (fun p -> p.playerType = Elf) players)
+    ||
+    (List.forall (fun p -> p.playerType = Goblin) players)
+
 let printState (state:State) : unit =
+    printfn "\nGame state\n"
     printGrid state.grid
     printPlayers (getPlayersInOrder state.grid)
 
@@ -100,6 +106,28 @@ let buildInitialState (lines:string[]) : State =
         activePlayer = None
     }
 
+let startPlayerTurn (state:State) : State =
+    state
+    
+let selectNewPlayer (state:State) : State =
+    match state.waitingToPlay with
+        | [] -> startRound state
+        | [player] -> state
+        | player :: rest ->
+            let newState = { state with activePlayer = Some player; waitingToPlay = rest }
+            let result = startPlayerTurn newState
+            result
+
+let rec startRound (state:State) : State =
+    let playersToMove = getPlayersInOrder state.grid
+    if (noFoes playersToMove)
+    then
+        state
+    else
+        let nextRound = state.rounds + 1
+        let newState = { state with rounds = nextRound; waitingToPlay = playersToMove }
+        let result = selectNewPlayer newState
+        result
 
 let solve() =
     printfn "Day 15"
@@ -108,4 +136,7 @@ let solve() =
     //dump "data" testdata
     let state = buildInitialState testdata
     printState state
+
+    let final = startRound state
+    printState final
     ()
