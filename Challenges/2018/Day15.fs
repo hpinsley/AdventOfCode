@@ -33,11 +33,14 @@ let getPlayerLetter (playerType: PlayerType) : char =
         | Elf -> 'E'
         | Goblin -> 'G'
 
-let printPlayers (players: Player list) : unit =
+let playerToString (player:Player) : string =
+    sprintf "%c at [%d,%d] with hit points = %d"
+                            (getPlayerLetter player.playerType) player.row player.col player.hitPoints
+
+let playersToString (players: Player list) : string =
     players
-        |> List.iter (fun p ->
-                        printfn "%c at [%d,%d] with hit points = %d"
-                            (getPlayerLetter p.playerType) p.row p.col p.hitPoints)
+        |> List.map playerToString
+        |> String.concat ";"
 
 let mapCellToChar (c:Cell) : char =
     match c with
@@ -72,7 +75,7 @@ let noFoes players =
 let printState (state:State) : unit =
     printfn "\nGame state\n"
     printGrid state.grid
-    printPlayers (getPlayersInOrder state.grid)
+    printfn "%s" (playersToString (getPlayersInOrder state.grid))
 
 let buildInitialState (lines:string[]) : State =
 
@@ -106,17 +109,35 @@ let buildInitialState (lines:string[]) : State =
         activePlayer = None
     }
 
-let startPlayerTurn (state:State) : State =
+let getEnemies (state:State) (player:Player) : (Player list) =
+    getPlayersInOrder state.grid
+        |> List.filter (fun p -> p.playerType <> player.playerType)
+
+let computeShortestPathToEnemy (state:State) (player:Player) (enemy:Player) =
+    printfn "Computing shortest path from player %s to enemy %s" (playerToString player) (playerToString enemy)
+    "xx"
+
+let matchPlayerAgainst (state:State) (player:Player) (enemies:Player list) : State =
+    printfn "Enemies of %s are: %s" (playerToString player) (playersToString enemies)
+    let pathsToEnemies =
+        enemies
+            |> List.map (computeShortestPathToEnemy state player)
     state
-    
-let selectNewPlayer (state:State) : State =
+
+let startPlayerTurn (state:State) (player:Player) : State =
+    printfn "Starting player %s in round %d" (playerToString player) state.rounds
+    let enemies = getEnemies state player
+    match enemies with
+        | [] -> state
+        | _ -> matchPlayerAgainst state player enemies
+
+let rec selectNextPlayer (state:State) : State =
     match state.waitingToPlay with
-        | [] -> startRound state
-        | [player] -> state
+        | [] -> state
         | player :: rest ->
-            let newState = { state with activePlayer = Some player; waitingToPlay = rest }
-            let result = startPlayerTurn newState
-            result
+            let newState = { state with waitingToPlay = rest }
+            let result = startPlayerTurn newState player
+            selectNextPlayer result
 
 let rec startRound (state:State) : State =
     let playersToMove = getPlayersInOrder state.grid
@@ -125,9 +146,13 @@ let rec startRound (state:State) : State =
         state
     else
         let nextRound = state.rounds + 1
-        let newState = { state with rounds = nextRound; waitingToPlay = playersToMove }
-        let result = selectNewPlayer newState
-        result
+        if (nextRound > 3)
+        then
+            state
+        else
+            let newState = { state with rounds = nextRound; waitingToPlay = playersToMove }
+            let result = selectNextPlayer newState
+            startRound result
 
 let solve() =
     printfn "Day 15"
