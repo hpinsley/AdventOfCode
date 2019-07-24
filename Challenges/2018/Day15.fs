@@ -16,9 +16,9 @@ type Player = {
 }
 
 type Cell =
-      Empty
+      Empty of (int * int)
     | Occupied of Player
-    | Wall
+    | Wall of (int * int)
 
 type State =
     {
@@ -42,14 +42,26 @@ let playersToString (players: Player list) : string =
         |> List.map playerToString
         |> String.concat ";"
 
+let mapPlayerTypeToChar (playerType:PlayerType) : char =
+    match playerType with
+        | Elf -> 'E'
+        | Goblin -> 'G'
+
 let mapCellToChar (c:Cell) : char =
     match c with
-        | Empty -> '.'
-        | Wall -> '#'
-        | Occupied unit ->
-            match unit.playerType with
-                | Elf -> 'E'
-                | Goblin -> 'G'
+        | Empty _ -> '.'
+        | Wall _ -> '#'
+        | Occupied player -> mapPlayerTypeToChar player.playerType
+
+let mapCellToString (c:Cell) : string =
+    match c with
+        | Empty (r,c) -> sprintf "Empty at (%d,%d)" r c
+        | Wall (r,c) -> sprintf "Wall at (%d,%d)" r c
+        | Occupied player ->
+            sprintf "%c at (%d,%d)" (mapPlayerTypeToChar player.playerType) player.row player.col
+
+let mapCellsToString (cells: Cell list) : string =
+    cells |> List.map mapCellToString |> String.concat ";"
 
 let printGrid grid =
     Common.printGrid grid mapCellToChar
@@ -83,8 +95,8 @@ let buildInitialState (lines:string[]) : State =
     let cols = lines |> Array.map (fun line -> line.Length) |> Array.max
     let grid = Array2D.init rows cols (fun row col ->
                                         match lines.[row].[col] with
-                                            | '.' -> Empty
-                                            | '#' -> Wall
+                                            | '.' -> Empty (row, col)
+                                            | '#' -> Wall (row,col)
                                             | 'E' -> Occupied {
                                                             playerType = Elf;
                                                             hitPoints = 200;
@@ -113,15 +125,34 @@ let getEnemies (state:State) (player:Player) : (Player list) =
     getPlayersInOrder state.grid
         |> List.filter (fun p -> p.playerType <> player.playerType)
 
+let getAdjacentIndexes (grid:Cell[,]) (p:int * int) : (int * int) list =
+    let rows = Array2D.length1 grid
+    let cols = Array2D.length2 grid
+    let moves = [(0, 1); (0, -1); (1, 0); (-1, 0)]
+    moves
+        |> List.map (fun (dr, dc) -> (fst p + dr, snd p + dc))
+        |> List.filter (fun (r, c) -> r >= 0 && c >= 0 && r < rows && c < cols)
+
+let getAdjacentCells (grid:Cell[,]) (player:Player) : Cell list =
+    getAdjacentIndexes grid (player.row, player.col)
+        |> List.map (fun (r,c) -> grid.[r,c])
+
+let isFreeCell (cell:Cell) : bool =
+    match cell with
+        | Empty _ -> true
+        | _ -> false
+
+let getFreeAdjacentCells (grid:Cell[,]) (player:Player) : Cell list =
+    getAdjacentCells grid player
+        |> List.filter isFreeCell
+
 let computeShortestPathToEnemy (state:State) (player:Player) (enemy:Player) =
     printfn "Computing shortest path from player %s to enemy %s" (playerToString player) (playerToString enemy)
-    "xx"
+    let enemyAdjacentCells = getFreeAdjacentCells state.grid enemy
+    printfn "Enemy adjacent cells are %s" (mapCellsToString enemyAdjacentCells)
 
 let matchPlayerAgainst (state:State) (player:Player) (enemies:Player list) : State =
     printfn "Enemies of %s are: %s" (playerToString player) (playersToString enemies)
-    let pathsToEnemies =
-        enemies
-            |> List.map (computeShortestPathToEnemy state player)
     state
 
 let startPlayerTurn (state:State) (player:Player) : State =
