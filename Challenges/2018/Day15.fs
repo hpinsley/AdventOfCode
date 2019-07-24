@@ -5,23 +5,40 @@ open System.IO
 open Common
 open System.Text.RegularExpressions
 
-type Unit =
-      Elf of int * int
-    | Goblin of int * int
+type PlayerType = Elf | Goblin
+
+type Player = {
+    playerType: PlayerType;
+    power: int;
+    hitPoints: int;
+    row: int;
+    col: int;
+}
 
 type Cell =
       Empty
-    | Occupied of Unit
+    | Occupied of Player
     | Wall
+
+let getPlayerLetter (playerType: PlayerType) : char =
+    match playerType with
+        | Elf -> 'E'
+        | Goblin -> 'G'
+
+let printPlayers (players: Player list) : unit =
+    players
+        |> List.iter (fun p ->
+                        printfn "%c at [%d,%d] with hit points = %d"
+                            (getPlayerLetter p.playerType) p.row p.col p.hitPoints)
 
 let mapCellToChar (c:Cell) : char =
     match c with
         | Empty -> '.'
         | Wall -> '#'
         | Occupied unit ->
-            match unit with
-                | Elf _ -> 'E'
-                | Goblin _ -> 'G'
+            match unit.playerType with
+                | Elf -> 'E'
+                | Goblin -> 'G'
 
 let printGrid grid =
     Common.printGrid grid mapCellToChar
@@ -34,8 +51,20 @@ let buildInitialGame (lines:string[]) : Cell[,] =
                                         match lines.[row].[col] with
                                             | '.' -> Empty
                                             | '#' -> Wall
-                                            | 'E' -> Occupied (Elf (3, 200))
-                                            | 'G' -> Occupied (Goblin (3, 200))
+                                            | 'E' -> Occupied {
+                                                            playerType = Elf;
+                                                            hitPoints = 200;
+                                                            power = 3;
+                                                            row = row;
+                                                            col = col;
+                                                        }
+                                            | 'G' -> Occupied {
+                                                            playerType = Goblin;
+                                                            hitPoints = 200;
+                                                            power = 3;
+                                                            row = row;
+                                                            col = col;
+                                                        }
                                             | _ -> failwith "Unexpected character"
                                         )
 
@@ -46,11 +75,11 @@ let getIndexList (game:Cell[,]) : (int * int) list =
     let cols = Array2D.length2 game
     [for r in 0..rows-1 do for c in 0..cols - 1 do yield (r,c)]
 
-let getUnits (game:Cell[,]) =
+let getPlayers (game:Cell[,]) =
     getIndexList game
         |> List.choose (fun (r,c) ->
                             match game.[r,c] with
-                                | Occupied unit -> Some unit
+                                | Occupied player -> Some player
                                 | _ -> None)
 
 let solve() =
@@ -62,5 +91,5 @@ let solve() =
 
     printGrid game
 
-    printfn "Units: %A" (getUnits game)
+    printPlayers (getPlayers game)
     ()
