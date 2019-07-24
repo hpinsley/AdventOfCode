@@ -54,3 +54,20 @@ let averageList list = (List.fold (fun acc elem -> acc + float elem) 0.0 list / 
 let stdDevList list =
     let avg = averageList list
     sqrt (List.fold (fun acc elem -> acc + (float elem - avg) ** 2.0 ) 0.0 list / float list.Length)
+
+let printGrid (grid:'T[,]) (cellToCharFunc: 'T -> char) =
+    let rows = Array2D.length1 grid
+    let cols = Array2D.length2 grid
+
+    [0..rows - 1]
+        |> List.iter (fun r ->
+                            let s =
+                                [0..cols-1]
+                                    |> List.fold (fun (line:string) (c:int) ->
+                                                    let charToAppend = cellToCharFunc grid.[r,c]
+                                                    line + (string charToAppend)
+                                                 ) ""
+
+                            printfn "%s" s
+                        )
+
