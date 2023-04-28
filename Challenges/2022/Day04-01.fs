@@ -8,6 +8,9 @@ open System.Text.RegularExpressions
 let isContainedBy (superset:int * int) (subset:int * int): bool =
     (fst subset >= fst superset) && (snd subset <= snd superset)
 
+let overlaps (s1:int * int) (s2:int * int): bool =
+    (fst s1 <= snd s2) && (snd s1 >= fst s2)
+
 let parseLine (line:string) : ((int * int) * (int * int)) =
     let pattern = "(\d+)-(\d+),(\d+)-(\d+)"
     let matchResult = Regex.Match(line, pattern)
@@ -29,7 +32,10 @@ let solve =
     let hasFullOverlaps = parsed |> List.filter (fun t -> isContainedBy (fst t) (snd t) || isContainedBy (snd t) (fst t))
     printfn "%A" hasFullOverlaps
 
-    let total = hasFullOverlaps.Length
-    printfn "%A pairs have assignments where one is completly covered by the other" total
+    printfn "%A pairs have assignments where one is completly covered by the other" hasFullOverlaps.Length
+
+    let hasPartialOverlaps = parsed |> List.filter (fun t -> overlaps (fst t) (snd t))
+    printfn "%A pairs have assignments where one overlaps the other" hasPartialOverlaps.Length
+
 
 
