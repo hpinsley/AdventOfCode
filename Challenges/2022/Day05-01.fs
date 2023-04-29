@@ -5,10 +5,14 @@ open System.IO
 open Common
 open System.Text.RegularExpressions
 
+let getCrateLetters inputLine =
+    let matches = Regex.Matches(inputLine, "[\[ ]([ A-Z])[\] ] ?";);
+    matches |> Seq.map (fun oneMatch -> oneMatch.Groups.[1].Value) |> List.ofSeq
+
 let solve =
 
-    // let lines = Common.getSampleDataAsArray 2022 05
-    let lines = Common.getChallengeDataAsArray 2022 05
+    let lines = Common.getSampleDataAsArray 2022 05
+    // let lines = Common.getChallengeDataAsArray 2022 05
     // printfn "%A" lines
 
     let (reversedBlocks, _, reversedMoves) = lines 
@@ -23,10 +27,17 @@ let solve =
     for b in blocks do
         printfn "%s" b
 
+    let crates = blocks |> List.map getCrateLetters
+
+    for c in crates do
+        printfn "%A" c
+
     printfn ("\nMoves:\n")
 
     for m in moves do
         printfn "%s" m
+
+
 
 
 
