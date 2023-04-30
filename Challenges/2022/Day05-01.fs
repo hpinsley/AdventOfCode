@@ -80,8 +80,9 @@ let solve =
         printfn "Moving %d crates from %d to %d: (%A, %A)" toMove instruction.FromCrate instruction.ToCrate remaining moving
 
         stacks[instruction.FromCrate - 1] <- remaining
-        for b in moving do
-            stacks[instruction.ToCrate - 1] <- b :: stacks[instruction.ToCrate - 1]
+        stacks[instruction.ToCrate - 1] <- List.append moving stacks[instruction.ToCrate - 1]
+        //for b in moving do
+        //    stacks[instruction.ToCrate - 1] <- b :: stacks[instruction.ToCrate - 1]
 
     let top = stacks |> Array.map List.head |> System.String
     printfn "%A" top
