@@ -1,5 +1,5 @@
 ﻿// Learn more about F# at http://fsharp.org
-open System
+open System//
 open System.IO
 open System.Text.RegularExpressions
 
@@ -7,7 +7,8 @@ open System.Text.RegularExpressions
 [<EntryPoint>]
 let main argv =
     printfn "Main driver"
-    Year2022Day06_Part1.solve
+    Year2022Day07_Part1.solve
+    //Year2022Day06_Part1.solve
     //Year2022Day05_Part1.solve
     //Year2022Day04_Part1.solve
     //Year2022Day03_Part1.solve
