@@ -91,11 +91,16 @@ let rec printFolder (folder:Folder) (indent:int) : unit =
     for sf in folder.Subfolders do
         printFolder sf (indent + 4)
 
+let rec getFolderList (folder:Folder) : Folder list  =
+    let subLists = folder.Subfolders |> List.map getFolderList
+    let flattened: Folder list = List.concat subLists
+    folder :: flattened
+
 let solve =
 
-    let lines = Common.getSampleDataAsArray 2022 07
-    // let lines = Common.getChallengeDataAsArray 2022 07
-    printfn "%A" lines
+    // let lines = Common.getSampleDataAsArray 2022 07
+    let lines = Common.getChallengeDataAsArray 2022 07
+    // printfn "%A" lines
 
     let instructions = lines |> Array.map getInstruction
 
@@ -115,7 +120,25 @@ let solve =
     let tree = reduction.Root
     printFolder tree 0
 
+    let folderList = getFolderList tree
+    
+    for f in folderList do
+        printfn "Folder %s with total size %d" f.Name (getFolderSize f)
+
+    let elible = folderList |> List.filter (fun f -> (getFolderSize f) <= 100000)
+    let answer = elible |> List.sumBy (fun f -> getFolderSize f)
+    printfn "Part 1: %d" answer
     
 
+    let volSize = 70000000
+    let used = getFolderSize root
+    let requiredFree = 30000000
+    let currentFree = volSize - used
+    let minToFree = requiredFree - currentFree
+    printfn "Need to free up %d" minToFree
 
+    let folderToFree = folderList
+                            |> List.filter (fun f -> (getFolderSize f) >= minToFree)
+                            |> List.minBy (fun f -> getFolderSize f)
+    printfn "Delete folder %s with size %d" folderToFree.Name (getFolderSize folderToFree)
 
