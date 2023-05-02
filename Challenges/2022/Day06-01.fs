@@ -5,11 +5,6 @@ open System.IO
 open Common
 open System.Text.RegularExpressions
 
-type Instruction = {
-    CratesToMove: int;
-    FromCrate: int;
-    ToCrate: int
-}
 
 let isMarker (s:string) : bool =
     let sorted = s |> Seq.sort |> Array.ofSeq |> System.String
