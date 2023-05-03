@@ -6,10 +6,10 @@ open Common
 open System.Text.RegularExpressions
 
 type Direction =
-    | FromLeft
-    | FromRight
-    | FromTop
-    | FromBottom
+    | Left
+    | Right
+    | Top
+    | Bottom
 
 type Tree =
     {
@@ -55,8 +55,8 @@ let treeVisibleFrom (tree:Tree) (direction:Direction): bool =
     Set.contains direction tree.visibleFrom
 
 let solve =
-    // let lines = Common.getSampleDataAsArray 2022 08
-    let lines = Common.getChallengeDataAsArray 2022 08
+    let lines = Common.getSampleDataAsArray 2022 08
+    // let lines = Common.getChallengeDataAsArray 2022 08
     printfn "%A" lines
 
     let squareSize = lines[0].Length
@@ -69,10 +69,10 @@ let solve =
     printGrid grid (fun (t:Tree) -> t.height.ToString()[0])
 
     let routes = [| 
-        { direction=FromLeft; checkType = ByRow; travelIncrement = 1 }
-        { direction=FromRight; checkType = ByRow; travelIncrement = -1 }
-        { direction=FromTop; checkType = ByCol; travelIncrement = 1 }
-        { direction=FromBottom; checkType = ByCol; travelIncrement = -1 }
+        { direction=Left; checkType = ByRow; travelIncrement = 1 }
+        { direction=Right; checkType = ByRow; travelIncrement = -1 }
+        { direction=Top; checkType = ByCol; travelIncrement = 1 }
+        { direction=Bottom; checkType = ByCol; travelIncrement = -1 }
     |]
     
     for route in routes do
