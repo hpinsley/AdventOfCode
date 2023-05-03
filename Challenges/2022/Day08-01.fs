@@ -17,6 +17,8 @@ type Tree =
         colIndex: int;
         height: int;
         mutable visibleFrom: Set<Direction>
+        mutable viewableFromTree: Map<Direction, int>;
+        mutable score: int;
     }
 
 type CheckType = ByRow | ByCol
@@ -26,6 +28,13 @@ type Route =
         direction: Direction;
         checkType: CheckType;
         travelIncrement: int;
+    }
+
+type LookInstruction =
+    {
+        direction:Direction;
+        rowDelta: int;
+        colDelta: int;
     }
 
 let getTreeLine (grid:Tree[,]) (route:Route) : seq<seq<Tree>> =
@@ -54,16 +63,53 @@ let marktTreeVisibleFrom (tree:Tree) (direction:Direction) : unit =
 let treeVisibleFrom (tree:Tree) (direction:Direction): bool =
     Set.contains direction tree.visibleFrom
 
+let getTreesVisibleFromHomeTree (grid:Tree[,]) (homeTree: Tree) : Map<Direction, int> =
+    let tests = [|
+        { direction = Left; rowDelta = 0; colDelta = -1 }
+        { direction = Right; rowDelta = 0; colDelta = 1 }
+        { direction = Top; rowDelta = -1; colDelta = 0 }
+        { direction = Bottom; rowDelta = 1; colDelta = 0}
+    |]
+
+    let gridSize = Array2D.length1 grid
+    let maxIndex = gridSize - 1
+
+    let results = tests
+                        |> Array.map (fun test ->
+                                        let mutable r = homeTree.rowIndex
+                                        let mutable c = homeTree.colIndex
+                                        let mutable stop = false
+                                        let mutable visible = 0
+
+                                        while (not stop && 
+                                                r + test.rowDelta >= 0 && r + test.rowDelta <= maxIndex && 
+                                                c + test.colDelta >= 0 && c + test.colDelta <= maxIndex) do
+                                            r <- r + test.rowDelta
+                                            c <- c + test.colDelta
+                                            let testTree = grid[r,c]
+                                            visible <- visible + 1
+
+                                            stop <- (testTree.height >= homeTree.height)                                                
+
+                                        (test.direction, visible)
+                                        )
+                        |> Map.ofArray
+    results
+
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 08
-    // let lines = Common.getChallengeDataAsArray 2022 08
+    // let lines = Common.getSampleDataAsArray 2022 08
+    let lines = Common.getChallengeDataAsArray 2022 08
     printfn "%A" lines
 
     let squareSize = lines[0].Length
     let grid = Array2D.init squareSize squareSize (fun i j 
                                                     -> let c = lines[i][j]
                                                        let height = int c - int '0'
-                                                       { rowIndex = i; colIndex = j; height=height; visibleFrom = Set.empty })
+                                                       { rowIndex = i; colIndex = j; height=height; 
+                                                            visibleFrom = Set.empty;
+                                                            viewableFromTree = Map.empty;
+                                                            score = 0;
+                                                        })
 
     // printfn "%A" grid
     printGrid grid (fun (t:Tree) -> t.height.ToString()[0])
@@ -96,4 +142,23 @@ let solve =
                                   else ()
                     ) grid
 
-    printfn "%d trees are visible" visibleCount
+    printfn "Part 1: %d trees are visible" visibleCount
+
+    // Compute the view maps for each tree
+    grid |> Array2D.iter (fun homeTree -> 
+                            let map = getTreesVisibleFromHomeTree grid homeTree
+                            homeTree.viewableFromTree <- map
+                            if (map.Count > 0)
+                            then
+                                homeTree.score <- map.Values |> Seq.fold (fun product viewCount -> product * viewCount) 1 
+                         )
+
+    //printfn "%A" grid
+
+    //printGrid grid (fun t -> t.height.ToString()[0])
+
+
+    let mutable bestTree = grid[0,0]
+    grid |> Array2D.iter (fun t -> if (t.score > bestTree.score) then bestTree <- t)
+
+    printfn "Best tree (part 2): %A" bestTree
