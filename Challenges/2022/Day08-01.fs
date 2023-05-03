@@ -55,8 +55,8 @@ let treeVisibleFrom (tree:Tree) (direction:Direction): bool =
     Set.contains direction tree.visibleFrom
 
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 08
-    // let lines = Common.getChallengeDataAsArray 2022 08
+    // let lines = Common.getSampleDataAsArray 2022 08
+    let lines = Common.getChallengeDataAsArray 2022 08
     printfn "%A" lines
 
     let squareSize = lines[0].Length
@@ -89,3 +89,11 @@ let solve =
                 else ()
 
     printGrid grid (fun t -> if Set.isEmpty t.visibleFrom then ' ' else 'T')
+
+    let mutable visibleCount = 0
+    Array2D.iter (fun (t:Tree) -> if (not (Set.isEmpty t.visibleFrom))
+                                  then visibleCount <- visibleCount + 1
+                                  else ()
+                    ) grid
+
+    printfn "%d trees are visible" visibleCount
