@@ -1,6 +1,7 @@
 module Common
 
 open System.IO
+open System.Text.RegularExpressions
 
 let dump label o =
     printfn "\n%s:\n%A" label o
@@ -71,3 +72,13 @@ let printGrid (grid:'T[,]) (cellToCharFunc: 'T -> char) =
                             printfn "%s" s
                         )
 
+// ParseRegex parses a regular expression and returns a list of the strings that match each group in
+// the regular expression.
+// List.tail is called to eliminate the first element in the list, which is the full matched expression,
+// since only the matches for each group are wanted.
+// This is an Active Pattern
+let (|ParseRegex|_|) regex str =
+   let m = Regex(regex).Match(str)
+   if m.Success
+   then Some (List.tail [ for x in m.Groups -> x.Value ])
+   else None
