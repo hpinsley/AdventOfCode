@@ -24,38 +24,38 @@ let lineToInstruction (line:string) : MoveInstruction =
         | Common.ParseRegex "(.*) (.*)" [direction; steps] -> Move (letterToDirection direction[0], int(steps))
 
 type State = {
-    headPosition: int * int
-    tailPosition: int * int
-    tailVisits: Set<int * int>
+    knotPositions: (int * int)[]
+    tailVisits: Set<int * int>[]
 }
 
 
 let moveOneStep (direction:Direction) (state:State) : State =
-    let (r, c) = state.headPosition
+    let (r, c) = state.knotPositions[0]
 
-    let afterHeadMoves = { state with headPosition =
-                                    match direction with
+    state.knotPositions[0] <- match direction with
                                         | Up -> (r - 1,c)
                                         | Down -> (r + 1, c)
                                         | Right -> (r, c + 1)
                                         | Left -> (r, c - 1)
-                         }
 
-    // If the tail is not adjacent to head we have to move it
-    let { State.headPosition = (headRow,headCol); State.tailPosition = (tailRow, tailCol) } = afterHeadMoves
-    let rowDiff = headRow - tailRow
-    let colDiff = headCol - tailCol
 
-    if (abs rowDiff <= 1 && abs colDiff <= 1)
-    then // Adjacent to head; tail does not need to move
-        afterHeadMoves
-    else // Tail always moves one step in the correct directions to maintain adjacency
-        let row = tailRow + sign rowDiff
-        let col = tailCol + sign colDiff
-        { afterHeadMoves with 
-            tailPosition = (row, col);
-            tailVisits = Set.add (row, col) afterHeadMoves.tailVisits
-        }
+    for headIndex = 0 to (state.knotPositions.Length - 2) do
+        let tailIndex = headIndex + 1
+        // If the tail is not adjacent to head we have to move it
+        let (headRow, headCol) = state.knotPositions[headIndex]
+        let (tailRow, tailCol) = state.knotPositions[tailIndex]
+
+        let rowDiff = headRow - tailRow
+        let colDiff = headCol - tailCol
+
+        if (abs rowDiff > 1 || abs colDiff > 1)
+        then
+            let row = tailRow + sign rowDiff
+            let col = tailCol + sign colDiff
+            state.knotPositions[tailIndex] <- (row, col)
+            state.tailVisits[tailIndex] <- Set.add (row, col) state.tailVisits[tailIndex]
+
+    state
 
 let rec processInstruction (state: State) (instruction:MoveInstruction) : State =
     let (direction, steps) = match instruction with
@@ -81,15 +81,17 @@ let solve =
         printfn "%A => %A" (fst p) (snd p)
 
     let startAt = (0,0)
+    
+    // let knotCount = 2       // Part 1
+    let knotCount = 10       // Part 2
 
     let initialState = {
-        headPosition = startAt
-        tailPosition = startAt
-        tailVisits = Set.ofArray [| startAt|]
+        knotPositions = Array.create knotCount startAt
+        tailVisits = Array.create knotCount (Set.ofArray [| startAt|])
     }
     
     printfn "Initial state:\n%A" initialState
     let finalState = moves |> Array.fold processInstruction initialState
     printfn "Final state:\n%A" finalState
 
-    printfn "Part 1: %d" finalState.tailVisits.Count
+    printfn "Tail visit count: %d" (Array.last finalState.tailVisits).Count
