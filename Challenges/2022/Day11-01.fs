@@ -12,7 +12,7 @@ type Monkey =
         MonkeyNumber: int
         ItemList: int list
         Operation: WorryFunc
-        Test: int -> int
+        Test: int -> bool
         TrueTarget: int
         FalseTarget: int
         InspectionCount: int
@@ -23,14 +23,21 @@ let makeMonkey (monkeyNumber:int) : Monkey =
         MonkeyNumber = monkeyNumber;
         ItemList = [];
         Operation = id;
-        Test = id
+        Test = fun _ -> false
         TrueTarget = -1;
         FalseTarget = -1;
         InspectionCount = 0;
     }
 
 let parseOperation (operator:string) (operand:string) : WorryFunc =
-    fun old -> old * old
+    let fetchOperand = match operand with
+                        | "old" -> id
+                        | _ as num -> fun _ -> int num
+
+    match operator with
+        | "*" -> fun old -> old * (fetchOperand old)
+        | "+" -> fun old -> old + (fetchOperand old)
+        | _ -> failwith "Invalid operator"
 
 let parseLines (lines:string[]) : Monkey[] =
     let mutable monkeyList = []
@@ -54,7 +61,24 @@ let parseLines (lines:string[]) : Monkey[] =
                 let monkey = Option.get currentMonkey
                 currentMonkey <- { monkey with Operation = operation } |> Some
         
-            | _ -> ()
+            | ParseRegex "Test: divisible by (.*)" [divisor] ->
+                let d = int divisor
+                let f = fun (n:int) -> n % d = 0
+
+                let monkey = Option.get currentMonkey
+                currentMonkey <- { monkey with Test = f } |> Some
+
+            | ParseRegex "If true: throw to monkey (.*)" [m] ->
+                let monkey = Option.get currentMonkey
+                currentMonkey <- { monkey with TrueTarget = int m } |> Some
+
+            | ParseRegex "If false: throw to monkey (.*)" [m] ->
+                let monkey = Option.get currentMonkey
+                currentMonkey <- { monkey with FalseTarget = int m } |> Some
+
+            | "" -> ()
+
+            | _ -> failwith "Unknown line"
 
 
     if (Option.isSome currentMonkey) then
