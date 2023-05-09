@@ -75,7 +75,41 @@ let getClockScore (cpuIndex:int) (cpus:Cpu list) : int =
         else
             let prev = cpus[cpuIndex - 1]
             cpu.clock * prev.xRegister.value
-        
+
+let finishPartOne (cpus:Cpu list) : unit =
+    printfn "List has %d items" cpus.Length
+
+    let clockScoreMap = cpus
+                            |> List.mapi (fun i cpu -> 
+                                            let score = getClockScore i cpus
+                                            (cpu.clock, score))
+                            |> Map.ofList
+
+    let cycles = [20; 60; 100; 140; 180; 220 ]
+    let finalScore = cycles
+                        |> List.fold (fun total cycle ->
+                                        let subscore = Map.find cycle clockScoreMap
+                                        total + subscore) 0
+    printfn "Final score: %d" finalScore
+    
+let finishPartTwo (cpus:Cpu list) : unit =
+    printfn "Starting part 2"
+
+    let mutable spritePosition = 1
+
+    let grid = Array2D.create 6 40 false
+
+    for i = 1 to cpus.Length - 1 do
+        let cpu = cpus[i]
+        let row = (i - 1) / 40
+        let col = (i - 1) % 40
+        let isDrawn = (abs (spritePosition - col) <= 1)
+        printfn "(%d, %d) %A %d %d" row col isDrawn cpu.clock cpu.xRegister.value
+        grid[row,col] <- isDrawn
+        spritePosition <- cpu.xRegister.value
+    printGrid grid (fun c -> if c then '#' else '.')
+    ()
+
 let solve =
     // let lines = Common.getSampleDataAsArray 2022 10
     let lines = Common.getChallengeDataAsArray 2022 10
@@ -87,18 +121,7 @@ let solve =
     let finalState = Array.fold processInstruction state instructions
     let cpus = List.rev finalState.cpuStack
     let filled = AddMissingClockStates [] cpus
-    printfn "List has %d items" filled.Length
+    
+    //finishPartOne filled
 
-    let clockScoreMap = filled
-                            |> List.mapi (fun i cpu -> 
-                                            let score = getClockScore i filled
-                                            (cpu.clock, score))
-                            |> Map.ofList
-
-    let cycles = [20; 60; 100; 140; 180; 220 ]
-    let finalScore = cycles
-                        |> List.fold (fun total cycle ->
-                                        let subscore = Map.find cycle clockScoreMap
-                                        total + subscore) 0
-    printfn "Final score: %d" finalScore
-        
+    finishPartTwo filled
