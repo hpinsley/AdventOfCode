@@ -4,18 +4,19 @@ open System
 open System.IO
 open Common
 open System.Text.RegularExpressions
+open Microsoft.FSharp.Core.Operators.Checked
 
-type WorryFunc = int -> int
+type WorryFunc = int64 -> int64
 
 type Monkey =
     {
         MonkeyNumber: int
-        ItemList: int list
+        ItemList: int64 list
         Operation: WorryFunc
-        Test: int -> bool
+        Test: int64 -> bool
         TrueTarget: int
         FalseTarget: int
-        InspectionCount: int
+        InspectionCount: int64
     }
 
 let makeMonkey (monkeyNumber:int) : Monkey =
@@ -32,7 +33,7 @@ let makeMonkey (monkeyNumber:int) : Monkey =
 let parseOperation (operator:string) (operand:string) : WorryFunc =
     let fetchOperand = match operand with
                         | "old" -> id
-                        | _ as num -> fun _ -> int num
+                        | _ as num -> fun _ -> int64 num
 
     match operator with
         | "*" -> fun old -> old * (fetchOperand old)
@@ -53,7 +54,7 @@ let parseLines (lines:string[]) : Monkey[] =
             | ParseRegex "Starting items: (.*)" [itemList] ->
                 let monkey = Option.get currentMonkey
                 currentMonkey <- { monkey with 
-                                        ItemList = itemList.Split ", " |> Array.map int |> List.ofArray
+                                        ItemList = itemList.Split ", " |> Array.map int64 |> List.ofArray
                                     } |> Some
             | ParseRegex "Operation: new = old (.) (.*)" [operation; operand] ->
                 let operation = parseOperation operation operand
@@ -62,8 +63,8 @@ let parseLines (lines:string[]) : Monkey[] =
                 currentMonkey <- { monkey with Operation = operation } |> Some
         
             | ParseRegex "Test: divisible by (.*)" [divisor] ->
-                let d = int divisor
-                let f = fun (n:int) -> n % d = 0
+                let d = int64 divisor
+                let f = fun (n:int64) -> n % d = 0
 
                 let monkey = Option.get currentMonkey
                 currentMonkey <- { monkey with Test = f } |> Some
@@ -86,40 +87,53 @@ let parseLines (lines:string[]) : Monkey[] =
 
     monkeyList |> List.rev |> Array.ofList
 
-let playOneRound (monkeys:Monkey[]) : unit =
+let playOneRound (postInspectionDivFactor:int64) (monkeys:Monkey[]) : unit =
     for i = 0 to monkeys.Length - 1 do
         let monkey = monkeys[i]
         let toInspect = monkey.ItemList.Length
 
         for item in monkey.ItemList do
-            let worry = (monkey.Operation item) / 3
+            let worry = (monkey.Operation item) / postInspectionDivFactor
+            printfn $"Monkey {i} worry level is {worry}"
+
             let target = if (monkey.Test worry) then monkey.TrueTarget else monkey.FalseTarget
             let targetMonkey = monkeys[target]
             monkeys[target] <- { targetMonkey with ItemList = List.append targetMonkey.ItemList [worry] }
         
         monkeys[i] <- { monkey with 
-                            InspectionCount = monkey.InspectionCount + toInspect;
+                            InspectionCount = monkey.InspectionCount + int64 toInspect;
                             ItemList = []
                       } 
-    
+
+let computeMonkeyBusiness (monkeys:Monkey[]) : unit =
+        let monkeyBusiness = 
+                monkeys
+                    |> Array.sortByDescending (fun m -> m.InspectionCount)
+                    |> Array.take 2
+                    |> Array.fold (fun product monkey -> product * monkey.InspectionCount) 1L 
+
+        printfn "MonkeyBusiness = %d" monkeyBusiness    
+
 let solve =
-    // let lines = Common.getSampleDataAsArray 2022 11
-    let lines = Common.getChallengeDataAsArray 2022 11
+    let lines = Common.getSampleDataAsArray 2022 11
+    // let lines = Common.getChallengeDataAsArray 2022 11
     //for line in lines do
     //    printfn "%s" line
 
-    let monkeys = parseLines lines
+    let maxWorryDivisor = 1
+    let roundsToPlay = 20
+
+    for worryDivisor = 1 to maxWorryDivisor do
+        printfn ""
+
+        let monkeys = parseLines lines
     //printfn "%A" monkeys
 
-    for i = 1 to 20 do
-        playOneRound monkeys
-    
-    //printfn "Next monkeys: %A" monkeys
+        for i = 1 to roundsToPlay do
+            playOneRound worryDivisor monkeys
+        
+        for m in monkeys do
+            printfn "Divisor: %d Monkey %d: Inspection count: %d" worryDivisor m.MonkeyNumber m.InspectionCount
 
-    let monkeyBusiness = 
-        monkeys
-            |> Array.sortByDescending (fun m -> m.InspectionCount)
-            |> Array.take 2
-            |> Array.fold (fun product monkey -> product * monkey.InspectionCount) 1 
-
-    printfn "Part 1: MonkeyBusiness = %d" monkeyBusiness
+        // printfn "%A" monkeys
+        // computeMonkeyBusiness monkeys
