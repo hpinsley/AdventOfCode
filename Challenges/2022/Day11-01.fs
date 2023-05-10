@@ -86,11 +86,40 @@ let parseLines (lines:string[]) : Monkey[] =
 
     monkeyList |> List.rev |> Array.ofList
 
+let playOneRound (monkeys:Monkey[]) : unit =
+    for i = 0 to monkeys.Length - 1 do
+        let monkey = monkeys[i]
+        let toInspect = monkey.ItemList.Length
+
+        for item in monkey.ItemList do
+            let worry = (monkey.Operation item) / 3
+            let target = if (monkey.Test worry) then monkey.TrueTarget else monkey.FalseTarget
+            let targetMonkey = monkeys[target]
+            monkeys[target] <- { targetMonkey with ItemList = List.append targetMonkey.ItemList [worry] }
+        
+        monkeys[i] <- { monkey with 
+                            InspectionCount = monkey.InspectionCount + toInspect;
+                            ItemList = []
+                      } 
+    
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 11
-    // let lines = Common.getChallengeDataAsArray 2022 11
-    for line in lines do
-        printfn "%s" line
+    // let lines = Common.getSampleDataAsArray 2022 11
+    let lines = Common.getChallengeDataAsArray 2022 11
+    //for line in lines do
+    //    printfn "%s" line
 
     let monkeys = parseLines lines
-    printfn "%A" monkeys
+    //printfn "%A" monkeys
+
+    for i = 1 to 20 do
+        playOneRound monkeys
+    
+    //printfn "Next monkeys: %A" monkeys
+
+    let monkeyBusiness = 
+        monkeys
+            |> Array.sortByDescending (fun m -> m.InspectionCount)
+            |> Array.take 2
+            |> Array.fold (fun product monkey -> product * monkey.InspectionCount) 1 
+
+    printfn "Part 1: MonkeyBusiness = %d" monkeyBusiness
