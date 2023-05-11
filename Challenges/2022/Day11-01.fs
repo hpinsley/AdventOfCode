@@ -42,8 +42,8 @@ let parseOperation (operator:string) (operand:string) (divisor:int): WorryFunc =
                         | _ as num -> fun _ -> int num
 
     match operator with
-        | "*" -> fun old -> ((old % divisor) * ((fetchOperand old) % divisor)) % divisor
-        | "+" -> fun old -> ((old % divisor) + ((fetchOperand old) % divisor)) % divisor
+        | "*" -> fun old -> ((old) * ((fetchOperand old))) % divisor
+        | "+" -> fun old -> ((old) + ((fetchOperand old))) % divisor
         | _ -> failwith "Invalid operator"
 
 let parseLines (lines:string[]) : Monkey[] =
@@ -69,13 +69,10 @@ let parseLines (lines:string[]) : Monkey[] =
             | ParseRegex "Test: divisible by (.*)" [divisor] ->
                 let monkey = Option.get currentMonkey
                 let d = int divisor
-                let f = fun (n:int) -> n = 0 //n % d = 0
-                let operationFunc = parseOperation monkey.Operation monkey.Operand d
+                let f = fun (n:int) -> n % d = 0
 
-                let monkey = Option.get currentMonkey
                 currentMonkey <- { monkey with 
                                         Test = f;
-                                        OperationFunc = operationFunc
                                         Divisor = d
                                   } |> Some
 
@@ -95,7 +92,10 @@ let parseLines (lines:string[]) : Monkey[] =
     if (Option.isSome currentMonkey) then
         monkeyList <- Option.get currentMonkey :: monkeyList
 
-    monkeyList |> List.rev |> Array.ofList
+    let monkeyArray = monkeyList |> List.rev |> Array.ofList
+    let productOfDivisors = monkeyArray |> Array.fold (fun p m -> p * m.Divisor) 1
+    let withOperatorFuncs = monkeyArray |> Array.map (fun m -> { m with OperationFunc = parseOperation m.Operation m.Operand productOfDivisors })
+    withOperatorFuncs
 
 let playOneRound (postInspectionDivFactor:int) (monkeys:Monkey[]) : unit =
     for i = 0 to monkeys.Length - 1 do
