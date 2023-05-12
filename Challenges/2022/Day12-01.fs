@@ -13,6 +13,9 @@ type HeightMap =
         EndLocation: int * int
     }
 
+let getRow = fst
+let getCol = snd
+
 type Neighbor =
     {
         Loc: int * int
@@ -26,16 +29,14 @@ type Node =
 
 let getNeighborLocs rowCount colCount row col =
     seq {
-        for i = -1 to 1 do
-            for j = -1 to 1 do
-                let r = row + i
-                let c = col + j
-
-                if (
-                        (r >= 0 && r < rowCount)
-                    &&  (c >= 0 && c < colCount)
-                    &&  ((r <> row) || (c <> col))
-                ) then yield (r, c)
+        if (row > 0) then 
+            yield (row - 1, col)
+        if (row < rowCount - 1) then
+            yield (row + 1, col)
+        if (col > 0) then 
+            yield (row, col - 1)
+        if (col < colCount - 1) then
+            yield (row, col + 1)
     }
 
 let getHeightMap (lines:string[]) : HeightMap =
@@ -87,4 +88,5 @@ let solve =
     let rows = Array2D.length1 heightMap.Heights
     let cols = Array2D.length2 heightMap.Heights
 
-    getNeighborLocs rows cols 0 0 |> List.ofSeq |> printfn "TAKE OUT DIAG MOVEMENT: %A"
+    let testCell = (1, 3)
+    getNeighborLocs rows cols (getRow testCell) (getCol testCell) |> List.ofSeq |> printfn "Neighbors of %A: %A" testCell
