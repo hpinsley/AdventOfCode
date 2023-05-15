@@ -5,10 +5,11 @@ open System.IO
 open Common
 open System.Text.RegularExpressions
 open Microsoft.FSharp.Core.Operators.Checked
+open System.Collections.Generic
 
 type HeightMap = 
     {
-        Heights: char[,]
+        Heights: int[,]
         StartLocation: int * int
         EndLocation: int * int
     }
@@ -43,18 +44,20 @@ let getHeightMap (lines:string[]) : HeightMap =
     let rows = lines.Length
     let cols = lines[0].Length
 
-    let grid = Array2D.init rows cols (fun r c -> lines[r][c])
+    let grid = Array2D.create rows cols 0
     let mutable startLocation = (0, 0)
     let mutable endLocation = (0, 0)
 
-    grid |> Array2D.iteri (fun r c character ->
-                                match character with
-                                    | 'S' -> grid[r,c] <- 'a'
-                                             startLocation <- (r,c)
-                                    | 'E' -> grid[r,c] <- 'z'
-                                             endLocation <- (r,c)
-                                    | _ -> ()
-                          )
+    for r = 0 to rows - 1 do
+        for c = 0 to cols - 1 do
+            let h = lines[r][c]
+            match h with
+                | 'S' -> grid[r,c] <- int 'a' - int 'a'
+                         startLocation <- (r,c)
+                | 'E' -> grid[r,c] <- int 'z' - int 'a'
+                         endLocation <- (r,c)
+                | _ -> grid[r,c] <- int h - int 'a'
+
     let heights = {
         Heights = grid
         StartLocation = startLocation
@@ -62,7 +65,6 @@ let getHeightMap (lines:string[]) : HeightMap =
     }
     
     heights
-
 
 let runAStar (heightMap:HeightMap) : int =
     0
@@ -76,7 +78,7 @@ let solve =
     printfn ""
 
     let heightMap = getHeightMap lines
-    printGrid heightMap.Heights id
+    printGrid heightMap.Heights char
 
     printfn ""
 
@@ -88,5 +90,9 @@ let solve =
     let rows = Array2D.length1 heightMap.Heights
     let cols = Array2D.length2 heightMap.Heights
 
-    let testCell = (1, 3)
+    let gScore:Map<(int * int), int> = Map.empty |> Map.add heightMap.StartLocation 0
+    let openSet: PriorityQueue<(int * int), int> = PriorityQueue()
+
+    
+    let testCell = (1, 2)
     getNeighborLocs rows cols (getRow testCell) (getCol testCell) |> List.ofSeq |> printfn "Neighbors of %A: %A" testCell
