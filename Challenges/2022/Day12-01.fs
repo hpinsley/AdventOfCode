@@ -40,6 +40,18 @@ let getNeighborLocs rowCount colCount row col =
             yield (row, col + 1)
     }
 
+let getWeightedNeighbors (row:int) (col:int) (grid:int[,]): seq<((int * int) * int)> =
+    let rows = Array2D.length1 grid
+    let cols = Array2D.length2 grid
+
+    let currentCellHeight = grid[row,col]
+
+    let neighborHeights =
+        getNeighborLocs rows cols row col |> Seq.map (fun (r,c) -> ((r,c), grid[r,c] - currentCellHeight))
+
+    // We don't allow stepping up more than one level at a time    
+    neighborHeights |> Seq.map (fun ((r,c), h) -> if h > 1 then ((r,c), 1000) else ((r,c), h))
+
 let getHeightMap (lines:string[]) : HeightMap =
     let rows = lines.Length
     let cols = lines[0].Length
@@ -94,5 +106,5 @@ let solve =
     let openSet: PriorityQueue<(int * int), int> = PriorityQueue()
 
     
-    let testCell = (1, 2)
-    getNeighborLocs rows cols (getRow testCell) (getCol testCell) |> List.ofSeq |> printfn "Neighbors of %A: %A" testCell
+    let testCell = (2, 3)
+    getWeightedNeighbors (getRow testCell) (getCol testCell) heightMap.Heights |> List.ofSeq |> printfn "Neighbors of %A: %A" testCell
