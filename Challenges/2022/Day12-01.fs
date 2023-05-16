@@ -115,7 +115,54 @@ let showRoute (paths:(int * int) list) (rows:int) (cols:int) =
                                     else
                                         if nr > r then 'v' else '^'
     printGrid coordGrid f
-                                
+
+let findPath (startLocation:int * int) (heights:int[,]) (endLocation:int * int) =
+    let rows = Array2D.length1 heights
+    let cols = Array2D.length2 heights
+
+    let mutable gScore:Map<(int * int), int> = Map.empty |> Map.add startLocation 0
+    let mutable fScore:Map<(int * int), int> = Map.empty |> Map.add startLocation (h startLocation endLocation heights)
+    let mutable openSet:Set<(int * int)> = Set.empty |> Set.add startLocation
+    let mutable cameFrom: Map<(int * int), (int * int)> = Map.empty
+
+    let mutable foundGoal = false
+
+    while (not foundGoal && openSet.Count > 0) do
+        let current = openSet |> Seq.minBy (fun (r,c) -> fScore[(r,c)])
+        openSet <- Set.remove current openSet
+
+        // if (current = heightMap.EndLocation)
+        // The trick is not to necessarilty reach the goal; we can stop if we attain the same height as the goal
+        if (current = endLocation)
+        then
+            printfn "Reached goal"
+            foundGoal <- true
+            let path = reconstructPath cameFrom current []
+            printfn "%A" path
+            printfn "Path length is %d" (path.Length - 1)
+            showRoute path rows cols
+        else
+            let row = getRow current
+            let col = getCol current
+
+            let gScoreCurrent = Map.find (row,col) gScore
+
+            for ((r,c),d) in getWeightedNeighbors row col heights do
+                let tentativeGScore = gScoreCurrent + d
+                let gScoreNeighbor = Map.tryFind (r,c) gScore |> Option.defaultValue HugeScore
+                if (tentativeGScore < gScoreNeighbor)
+                then
+                    cameFrom <- Map.add (r,c) current cameFrom
+                    gScore <- Map.add (r, c) tentativeGScore gScore
+                    let fScoreNeighbor = tentativeGScore + h (r,c) endLocation heights
+                    fScore <- Map.add (r, c) fScoreNeighbor fScore
+                    openSet <- Set.add (r, c) openSet
+
+    if (not foundGoal)
+    then
+        printfn "Fail"
+
+
 let solve =
     let lines = Common.getSampleDataAsArray 2022 12
     // let lines = Common.getChallengeDataAsArray 2022 12
@@ -130,47 +177,7 @@ let solve =
 
     printfn "%A" heightMap
 
-    let mutable gScore:Map<(int * int), int> = Map.empty |> Map.add heightMap.StartLocation 0
-    let mutable fScore:Map<(int * int), int> = Map.empty |> Map.add heightMap.StartLocation (h heightMap.StartLocation heightMap.EndLocation heightMap.Heights)
-    let mutable openSet:Set<(int * int)> = Set.empty |> Set.add heightMap.StartLocation
-    let mutable cameFrom: Map<(int * int), (int * int)> = Map.empty
-
-    let mutable foundGoal = false
-
-    while (not foundGoal && openSet.Count > 0) do
-        let current = openSet |> Seq.minBy (fun (r,c) -> fScore[(r,c)])
-        openSet <- Set.remove current openSet
-
-        // if (current = heightMap.EndLocation)
-        // The trick is not to necessarilty reach the goal; we can stop if we attain the same height as the goal
-        if (current = heightMap.EndLocation)
-        then
-            printfn "Reached goal"
-            foundGoal <- true
-            let path = reconstructPath cameFrom current []
-            printfn "%A" path
-            printfn "Path length is %d" (path.Length - 1)
-            showRoute path (Array2D.length1 heightMap.Heights) (Array2D.length2 heightMap.Heights)
-        else
-            let row = getRow current
-            let col = getCol current
-
-            let gScoreCurrent = Map.find (row,col) gScore
-
-            for ((r,c),d) in getWeightedNeighbors row col heightMap.Heights do
-                let tentativeGScore = gScoreCurrent + d
-                let gScoreNeighbor = Map.tryFind (r,c) gScore |> Option.defaultValue HugeScore
-                if (tentativeGScore < gScoreNeighbor)
-                then
-                    cameFrom <- Map.add (r,c) current cameFrom
-                    gScore <- Map.add (r, c) tentativeGScore gScore
-                    let fScoreNeighbor = tentativeGScore + h (r,c) heightMap.EndLocation heightMap.Heights
-                    fScore <- Map.add (r, c) fScoreNeighbor fScore
-                    openSet <- Set.add (r, c) openSet
-
-    if (not foundGoal)
-    then
-        printfn "Fail"
+    findPath heightMap.StartLocation heightMap.Heights heightMap.EndLocation
 
     
     //let testCell = (2, 3)
