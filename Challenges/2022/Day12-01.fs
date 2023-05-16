@@ -105,7 +105,7 @@ let showRoute (paths:(int * int) list) (rows:int) (cols:int) =
     let zipped = List.zip paths successors
     let map = Map.ofList zipped
     let f = fun (r,c) -> match Map.tryFind (r,c) map with
-                            | None -> ' '
+                            | None -> '.'
                             | Some (nr, nc) ->
                                 if ((nr, nc) = (HugeScore, HugeScore))
                                 then '#'
@@ -125,7 +125,6 @@ let solve =
     printfn ""
 
     let heightMap = getHeightMap lines
-    printGrid heightMap.Heights char
 
     printfn ""
 
@@ -144,13 +143,13 @@ let solve =
 
         // if (current = heightMap.EndLocation)
         // The trick is not to necessarilty reach the goal; we can stop if we attain the same height as the goal
-        if (heightMap.Heights[getRow current, getCol current] = heightMap.Heights[getRow heightMap.EndLocation, getCol heightMap.EndLocation])
+        if (current = heightMap.EndLocation)
         then
             printfn "Reached goal"
             foundGoal <- true
             let path = reconstructPath cameFrom current []
             printfn "%A" path
-            printfn "Path length is %d" (path.Length)
+            printfn "Path length is %d" (path.Length - 1)
             showRoute path (Array2D.length1 heightMap.Heights) (Array2D.length2 heightMap.Heights)
         else
             let row = getRow current
