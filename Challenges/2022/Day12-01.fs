@@ -17,7 +17,7 @@ type HeightMap =
 let getRow = fst
 let getCol = snd
 
-let HugeScore = 100000
+let HugeScore = System.Int32.MaxValue
 
 type Neighbor =
     {
@@ -49,7 +49,9 @@ let getWeightedNeighbors (row:int) (col:int) (grid:int[,]): seq<((int * int) * i
     let currentCellHeight = grid[row,col]
 
     let neighborHeights =
-        getNeighborLocs rows cols row col |> Seq.map (fun (r,c) -> ((r,c), grid[r,c] - currentCellHeight))
+        getNeighborLocs rows cols row col
+            |> Seq.filter (fun (r,c) -> (grid[r,c] - currentCellHeight) <= 1)
+            |> Seq.map (fun (r,c) -> ((r,c), grid[r,c] - currentCellHeight))
 
     // We don't allow stepping up more than one level at a time    
     neighborHeights |> Seq.map (fun ((r,c), h) -> if h > 1 then ((r,c), HugeScore) else ((r,c), h))
@@ -86,7 +88,7 @@ let h (cell:(int * int)) (goal:(int * int)) (heights:int[,]): int =
     let colDiff = getCol cell - getCol goal |> abs
     rowDiff + colDiff
 
-let hDist (cell:(int * int)) (goal:(int * int)) (heights:int[,]) : int =
+let hCrow (cell:(int * int)) (goal:(int * int)) (heights:int[,]) : int =
     let (r,c) = cell
     let (gr, gc) = goal
     let myHeight = heights[r,c]
@@ -116,7 +118,7 @@ let showRoute (paths:(int * int) list) (rows:int) (cols:int) =
                                         if nr > r then 'v' else '^'
     printGrid coordGrid f
 
-let findPath (startLocation:int * int) (heights:int[,]) (endLocation:int * int) =
+let findPath (startLocation:int * int) (heights:int[,]) (endLocation:int * int) : (int * int) list =
     let rows = Array2D.length1 heights
     let cols = Array2D.length2 heights
 
@@ -137,10 +139,6 @@ let findPath (startLocation:int * int) (heights:int[,]) (endLocation:int * int) 
         then
             printfn "Reached goal"
             foundGoal <- true
-            let path = reconstructPath cameFrom current []
-            printfn "%A" path
-            printfn "Path length is %d" (path.Length - 1)
-            showRoute path rows cols
         else
             let row = getRow current
             let col = getCol current
@@ -148,7 +146,8 @@ let findPath (startLocation:int * int) (heights:int[,]) (endLocation:int * int) 
             let gScoreCurrent = Map.find (row,col) gScore
 
             for ((r,c),d) in getWeightedNeighbors row col heights do
-                let tentativeGScore = gScoreCurrent + d
+                // let tentativeGScore = gScoreCurrent + d
+                let tentativeGScore = gScoreCurrent + 1
                 let gScoreNeighbor = Map.tryFind (r,c) gScore |> Option.defaultValue HugeScore
                 if (tentativeGScore < gScoreNeighbor)
                 then
@@ -161,11 +160,22 @@ let findPath (startLocation:int * int) (heights:int[,]) (endLocation:int * int) 
     if (not foundGoal)
     then
         printfn "Fail"
+        []
+    else
+        let path = reconstructPath cameFrom endLocation []
+        path
 
+let findMaxHeightLocations (grid:int[,]) : (int * int) list =
+    let mutable locs = []
+    let mutable maxValue = -1
 
+    grid |> Array2D.iter (fun height -> if height > maxValue then maxValue <- height)
+    grid |> Array2D.iteri (fun r c height -> if height = maxValue then locs <- (r,c) :: locs)
+    locs
+                                             
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 12
-    // let lines = Common.getChallengeDataAsArray 2022 12
+    // let lines = Common.getSampleDataAsArray 2022 12
+    let lines = Common.getChallengeDataAsArray 2022 12
     for line in lines do
         printfn "%s" line
 
@@ -177,8 +187,16 @@ let solve =
 
     printfn "%A" heightMap
 
-    findPath heightMap.StartLocation heightMap.Heights heightMap.EndLocation
+    let rows = Array2D.length1 heightMap.Heights
+    let cols = Array2D.length2 heightMap.Heights
+    printfn "There are %d rows and %d cols" rows cols
 
+    let startLocation = heightMap.StartLocation
     
-    //let testCell = (2, 3)
-    //getWeightedNeighbors (getRow testCell) (getCol testCell) heightMap.Heights |> List.ofSeq |> printfn "Neighbors of %A: %A" testCell
+    let endLocations = findMaxHeightLocations heightMap.Heights
+    printfn "%A" endLocations
+
+    for endLocation in endLocations do
+        let path = findPath startLocation heightMap.Heights endLocation
+        //showRoute path rows cols
+        printfn "Steps from %A to %A = %d" startLocation endLocation (path.Length - 1)
