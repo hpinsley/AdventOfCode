@@ -165,12 +165,12 @@ let findPath (startLocation:int * int) (heights:int[,]) (endLocation:int * int) 
         let path = reconstructPath cameFrom endLocation []
         path
 
-let findMaxHeightLocations (grid:int[,]) : (int * int) list =
+let findMinHeightLocations (grid:int[,]) : (int * int) list =
     let mutable locs = []
-    let mutable maxValue = -1
+    let mutable minValue = System.Int32.MaxValue
 
-    grid |> Array2D.iter (fun height -> if height > maxValue then maxValue <- height)
-    grid |> Array2D.iteri (fun r c height -> if height = maxValue then locs <- (r,c) :: locs)
+    grid |> Array2D.iter (fun height -> if height < minValue then minValue <- height)
+    grid |> Array2D.iteri (fun r c height -> if height = minValue then locs <- (r,c) :: locs)
     locs
                                              
 let solve =
@@ -191,12 +191,24 @@ let solve =
     let cols = Array2D.length2 heightMap.Heights
     printfn "There are %d rows and %d cols" rows cols
 
-    let startLocation = heightMap.StartLocation
+    let endLocation = heightMap.EndLocation
     
-    let endLocations = findMaxHeightLocations heightMap.Heights
-    printfn "%A" endLocations
+    let startLocations = findMinHeightLocations heightMap.Heights
+    printfn "%A" startLocations
 
-    for endLocation in endLocations do
-        let path = findPath startLocation heightMap.Heights endLocation
-        //showRoute path rows cols
-        printfn "Steps from %A to %A = %d" startLocation endLocation (path.Length - 1)
+    let paths = startLocations
+                    |> List.fold (fun paths startLocation ->
+                                        let path = findPath startLocation heightMap.Heights endLocation
+                                        (path, path.Length - 1, startLocation) :: paths) []
+
+                    |> List.filter (fun (path, steps, startLocation) -> not (List.isEmpty path)) 
+
+    let (bestPath, steps, startLocation) = paths |> List.minBy (fun (_, steps, _) -> steps)
+    showRoute bestPath rows cols
+    printfn "Found %d viable paths" paths.Length
+    printfn "Steps from %A to %A = %d" startLocation endLocation steps
+
+    //for startLocation in startLocations do
+    //    let path = findPath startLocation heightMap.Heights endLocation
+    //    //showRoute path rows cols
+    //    printfn "Steps from %A to %A = %d" startLocation endLocation (path.Length - 1)
