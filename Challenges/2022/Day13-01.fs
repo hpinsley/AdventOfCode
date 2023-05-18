@@ -130,14 +130,15 @@ let correlatePairs (lines:string[]) : seq<int * (Packet * Packet)> =
             |> Array.mapi (fun i line -> (i % 2, line))
     let left = numberedLines |> Seq.filter (fun (i, line) -> i = 0) |> Seq.map (snd >> parsePacket)
     let right = numberedLines |> Seq.filter (fun (i, line) -> i = 1) |> Seq.map (snd >> parsePacket)
-    Seq.allPairs left right |> Seq.mapi (fun i pair -> (i+1, pair))
+    Seq.zip left right |> Seq.mapi (fun i pair -> (i+1, pair))
 
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 13
-    // let lines = Common.getChallengeDataAsArray 2022 13
+    // let lines = Common.getSampleDataAsArray 2022 13
+    let lines = Common.getChallengeDataAsArray 2022 13
     // testAllLines lines
 
     let pairs = correlatePairs lines
-    printfn "%A" pairs
+    for (index, (left, right)) in pairs do
+        printfn "%d: %A %A" index left right
     ()
 
