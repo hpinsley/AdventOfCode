@@ -115,14 +115,18 @@ let parsePacket (line:string) : Packet =
     packet
 
 let solve =
-    //let lines = Common.getSampleDataAsArray 2022 13
-    //// let lines = Common.getChallengeDataAsArray 2022 13
-    //for line in lines do
-    //    let packet = parsePacket line
-    //    printfn "%s = %A" line packet
+    ////let lines = Common.getSampleDataAsArray 2022 13
+    let lines = Common.getChallengeDataAsArray 2022 13
+    for line in lines do
+        if (line.Length > 1)
+        then
+            printfn "Parsing %s" line
+            let packet = parsePacket line
+            printfn "%s = %A" line packet
     
     //let result = parsePacket("[17,18]")
     //let result = parsePacket("[[18,19]]")
-    let result = parsePacket("[[]]")
-    printfn "%A" result
+    //let result = parsePacket("[[]]")
+    //let result = parsePacket("[[],[3,4,[5,6]]]")
+    //printfn "%A" result
 
