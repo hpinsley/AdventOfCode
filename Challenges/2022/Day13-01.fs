@@ -114,19 +114,30 @@ let parsePacket (line:string) : Packet =
 
     packet
 
-let solve =
-    ////let lines = Common.getSampleDataAsArray 2022 13
-    let lines = Common.getChallengeDataAsArray 2022 13
+let testAllLines (lines:string[]) : unit =
     for line in lines do
-        if (line.Length > 1)
-        then
-            printfn "Parsing %s" line
-            let packet = parsePacket line
-            printfn "%s = %A" line packet
-    
-    //let result = parsePacket("[17,18]")
-    //let result = parsePacket("[[18,19]]")
-    //let result = parsePacket("[[]]")
-    //let result = parsePacket("[[],[3,4,[5,6]]]")
-    //printfn "%A" result
+    if (line.Length > 1)
+    then
+        printfn "Parsing %s" line
+        let packet = parsePacket line
+        printfn "%s = %A" line packet
+
+// Pair up the valid lines, parse them and index the pairs starting at 1
+let correlatePairs (lines:string[]) : seq<int * (Packet * Packet)> =
+    let numberedLines =
+        lines
+            |> Array.filter (fun line -> line.Length > 1)
+            |> Array.mapi (fun i line -> (i % 2, line))
+    let left = numberedLines |> Seq.filter (fun (i, line) -> i = 0) |> Seq.map (snd >> parsePacket)
+    let right = numberedLines |> Seq.filter (fun (i, line) -> i = 1) |> Seq.map (snd >> parsePacket)
+    Seq.allPairs left right |> Seq.mapi (fun i pair -> (i+1, pair))
+
+let solve =
+    let lines = Common.getSampleDataAsArray 2022 13
+    // let lines = Common.getChallengeDataAsArray 2022 13
+    // testAllLines lines
+
+    let pairs = correlatePairs lines
+    printfn "%A" pairs
+    ()
 
