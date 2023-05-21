@@ -82,3 +82,7 @@ let (|ParseRegex|_|) regex str =
    if m.Success
    then Some (List.tail [ for x in m.Groups -> x.Value ])
    else None
+
+let printAllLines (lines:seq<string>) : unit =
+    for line in lines do
+        printfn "%s" line
