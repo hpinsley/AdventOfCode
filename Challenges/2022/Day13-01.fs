@@ -132,7 +132,7 @@ let rec comparePacketItems (left:PacketItem) (right:PacketItem) : int =
                 | Value rValue ->
                     comparePacketItems left (Nested [Value rValue])
                 | Nested rightList ->
-                    printfn "Comparing left list of %d items and right list of %d items" leftList.Length rightList.Length
+                    //printfn "Comparing left list of %d items and right list of %d items" leftList.Length rightList.Length
                     match leftList with
                         | [] ->
                             match rightList with
@@ -151,7 +151,7 @@ let rec comparePacketItems (left:PacketItem) (right:PacketItem) : int =
 
 let comparePair ((indexNo:int), (left:PacketItem, right:PacketItem)) =
     let result = comparePacketItems left right
-    printfn "Comparing index %d: Result: %d" indexNo result
+    // printfn "Comparing index %d: Result: %d" indexNo result
     if (result = -1)
     then
         indexNo
@@ -159,7 +159,7 @@ let comparePair ((indexNo:int), (left:PacketItem, right:PacketItem)) =
         0
 
 let solve =
-    ////let lines = Common.getSampleDataAsArray 2022 13
+    // let lines = Common.getSampleDataAsArray 2022 13
     let lines = Common.getChallengeDataAsArray 2022 13
     // testAllLines lines
 
@@ -168,6 +168,31 @@ let solve =
         printfn "%d: Left:%A Right: %A" index left right
     
     let result = pairs |> Seq.map comparePair |> Seq.sum
-    printfn "Final result is %d" result
+    printfn "Part 1 result is %d" result
+
+    let leftItems = pairs |> Array.map (fun (_, (left, _)) -> left)
+    let rightItems = pairs |> Array.map (fun (_, (_, right)) -> right)
+
+    // Add to "divider packets" for part 2
+
+    let div1 = parsePacket "[[2]]"
+    let div2 = parsePacket "[[6]]"
+
+    let linearPackets = rightItems
+                            |> Array.append leftItems
+                            |> Array.append [| div1 |]
+                            |> Array.append [| div2 |]
+
+    // Sort them using our comparison function and add an index since we need that for part 2.      
+    let sorted = linearPackets |> Array.sortWith comparePacketItems |> Array.mapi (fun i item -> (i+1, item))
+
+    //printfn "Sorted\n"
+    //for p in sorted do
+    //    printfn "%A" p
+    
+    let productOfDividerIndexes = sorted |> Array.fold (fun product (index, item) -> 
+                                            if (comparePacketItems item div1 = 0 || comparePacketItems item div2 = 0) then product * index else product
+                                            ) 1
+    printfn "%A" productOfDividerIndexes
 
     ()
