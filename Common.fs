@@ -59,11 +59,13 @@ let stdDevList list =
 let printGrid (grid:'T[,]) (cellToCharFunc: 'T -> char) =
     let rows = Array2D.length1 grid
     let cols = Array2D.length2 grid
+    let r0 = Array2D.base1 grid
+    let c0 = Array2D.base2 grid
 
-    [0..rows - 1]
+    [r0..r0 + rows - 1]
         |> List.iter (fun r ->
                             let s =
-                                [0..cols-1]
+                                [c0..c0 + cols-1]
                                     |> List.fold (fun (line:string) (c:int) ->
                                                     let charToAppend = cellToCharFunc grid.[r,c]
                                                     line + (string charToAppend)
