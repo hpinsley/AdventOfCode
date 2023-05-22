@@ -81,20 +81,42 @@ let runSimulation (grid:GridCell[,]) : unit =
     let maxY = minY + yLength - 1
     let maxX = minX + xLength - 1
 
+    let inRange (p:Point) : bool =
+        let (x, y) = p
+        x >= minX && x <= maxX && y >= minY && y <= maxY
+
+    let mutable noMoreRoom = false
+    while (not noMoreRoom) do
+        let mutable (x,y) = sandSource
+        let down = (x, y + 1)
+        let left = (x - 1, y + 1)
+        let right = (x + 1, y + 1)
+
+        let possibles = [down; left; right] |> List.filter inRange
+
+        let move = possibles |> List.tryFind (fun (x, y) -> grid[y,x] = Empty)
+        match move with
+            | Some (newX, newY) -> 
+                x <- newX
+                y <- newY
+            | None -> grid[y, x] <- Sand
+                      noMoreRoom <- true
+    
+    displayGrid grid
     ()
 
 
 let solve =
-    // let lines = Common.getSampleDataAsArray 2022 14
-    let lines = Common.getChallengeDataAsArray 2022 14
-    printAllLines lines
+    let lines = Common.getSampleDataAsArray 2022 14
+    // let lines = Common.getChallengeDataAsArray 2022 14
+    //printAllLines lines
 
-    printfn "All points"
+    //printfn "All points"
 
     let allPoints = getAllPoints lines |> Array.append [| sandSource |]
     
-    for p in allPoints do
-        printfn "(%d, %d)" (fst p) (snd p)
+    //for p in allPoints do
+    //    printfn "(%d, %d)" (fst p) (snd p)
 
     printfn "There are %d points" allPoints.Length
 
