@@ -9,6 +9,16 @@ open System.Collections.Generic
 type Point = (int * int)
 type LineSegment = (Point * Point)
 
+let GetX = fst
+let GetY = snd
+
+type GridCell =
+    | Empty
+    | Rock
+    | Sand
+    | SandSource
+
+let sandSource = (500, 0)
 
 let parsePoint (p:string) : Point =
     let m = Regex("(\d+),(\d+)").Match(p)
@@ -46,6 +56,23 @@ let getAllPoints (lines:string[]) : Point[] =
     let allPoints = lines |> Array.map parseRow |> Array.concat |> Array.concat |> Array.distinct
     allPoints
 
+let buildGrid (points:Point[]) : GridCell[,] =
+    let minX = points |> Array.map GetX |> Array.min
+    let maxX = points |> Array.map GetX |> Array.max
+    let minY = points |> Array.map GetY |> Array.min
+    let maxY = points |> Array.map GetY |> Array.max
+
+    let grid = Array2D.initBased minY minX (maxY - minY + 1) (maxX - minX + 1) (fun _ _ -> Empty)
+    points |> Array.iter (fun (x, y) -> grid[y,x] <- if ((x,y) = sandSource) then SandSource else Rock)
+    grid
+
+let displayGrid (grid:GridCell[,]) : unit =
+    printGrid grid (fun (cell:GridCell) -> match cell with
+                                            | Empty -> '.'
+                                            | Rock -> '#'
+                                            | Sand -> 'O'
+                                            | SandSource -> '+')
+
 let solve =
     let lines = Common.getSampleDataAsArray 2022 14
     //let lines = Common.getChallengeDataAsArray 2022 14
@@ -53,10 +80,12 @@ let solve =
 
     printfn "All points"
 
-    let allPoints = getAllPoints lines
+    let allPoints = getAllPoints lines |> Array.append [| sandSource |]
     
     for p in allPoints do
         printfn "(%d, %d)" (fst p) (snd p)
 
     printfn "There are %d points" allPoints.Length
 
+    let grid = buildGrid allPoints
+    displayGrid grid
