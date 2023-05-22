@@ -73,9 +73,20 @@ let displayGrid (grid:GridCell[,]) : unit =
                                             | Sand -> 'O'
                                             | SandSource -> '+')
 
+let runSimulation (grid:GridCell[,]) : unit =
+    let minY = Array2D.base1 grid
+    let yLength = Array2D.length1 grid
+    let minX = Array2D.base2 grid
+    let xLength = Array2D.length2 grid
+    let maxY = minY + yLength - 1
+    let maxX = minX + xLength - 1
+
+    ()
+
+
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 14
-    //let lines = Common.getChallengeDataAsArray 2022 14
+    // let lines = Common.getSampleDataAsArray 2022 14
+    let lines = Common.getChallengeDataAsArray 2022 14
     printAllLines lines
 
     printfn "All points"
@@ -89,3 +100,6 @@ let solve =
 
     let grid = buildGrid allPoints
     displayGrid grid
+
+    runSimulation grid
+    ()
