@@ -62,7 +62,7 @@ let buildGrid (points:Point[]) : GridCell[,] =
     let minY = points |> Array.map GetY |> Array.min
     let maxY = points |> Array.map GetY |> Array.max
 
-    let grid = Array2D.initBased minY minX (maxY - minY + 1) (maxX - minX + 1) (fun _ _ -> Empty)
+    let grid = Array2D.initBased (minY)  (minX - 1) (maxY - minY + 2) (maxX - minX + 3) (fun _ _ -> Empty)
     points |> Array.iter (fun (x, y) -> grid[y,x] <- if ((x,y) = sandSource) then SandSource else Rock)
     grid
 
@@ -73,7 +73,7 @@ let displayGrid (grid:GridCell[,]) : unit =
                                             | Sand -> 'O'
                                             | SandSource -> '+')
 
-let runSimulation (grid:GridCell[,]) : unit =
+let dropSandGrain (grid:GridCell[,]) : bool =
     let minY = Array2D.base1 grid
     let yLength = Array2D.length1 grid
     let minX = Array2D.base2 grid
@@ -86,29 +86,42 @@ let runSimulation (grid:GridCell[,]) : unit =
         x >= minX && x <= maxX && y >= minY && y <= maxY
 
     let mutable noMoreRoom = false
-    while (not noMoreRoom) do
-        let mutable (x,y) = sandSource
+    let mutable fallingIntoAbyss = false
+
+    let mutable (x,y) = sandSource
+
+    while (not (noMoreRoom || fallingIntoAbyss)) do
         let down = (x, y + 1)
         let left = (x - 1, y + 1)
         let right = (x + 1, y + 1)
 
-        let possibles = [down; left; right] |> List.filter inRange
+        let possibles = [down; left; right]     
 
         let move = possibles |> List.tryFind (fun (x, y) -> grid[y,x] = Empty)
         match move with
             | Some (newX, newY) -> 
                 x <- newX
                 y <- newY
+                if (y >= maxY)
+                then
+                    fallingIntoAbyss <- true
+
             | None -> grid[y, x] <- Sand
                       noMoreRoom <- true
     
-    displayGrid grid
-    ()
+    not fallingIntoAbyss
 
+let runSimulation (grid:GridCell[,]) : int =
+    let mutable grainCount = 0
+    while (dropSandGrain grid) do
+        grainCount <- grainCount + 1
+        //displayGrid grid
+
+    grainCount
 
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 14
-    // let lines = Common.getChallengeDataAsArray 2022 14
+    // let lines = Common.getSampleDataAsArray 2022 14
+    let lines = Common.getChallengeDataAsArray 2022 14
     //printAllLines lines
 
     //printfn "All points"
@@ -123,5 +136,9 @@ let solve =
     let grid = buildGrid allPoints
     displayGrid grid
 
-    runSimulation grid
+    printfn "\nSolving...\n"
+
+    let grainCount = runSimulation grid
+    displayGrid grid
+    printfn "Grain count is %d" grainCount
     ()
