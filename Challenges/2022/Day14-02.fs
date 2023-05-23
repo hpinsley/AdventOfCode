@@ -64,7 +64,8 @@ let buildGrid (points:Point[]) : GridCell[,] =
     let maxY = points |> Array.map GetY |> Array.max
     let floor = maxY + 2
 
-    let grid = Array2D.initBased (minY)  (minX - 2) (maxY - minY + 3) (maxX - minX + 5) (fun _ _ -> Empty)
+    // let grid = Array2D.initBased (minY)  (minX - 30) (maxY - minY + 5) (maxX - minX + 60) (fun _ _ -> Empty)
+    let grid = Array2D.initBased (minY)  (minX - 200) (maxY - minY + 5) (maxX - minX + 300) (fun _ _ -> Empty)
     points |> Array.iter (fun (x, y) -> match (x, y) with
                                             | (_, _) when (x,y) = sandSource -> 
                                                 grid[y,x] <- SandSource
@@ -89,31 +90,45 @@ let dropSandGrain (grid:GridCell[,]) : bool =
     let yLength = Array2D.length1 grid
     let maxY = minY + yLength - 1
 
+    let minX = Array2D.base2 grid
+    let xLength = Array2D.length2 grid
+    let maxX = minX + xLength - 1
+    
+    let inRange xTest yTest = (xTest >= minX && xTest <= maxX && yTest >= minY && yTest <= maxY)
+    
+    // printfn "X from %d to %d; Y from %d to %d" minX maxX minY maxY
     let mutable noMoreRoom = false
-    let mutable fallingIntoAbyss = false
 
     let mutable (x,y) = sandSource
 
-    while (not (noMoreRoom || fallingIntoAbyss)) do
-        let down = (x, y + 1)
-        let left = (x - 1, y + 1)
-        let right = (x + 1, y + 1)
+    try
 
-        let possibles = [down; left; right]     
+        while (not (noMoreRoom)) do
+            let down = (x, y + 1)
+            let left = (x - 1, y + 1)
+            let right = (x + 1, y + 1)
 
-        let move = possibles |> List.tryFind (fun (x, y) -> grid[y,x] = Empty)
-        match move with
-            | Some (newX, newY) -> 
-                x <- newX
-                y <- newY
-                if (y >= maxY)
-                then
-                    fallingIntoAbyss <- true
+            let possibles = [down; left; right]     
 
-            | None -> grid[y, x] <- Sand
-                      noMoreRoom <- true
+            let move = possibles |> List.tryFind (fun (x, y) -> 
+                                                    (inRange x y) && grid[y,x] = Empty)
+            match move with
+                | Some (newX, newY) -> 
+                    x <- newX
+                    y <- newY
+                    if (y >= maxY)
+                    then
+                        failwith "Should have hit the infinite floor"
+
+                | None -> grid[y, x] <- Sand
+                          noMoreRoom <- true
     
-    not fallingIntoAbyss
+        let isDone = (x,y) = sandSource
+        not isDone
+    with ex ->
+        printfn "Error %A" ex
+        displayGrid grid
+        raise ex
 
 let runSimulation (grid:GridCell[,]) : int =
     let mutable grainCount = 0
@@ -121,11 +136,11 @@ let runSimulation (grid:GridCell[,]) : int =
         grainCount <- grainCount + 1
         //displayGrid grid
 
-    grainCount
+    grainCount + 1
 
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 14
-    //let lines = Common.getChallengeDataAsArray 2022 14
+    // let lines = Common.getSampleDataAsArray 2022 14
+    let lines = Common.getChallengeDataAsArray 2022 14
     //printAllLines lines
 
     //printfn "All points"
@@ -142,7 +157,7 @@ let solve =
 
     //printfn "\nSolving...\n"
 
-    //let grainCount = runSimulation grid
-    //displayGrid grid
-    //printfn "Grain count is %d" grainCount
+    let grainCount = runSimulation grid
+    displayGrid grid
+    printfn "Grain count is %d" grainCount
     ()
