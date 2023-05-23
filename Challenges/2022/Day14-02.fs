@@ -1,4 +1,4 @@
-﻿module Year2022Day14_Part1
+﻿module Year2022Day14_Part2
 
 open System
 open System.IO
@@ -17,6 +17,7 @@ type GridCell =
     | Rock
     | Sand
     | SandSource
+    | Floor
 
 let sandSource = (500, 0)
 
@@ -61,17 +62,27 @@ let buildGrid (points:Point[]) : GridCell[,] =
     let maxX = points |> Array.map GetX |> Array.max
     let minY = points |> Array.map GetY |> Array.min
     let maxY = points |> Array.map GetY |> Array.max
+    let floor = maxY + 2
 
-    let grid = Array2D.initBased (minY)  (minX - 1) (maxY - minY + 2) (maxX - minX + 3) (fun _ _ -> Empty)
-    points |> Array.iter (fun (x, y) -> grid[y,x] <- if ((x,y) = sandSource) then SandSource else Rock)
+    let grid = Array2D.initBased (minY)  (minX - 2) (maxY - minY + 3) (maxX - minX + 5) (fun _ _ -> Empty)
+    points |> Array.iter (fun (x, y) -> match (x, y) with
+                                            | (_, _) when (x,y) = sandSource -> 
+                                                grid[y,x] <- SandSource
+                                            | _ ->
+                                                grid[y,x] <- Rock)
+
+    for x = (Array2D.base2 grid) to ((Array2D.base2 grid) + (Array2D.length2 grid) - 1) do
+        grid[floor, x] <- Floor
+
     grid
 
 let displayGrid (grid:GridCell[,]) : unit =
-    printGrid grid (fun (cell:GridCell) -> match cell with
+        printGrid grid (fun (cell:GridCell) -> match cell with
                                             | Empty -> '.'
                                             | Rock -> '#'
                                             | Sand -> 'O'
-                                            | SandSource -> '+')
+                                            | SandSource -> '+'
+                                            | Floor -> 'X')
 
 let dropSandGrain (grid:GridCell[,]) : bool =
     let minY = Array2D.base1 grid
@@ -113,8 +124,8 @@ let runSimulation (grid:GridCell[,]) : int =
     grainCount
 
 let solve =
-    // let lines = Common.getSampleDataAsArray 2022 14
-    let lines = Common.getChallengeDataAsArray 2022 14
+    let lines = Common.getSampleDataAsArray 2022 14
+    //let lines = Common.getChallengeDataAsArray 2022 14
     //printAllLines lines
 
     //printfn "All points"
@@ -129,9 +140,9 @@ let solve =
     let grid = buildGrid allPoints
     displayGrid grid
 
-    printfn "\nSolving...\n"
+    //printfn "\nSolving...\n"
 
-    let grainCount = runSimulation grid
-    displayGrid grid
-    printfn "Grain count is %d" grainCount
+    //let grainCount = runSimulation grid
+    //displayGrid grid
+    //printfn "Grain count is %d" grainCount
     ()
