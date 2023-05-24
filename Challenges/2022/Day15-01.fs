@@ -14,6 +14,12 @@ type Reading = {
     distance: int
 }
 
+type State = {
+    visited: Set<Point>;
+    cleared: Set<Point>;
+    pendingReadings: Reading list;
+}
+
 let GetX = fst
 let GetY = snd
 
@@ -44,14 +50,39 @@ let parseLine (line:string) : Reading =
 
     reading
 
+let processReading  (state:State) (reading:Reading) : State =
+    { state with visited = Set.add reading.sensor state.visited }
+
+let rec processReadings  (state:State) (reading:Reading) : State =
+    match state.pendingReadings with
+        | [] -> state
+        | reading :: remaining ->
+            let newState = processReading { state with pendingReadings = remaining } reading
+            remaining |> List.fold processReadings newState
+
+let solvePart1 (readings:Reading list) : State =
+
+    let state = {
+        visited = Set.empty;
+        cleared = Set.empty;
+        pendingReadings = readings;
+    }
+
+    let finalState = readings
+                        |> List.fold processReadings state
+
+    finalState
+
 let solve =
-    // let lines = Common.getSampleDataAsArray 2022 15
-    let lines = Common.getChallengeDataAsArray 2022 15
+    let lines = Common.getSampleDataAsArray 2022 15
+    // let lines = Common.getChallengeDataAsArray 2022 15
     printAllLines lines
 
-    let readings = lines |> Seq.map parseLine
+    let readings = lines |> Seq.map parseLine |> List.ofSeq
     printfn "%A" readings
-
-
+    
+    let finalState = solvePart1 readings
+    printfn "Final state"
+    printf "%A" finalState
 
     ()
