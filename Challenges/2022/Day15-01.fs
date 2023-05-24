@@ -57,11 +57,16 @@ let parseLine (line:string) : Reading =
 
 let rec processNeighbor (sensor:Point) (maxDistance:int) (state:State) (p:Point) : State =
     let d = getDistance p sensor
-    if (d > maxDistance)
+    if (d > maxDistance || maxDistance = 0)
     then
         state
     else
-        CLEAR HERE
+        let newCleared = Set.add p state.cleared
+        let newState = { state with cleared = newCleared }
+        let neighbors = getNeighbors p
+        let nextState = neighbors
+                            |> List.fold (processNeighbor sensor (maxDistance - 1)) newState
+        nextState
 
 let processReading  (state:State) (reading:Reading) : State =
 
