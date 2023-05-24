@@ -31,6 +31,11 @@ let getDistance (p1:Point) (p2:Point) : int =
 
     Math.Abs(x2 - x1) + Math.Abs(y2 - y1)
 
+let getNeighbors (p:Point) : Point list =
+    let x = GetX p
+    let y = GetY p
+    [(x - 1, y); (x + 1, y); (x, y - 1); (x, y + 1)]
+
 let parseLine (line:string) : Reading =
     let m = Regex("Sensor at x=([-0123456789]+), y=([-0123456789]+): closest beacon is at x=([-0123456789]+), y=([-0123456789]+)").Match(line)
     
@@ -50,8 +55,26 @@ let parseLine (line:string) : Reading =
 
     reading
 
+let rec processNeighbor (sensor:Point) (maxDistance:int) (state:State) (p:Point) : State =
+    let d = getDistance p sensor
+    if (d > maxDistance)
+    then
+        state
+    else
+        CLEAR HERE
+
 let processReading  (state:State) (reading:Reading) : State =
-    { state with visited = Set.add reading.sensor state.visited }
+
+    let neighbors = getNeighbors reading.sensor
+
+    let visited = Set.add reading.sensor state.visited
+    let cleared = Set.add reading.sensor state.cleared
+    let updatedState = { state with visited = visited; cleared = cleared }
+
+    let newState = neighbors
+                    |> List.fold (processNeighbor reading.sensor (reading.distance - 1)) updatedState
+
+    newState
 
 let rec processReadings  (state:State) (reading:Reading) : State =
     match state.pendingReadings with
