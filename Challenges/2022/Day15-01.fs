@@ -15,7 +15,7 @@ type Reading = {
 }
 
 type State = {
-    visited: Map<Point,int>;
+    visited: Set<Point>;
     cleared: Set<Point>;
 }
 
@@ -60,52 +60,41 @@ let parseLine (line:string) : Reading =
 
     reading
 
-let rec processNeighbor (fromPoint:Point) (maxDistance:int) (state:State) (p:Point) : State =
-    printfn "Processing point %A.  Max distance of %d from fromPoint at %A" p maxDistance fromPoint
+let rec processNeighbor (sensor:Point) (beaconDistance:int) (state:State) (p:Point) : State =
+    printfn "Processing point %A." p
 
-    let d = getDistance p fromPoint
-    //printfn "The distance from %A to %A is %d" fromPoint p d
+    let d = getDistance p sensor
 
-    //if (Set.contains p state.visited && false)
-    if (Map.containsKey p state.visited && (d >= (Map.find p state.visited)))
+    if (state.visited |> Set.contains p)
     then
-        printfn "Skipping point %A as it was already visited with distance %d" p (Map.find p state.visited) 
         state
-    elif (d > maxDistance)
+    elif (d >= beaconDistance)
     then
-        printfn "Point %A is TOO FAR from point %A (max dist is %d)" p fromPoint d
         state
     else
-        printfn "Point %A is cleared at distance %d from fromPoint at %A" p (getDistance p fromPoint) fromPoint
         let newCleared = Set.add p state.cleared
-        let newVisited = Map.add p d state.visited
+        let newVisited = Set.add p state.visited
 
         let newState = { state with cleared = newCleared; visited = newVisited }
         let neighbors = getNeighbors p
         //printfn "Recursing from %A with neighbors %A" p neighbors
         let nextState = neighbors
-                            |> List.fold (processNeighbor p (maxDistance - 1)) newState
+                            |> List.fold (processNeighbor sensor beaconDistance) newState
         nextState
-
-let rec processCloseNeighbor (sensor:Point) (maxDistance:int) (state:State) (p:Point) : State =
-    //printfn "\nProcessing CLOSE point %A.  Max distance of %d from sensor at %A" p maxDistance sensor    
-    //let newState = { state with visited = Set.empty |> Set.add sensor }
-    //processNeighbor sensor maxDistance newState p
-
-    processNeighbor sensor maxDistance state p
 
 let processReading  (state:State) (reading:Reading) : State =
 
     printfn "\n\nProcessing sensor at %A and beacon at %A" reading.sensor reading.beacon
 
-    let visited = Map.empty |> Map.add reading.sensor reading.distance
+    let visited = Set.empty |> Set.add reading.sensor
     let cleared = state.cleared |> Set.add reading.sensor |> Set.add reading.beacon
     let updatedState = { state with visited = visited; cleared = cleared }
+    let beaconDistance = getDistance reading.beacon reading.sensor
 
     let neighbors = getNeighbors reading.sensor
     printfn "Sensor %A neighbors are %A\n" reading.sensor neighbors
     let newState = neighbors
-                    |> List.fold (processCloseNeighbor reading.sensor (reading.distance - 1)) updatedState
+                    |> List.fold (processNeighbor reading.sensor beaconDistance) updatedState
 
     newState
 
@@ -132,7 +121,7 @@ let displayAsGrid (points:seq<Point>) (reading:Reading) =
 let solvePart1 (readings:Reading list) : State =
 
     let state = {
-        visited = Map.empty;
+        visited = Set.empty;
         cleared = Set.empty;
     }
 
