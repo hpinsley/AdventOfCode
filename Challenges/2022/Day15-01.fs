@@ -17,7 +17,6 @@ type Reading = {
 type State = {
     visited: Set<Point>;
     cleared: Set<Point>;
-    pendingReadings: Reading list;
 }
 
 let GetX = fst
@@ -55,62 +54,82 @@ let parseLine (line:string) : Reading =
 
     reading
 
-let rec processNeighbor (sensor:Point) (maxDistance:int) (state:State) (p:Point) : State =
-    let d = getDistance p sensor
-    if (d > maxDistance || maxDistance = 0)
+let rec processNeighbor (fromPoint:Point) (maxDistance:int) (state:State) (p:Point) : State =
+    //printfn "Processing point %A.  Max distance of %d from sensor at %A" p maxDistance fromPoint
+
+    let d = getDistance p fromPoint
+    //printfn "The distance from %A to %A is %d" fromPoint p d
+
+    //if (Set.contains p state.visited && false)
+    if (Set.contains p state.visited)
+    then
+        printfn "Skipping point %A as it was already visited" p
+        state
+    elif (d > maxDistance || maxDistance = 0)
     then
         state
     else
+        printfn "Point %A is cleared at distance %d from fromPoint at %A" p (getDistance p fromPoint) fromPoint
         let newCleared = Set.add p state.cleared
-        let newState = { state with cleared = newCleared }
+        let newVisited = Set.add p state.visited
+
+        let newState = { state with cleared = newCleared; visited = newVisited }
         let neighbors = getNeighbors p
+        //printfn "Recursing from %A with neighbors %A" p neighbors
         let nextState = neighbors
-                            |> List.fold (processNeighbor sensor (maxDistance - 1)) newState
+                            |> List.fold (processNeighbor p (maxDistance - 1)) newState
         nextState
+
+let rec processCloseNeighbor (sensor:Point) (maxDistance:int) (state:State) (p:Point) : State =
+    //printfn "\nProcessing CLOSE point %A.  Max distance of %d from sensor at %A" p maxDistance sensor    
+    let newState = { state with visited = Set.empty |> Set.add sensor }
+    processNeighbor sensor maxDistance newState p
 
 let processReading  (state:State) (reading:Reading) : State =
 
-    let neighbors = getNeighbors reading.sensor
+    printfn "\n\nProcessing sensor at %A and beacon at %A" reading.sensor reading.beacon
 
-    let visited = Set.add reading.sensor state.visited
-    let cleared = Set.add reading.sensor state.cleared
+    let visited = Set.empty |> Set.add reading.sensor
+    let cleared = state.cleared |> Set.add reading.sensor |> Set.add reading.beacon
     let updatedState = { state with visited = visited; cleared = cleared }
 
+    let neighbors = getNeighbors reading.sensor
+    printfn "Sensor %A neighbors are %A\n" reading.sensor neighbors
     let newState = neighbors
-                    |> List.fold (processNeighbor reading.sensor (reading.distance - 1)) updatedState
+                    |> List.fold (processCloseNeighbor reading.sensor (reading.distance - 1)) updatedState
 
     newState
-
-let rec processReadings  (state:State) (reading:Reading) : State =
-    match state.pendingReadings with
-        | [] -> state
-        | reading :: remaining ->
-            let newState = processReading { state with pendingReadings = remaining } reading
-            remaining |> List.fold processReadings newState
 
 let solvePart1 (readings:Reading list) : State =
 
     let state = {
         visited = Set.empty;
         cleared = Set.empty;
-        pendingReadings = readings;
     }
 
     let finalState = readings
-                        |> List.fold processReadings state
+                        |> List.fold processReading state
 
     finalState
 
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 15
+    // let lines = Common.getSampleDataAsArray 2022 15
     // let lines = Common.getChallengeDataAsArray 2022 15
+
+    // let lines = [| "Sensor at x=5, y=5: closest beacon is at x=5, y=8" |]
+    let lines = [| "Sensor at x=8, y=7: closest beacon is at x=2, y=10" |]
     printAllLines lines
 
     let readings = lines |> Seq.map parseLine |> List.ofSeq
-    printfn "%A" readings
+    printfn "All readings: %A" readings
     
     let finalState = solvePart1 readings
     printfn "Final state"
     printf "%A" finalState
+
+    printfn "\nWe cleared %d cells\n" finalState.cleared.Count
+
+    for p in finalState.cleared |> Seq.sortBy GetY do
+        printfn "Cleared: %A" p
 
     ()
