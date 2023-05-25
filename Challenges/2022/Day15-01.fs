@@ -15,9 +15,15 @@ type Reading = {
 }
 
 type State = {
-    visited: Set<Point>;
+    visited: Map<Point,int>;
     cleared: Set<Point>;
 }
+
+type CellType =
+    | Free
+    | Cleared
+    | Beacon
+    | Sensor
 
 let GetX = fst
 let GetY = snd
@@ -55,23 +61,24 @@ let parseLine (line:string) : Reading =
     reading
 
 let rec processNeighbor (fromPoint:Point) (maxDistance:int) (state:State) (p:Point) : State =
-    //printfn "Processing point %A.  Max distance of %d from sensor at %A" p maxDistance fromPoint
+    printfn "Processing point %A.  Max distance of %d from fromPoint at %A" p maxDistance fromPoint
 
     let d = getDistance p fromPoint
     //printfn "The distance from %A to %A is %d" fromPoint p d
 
     //if (Set.contains p state.visited && false)
-    if (Set.contains p state.visited)
+    if (Map.containsKey p state.visited && (d >= (Map.find p state.visited)))
     then
-        printfn "Skipping point %A as it was already visited" p
+        printfn "Skipping point %A as it was already visited with distance %d" p (Map.find p state.visited) 
         state
-    elif (d > maxDistance || maxDistance = 0)
+    elif (d > maxDistance)
     then
+        printfn "Point %A is TOO FAR from point %A (max dist is %d)" p fromPoint d
         state
     else
         printfn "Point %A is cleared at distance %d from fromPoint at %A" p (getDistance p fromPoint) fromPoint
         let newCleared = Set.add p state.cleared
-        let newVisited = Set.add p state.visited
+        let newVisited = Map.add p d state.visited
 
         let newState = { state with cleared = newCleared; visited = newVisited }
         let neighbors = getNeighbors p
@@ -82,14 +89,16 @@ let rec processNeighbor (fromPoint:Point) (maxDistance:int) (state:State) (p:Poi
 
 let rec processCloseNeighbor (sensor:Point) (maxDistance:int) (state:State) (p:Point) : State =
     //printfn "\nProcessing CLOSE point %A.  Max distance of %d from sensor at %A" p maxDistance sensor    
-    let newState = { state with visited = Set.empty |> Set.add sensor }
-    processNeighbor sensor maxDistance newState p
+    //let newState = { state with visited = Set.empty |> Set.add sensor }
+    //processNeighbor sensor maxDistance newState p
+
+    processNeighbor sensor maxDistance state p
 
 let processReading  (state:State) (reading:Reading) : State =
 
     printfn "\n\nProcessing sensor at %A and beacon at %A" reading.sensor reading.beacon
 
-    let visited = Set.empty |> Set.add reading.sensor
+    let visited = Map.empty |> Map.add reading.sensor reading.distance
     let cleared = state.cleared |> Set.add reading.sensor |> Set.add reading.beacon
     let updatedState = { state with visited = visited; cleared = cleared }
 
@@ -100,10 +109,30 @@ let processReading  (state:State) (reading:Reading) : State =
 
     newState
 
+let displayAsGrid (points:seq<Point>) (reading:Reading) =
+    let minCol = points |> Seq.map GetX |> Seq.min
+    let maxCol = points |> Seq.map GetX |> Seq.max
+    let minRow = points |> Seq.map GetY |> Seq.min
+    let maxRow = points |> Seq.map GetY |> Seq.max
+    let rows = (maxRow - minRow) + 1
+    let cols = (maxCol - minCol) + 1
+
+    let grid = Array2D.createBased minRow minCol rows cols Free
+    points |> Seq.iter (fun (x,y) -> grid[y,x] <- Cleared)
+    grid[GetY reading.sensor, GetX reading.sensor] <- Sensor
+    grid[GetY reading.beacon, GetX reading.beacon] <- Beacon
+
+    printGrid grid (fun b -> 
+                        match b with 
+                            | Free -> ' '
+                            | Cleared -> '#'
+                            | Sensor -> 'S'
+                            | Beacon -> 'B')
+
 let solvePart1 (readings:Reading list) : State =
 
     let state = {
-        visited = Set.empty;
+        visited = Map.empty;
         cleared = Set.empty;
     }
 
@@ -117,7 +146,8 @@ let solve =
     // let lines = Common.getChallengeDataAsArray 2022 15
 
     // let lines = [| "Sensor at x=5, y=5: closest beacon is at x=5, y=8" |]
-    let lines = [| "Sensor at x=8, y=7: closest beacon is at x=2, y=10" |]
+    // let lines = [| "Sensor at x=8, y=7: closest beacon is at x=2, y=10" |]
+    let lines = [| "Sensor at x=0, y=0: closest beacon is at x=4, y=0" |]
     printAllLines lines
 
     let readings = lines |> Seq.map parseLine |> List.ofSeq
@@ -132,4 +162,6 @@ let solve =
     for p in finalState.cleared |> Seq.sortBy GetY do
         printfn "Cleared: %A" p
 
+    displayAsGrid finalState.cleared readings[0]
     ()
+
