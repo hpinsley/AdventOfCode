@@ -61,7 +61,6 @@ let parseLine (line:string) : Reading =
     reading
 
 let rec processNeighbor (sensor:Point) (beaconDistance:int) (state:State) (p:Point) : State =
-    printfn "Processing point %A." p
 
     let d = getDistance p sensor
 
@@ -92,13 +91,13 @@ let processReading  (state:State) (reading:Reading) : State =
     let beaconDistance = getDistance reading.beacon reading.sensor
 
     let neighbors = getNeighbors reading.sensor
-    printfn "Sensor %A neighbors are %A\n" reading.sensor neighbors
+    //printfn "Sensor %A neighbors are %A\n" reading.sensor neighbors
     let newState = neighbors
                     |> List.fold (processNeighbor reading.sensor beaconDistance) updatedState
 
     newState
 
-let displayAsGrid (points:seq<Point>) (reading:Reading) =
+let displayAsGrid (points:seq<Point>) (readings:Reading list) =
     let minCol = points |> Seq.map GetX |> Seq.min
     let maxCol = points |> Seq.map GetX |> Seq.max
     let minRow = points |> Seq.map GetY |> Seq.min
@@ -108,8 +107,10 @@ let displayAsGrid (points:seq<Point>) (reading:Reading) =
 
     let grid = Array2D.createBased minRow minCol rows cols Free
     points |> Seq.iter (fun (x,y) -> grid[y,x] <- Cleared)
-    grid[GetY reading.sensor, GetX reading.sensor] <- Sensor
-    grid[GetY reading.beacon, GetX reading.beacon] <- Beacon
+
+    for reading in readings do
+        grid[GetY reading.sensor, GetX reading.sensor] <- Sensor
+        grid[GetY reading.beacon, GetX reading.beacon] <- Beacon
 
     printGrid grid (fun b -> 
                         match b with 
@@ -117,8 +118,8 @@ let displayAsGrid (points:seq<Point>) (reading:Reading) =
                             | Cleared -> '#'
                             | Sensor -> 'S'
                             | Beacon -> 'B')
-
-let solvePart1 (readings:Reading list) : State =
+ 
+let recursePart1ThatOverFlowsForChallengeData (readings:Reading list) : State =
 
     let state = {
         visited = Set.empty;
@@ -130,27 +131,54 @@ let solvePart1 (readings:Reading list) : State =
 
     finalState
 
+let solvePart1 (readings:Reading list) (row:int): int =
+
+    let countOfBeaconsOnTheRow = readings |> List.filter (fun r -> (GetY r.beacon) = row) |> List.length
+    printfn "There are %d beacons on row %d" countOfBeaconsOnTheRow row
+
+    let mutable minX = Int32.MaxValue
+    let mutable maxX = Int32.MinValue
+
+    for r in readings do
+        printfn "\nProcessing reading with sensor at %A and beacon at %A at distance %d" r.sensor r.beacon r.distance
+        let beaconDistance = r.distance
+        let rowsFromSensor = (GetY r.sensor) - row |> Math.Abs
+        let colsToClear = beaconDistance - rowsFromSensor
+
+        if (colsToClear > 0)
+        then
+            let center = GetX r.sensor
+            let left = center - colsToClear
+            let right = center + colsToClear
+            printfn "Clearing (%d,%d) to (%d,%d)" left row right row        
+    0
+
 let solve =
-    // let lines = Common.getSampleDataAsArray 2022 15
+    let lines = Common.getSampleDataAsArray 2022 15
+    let row = 20
+    
     // let lines = Common.getChallengeDataAsArray 2022 15
+    // let row = 2_000_000
 
     // let lines = [| "Sensor at x=5, y=5: closest beacon is at x=5, y=8" |]
     // let lines = [| "Sensor at x=8, y=7: closest beacon is at x=2, y=10" |]
-    let lines = [| "Sensor at x=0, y=0: closest beacon is at x=4, y=0" |]
-    printAllLines lines
+    // let lines = [| "Sensor at x=0, y=0: closest beacon is at x=4, y=0" |]
+    // printAllLines lines
 
     let readings = lines |> Seq.map parseLine |> List.ofSeq
-    printfn "All readings: %A" readings
+    // printfn "All readings: %A" readings
     
-    let finalState = solvePart1 readings
-    printfn "Final state"
-    printf "%A" finalState
+    let count = solvePart1 readings row
 
-    printfn "\nWe cleared %d cells\n" finalState.cleared.Count
+    //printfn "Final state"
+    //printf "%A" finalState
 
-    for p in finalState.cleared |> Seq.sortBy GetY do
-        printfn "Cleared: %A" p
+    //printfn "\nWe cleared %d cells\n" finalState.cleared.Count
 
-    displayAsGrid finalState.cleared readings[0]
+    //for p in finalState.cleared |> Seq.sortBy GetY do
+    //    printfn "Cleared: %A" p
+
+    // displayAsGrid finalState.cleared readings
+    printfn "Done with count = %d" count
     ()
 
