@@ -110,17 +110,90 @@ let getRowZones (readings:Reading list) (row:int): ColRange list =
         |> List.map (getRowZoneForSingleSensor row)
         |> List.choose id
 
+let colRangeContains (c:int) (colRange:ColRange) : bool =
+    (c >= colRange.startCol) && (c <= colRange.endCol)
 
-let solvePart2 (readings:Reading list) (row:int): int =
+let overlaps (r1:ColRange) (r2:ColRange) : bool =
+    let doesOverlap = (colRangeContains r2.startCol r1)
+                        ||  (colRangeContains r2.endCol r1)
+                        ||  (colRangeContains r1.startCol r2)
+                        ||  (colRangeContains r1.endCol r2)
+    doesOverlap
+
+let combine (r1:ColRange) (r2:ColRange) : ColRange =
+    {
+        startCol = Math.Min(r1.startCol,r2.startCol);
+        endCol = Math.Max(r1.endCol, r2.endCol);
+    }
+
+let consolidateColRanges (colRanges:ColRange list) : ColRange list =
+    let sortedRanges = colRanges |> List.sortBy (fun colRange -> colRange.startCol)
+
+    let folder (ranges:ColRange list) (current:ColRange) : ColRange list =
+        match ranges with
+            | [] -> [current]
+            | head :: tail ->
+                if (overlaps head current)
+                then
+                    let combined = combine head current
+                    combined :: tail
+                else
+                    current :: ranges
+     
+
+    let consolidatedRanges = sortedRanges |> List.fold folder []
+    consolidatedRanges |> List.sortBy (fun r -> r.startCol)
+
+let visualizeColRanges (row:int) (colRanges:ColRange list) : unit =
+    let colMin = colRanges |> List.map (fun colRange -> colRange.startCol) |> List.min
+    let colMax = colRanges |> List.map (fun colRange -> colRange.endCol) |> List.max
+    
+    // The printGrid function treats the first dimension as the rows.
+
+    let yMin = colMin - 1 // Leave some room
+    let yMax = colMax + 1
+    let width = yMax - yMin + 1
+
+    let grid = Array2D.initBased row yMin 1 width (fun x y -> Seq.exists (colRangeContains y) colRanges)
+    printGrid grid (fun b -> if b then '#' else '.')
+    ()
+
+
+let checkRow (row:int) (minCoord:int) (maxCoord:int) (readings:Reading list) : unit =
+    printfn "Checking row %d" row
+
     let ranges = getRowZones readings row
-    ranges.Length
+    // visualizeColRanges row ranges
+    
+    printfn "Consolidating"
+    let consolidatedRanges = consolidateColRanges ranges
+    let truncatedRanges = consolidatedRanges |> List.map (fun range -> { startCol = Math.Max(range.startCol,minCoord); 
+                                                                         endCol = Math.Min(range.endCol,maxCoord)
+                                                                       }) 
+    printfn "\Visualization of cleared for row %d" row
+    visualizeColRanges row truncatedRanges
+    ()
+
+let solvePart2 (pivotRow:int) (minCoord:int) (maxCoord:int) (readings:Reading list) : unit =
+    // Assume we are most likely
+    let maxIter = pivotRow
+    for row in seq { for j in 0 .. maxIter do 
+                        yield pivotRow + j 
+                        yield pivotRow - j
+                    } do
+        checkRow row minCoord maxCoord readings
+    ()
 
 let solve =
     let lines = Common.getSampleDataAsArray 2022 15
     let row = 11
+    let coordMin = 0
+    let coordMax = 20
     
     //let lines = Common.getChallengeDataAsArray 2022 15
     //let row = 2_000_000
+    //let coordMin = 0
+    //let coordMax = 4_000_000
 
     // let lines = [| "Sensor at x=5, y=5: closest beacon is at x=5, y=8" |]
     // let lines = [| "Sensor at x=8, y=7: closest beacon is at x=2, y=10" |]
@@ -130,17 +203,9 @@ let solve =
     let readings = lines |> Seq.map parseLine |> List.ofSeq
     // printfn "All readings: %A" readings
     
-    let count = solvePart2 readings row
-
-    //printfn "Final state"
-    //printf "%A" finalState
-
-    //printfn "\nWe cleared %d cells\n" finalState.cleared.Count
-
-    //for p in finalState.cleared |> Seq.sortBy GetY do
-    //    printfn "Cleared: %A" p
-
-    // displayAsGrid finalState.cleared readings
-    printfn "Done with count = %d" count
+    let pivotRow = (coordMax - coordMin) / 2
+    printfn "Starting with pivot row %d" pivotRow
+    solvePart2 pivotRow coordMin coordMax readings
+    printfn "Done"
     ()
 
