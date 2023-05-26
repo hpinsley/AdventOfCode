@@ -221,6 +221,9 @@ let solve =
     let pivotRow = (coordMax - coordMin) / 2
     printfn "Starting with pivot row %d" pivotRow
     solvePart2 pivotRow coordMin coordMax readings
-    printfn "Done"
+    printfn "%s" (Common.bold "xyzzy")
+    printfn "%s" (Common.bold_green "xyzzy")
+    printfn "%s" (Common.bold_red "xyzzy")
+    printfn "%s" (Common.bold_yellow "xyzzy")
     ()
 

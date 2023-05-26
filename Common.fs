@@ -3,6 +3,11 @@ module Common
 open System.IO
 open System.Text.RegularExpressions
 
+let bold = fun text -> $"\x1b[1m{text}\x1b[0m"
+let bold_red = fun text -> $"\x1b[1;31m{text}\x1b[0m"
+let bold_green = fun text -> $"\x1b[1;32m{text}\x1b[0m"
+let bold_yellow = fun text -> $"\x1b[1;33m{text}\x1b[0m"
+
 let dump label o =
     printfn "\n%s:\n%A" label o
     o
