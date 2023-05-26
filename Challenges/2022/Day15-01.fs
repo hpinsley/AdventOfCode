@@ -133,9 +133,6 @@ let recursePart1ThatOverFlowsForChallengeData (readings:Reading list) : State =
 
 let solvePart1 (readings:Reading list) (row:int): int =
 
-    let countOfBeaconsOnTheRow = readings |> List.filter (fun r -> (GetY r.beacon) = row) |> List.length
-    printfn "There are %d beacons on row %d" countOfBeaconsOnTheRow row
-
     let mutable minX = Int32.MaxValue
     let mutable maxX = Int32.MinValue
 
@@ -143,22 +140,34 @@ let solvePart1 (readings:Reading list) (row:int): int =
         printfn "\nProcessing reading with sensor at %A and beacon at %A at distance %d" r.sensor r.beacon r.distance
         let beaconDistance = r.distance
         let rowsFromSensor = (GetY r.sensor) - row |> Math.Abs
-        let colsToClear = beaconDistance - rowsFromSensor
+        let colsToClear = (beaconDistance - rowsFromSensor)
 
-        if (colsToClear > 0)
+        if (colsToClear >= 0)
         then
             let center = GetX r.sensor
             let left = center - colsToClear
             let right = center + colsToClear
-            printfn "Clearing (%d,%d) to (%d,%d)" left row right row        
-    0
+            printfn "Clearing (%d,%d) - (%d,%d) - (%d,%d)" left row center row right row
+            if (left < minX) then minX <- left
+            if (right > maxX) then maxX <- right
+
+    printfn "MinX = %d, MaxX = %d" minX maxX
+
+    let clearCount = (maxX - minX)
+
+    // Unclear any sensor on this row that is in the clear range.  There cannot be a beacon where there is a sensor
+    let sensorsToSubtract = readings |> List.filter (fun r -> (GetY r.sensor) = row &&
+                                                                (((GetX r.sensor) >= minX) || ((GetX r.sensor) <= maxX)))
+
+    printfn "Subtracting %d sensors from clear count" sensorsToSubtract.Length
+    clearCount - sensorsToSubtract.Length
 
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 15
-    let row = 20
+    //let lines = Common.getSampleDataAsArray 2022 15
+    //let row = 10
     
-    // let lines = Common.getChallengeDataAsArray 2022 15
-    // let row = 2_000_000
+    let lines = Common.getChallengeDataAsArray 2022 15
+    let row = 2_000_000
 
     // let lines = [| "Sensor at x=5, y=5: closest beacon is at x=5, y=8" |]
     // let lines = [| "Sensor at x=8, y=7: closest beacon is at x=2, y=10" |]
