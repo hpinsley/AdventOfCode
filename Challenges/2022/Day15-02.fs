@@ -1,4 +1,4 @@
-﻿module Year2022Day15_Part1
+﻿module Year2022Day15_Part2
 
 open System
 open System.IO
@@ -8,15 +8,16 @@ open Microsoft.FSharp.Core.Operators.Checked
 open System.Collections.Generic
 
 type Point = int * int
+
+type ColRange = {
+    startCol: int;
+    endCol: int;
+}
+
 type Reading = {
     sensor: Point
     beacon: Point
     distance: int
-}
-
-type State = {
-    visited: Set<Point>;
-    cleared: Set<Point>;
 }
 
 type CellType =
@@ -60,42 +61,7 @@ let parseLine (line:string) : Reading =
 
     reading
 
-let rec processNeighbor (sensor:Point) (beaconDistance:int) (state:State) (p:Point) : State =
 
-    let d = getDistance p sensor
-
-    if (state.visited |> Set.contains p)
-    then
-        state
-    elif (d >= beaconDistance)
-    then
-        state
-    else
-        let newCleared = Set.add p state.cleared
-        let newVisited = Set.add p state.visited
-
-        let newState = { state with cleared = newCleared; visited = newVisited }
-        let neighbors = getNeighbors p
-        //printfn "Recursing from %A with neighbors %A" p neighbors
-        let nextState = neighbors
-                            |> List.fold (processNeighbor sensor beaconDistance) newState
-        nextState
-
-let processReading  (state:State) (reading:Reading) : State =
-
-    printfn "\n\nProcessing sensor at %A and beacon at %A" reading.sensor reading.beacon
-
-    let visited = Set.empty |> Set.add reading.sensor
-    let cleared = state.cleared |> Set.add reading.sensor |> Set.add reading.beacon
-    let updatedState = { state with visited = visited; cleared = cleared }
-    let beaconDistance = getDistance reading.beacon reading.sensor
-
-    let neighbors = getNeighbors reading.sensor
-    //printfn "Sensor %A neighbors are %A\n" reading.sensor neighbors
-    let newState = neighbors
-                    |> List.fold (processNeighbor reading.sensor beaconDistance) updatedState
-
-    newState
 
 let displayAsGrid (points:seq<Point>) (readings:Reading list) =
     let minCol = points |> Seq.map GetX |> Seq.min
@@ -119,25 +85,8 @@ let displayAsGrid (points:seq<Point>) (readings:Reading list) =
                             | Sensor -> 'S'
                             | Beacon -> 'B')
  
-let recursePart1ThatOverFlowsForChallengeData (readings:Reading list) : State =
 
-    let state = {
-        visited = Set.empty;
-        cleared = Set.empty;
-    }
-
-    let finalState = readings
-                        |> List.fold processReading state
-
-    finalState
-
-let solvePart1 (readings:Reading list) (row:int): int =
-
-    let mutable minX = Int32.MaxValue
-    let mutable maxX = Int32.MinValue
-
-    for r in readings do
-        printfn "\nProcessing reading with sensor at %A and beacon at %A at distance %d" r.sensor r.beacon r.distance
+let getRowZoneForSingleSensor (row:int) (r:Reading) : ColRange option =
         let beaconDistance = r.distance
         let rowsFromSensor = (GetY r.sensor) - row |> Math.Abs
         let colsToClear = (beaconDistance - rowsFromSensor)
@@ -147,26 +96,31 @@ let solvePart1 (readings:Reading list) (row:int): int =
             let center = GetX r.sensor
             let left = center - colsToClear
             let right = center + colsToClear
-            //printfn "Clearing (%d,%d) - (%d,%d) - (%d,%d)" left row center row right row
-            if (left < minX) then minX <- left
-            if (right > maxX) then maxX <- right
-            //printfn "Expanded range is now: MinX = %d, MaxX = %d" minX maxX
+            
+            Some {
+                startCol = left;
+                endCol = right;
+            }
+        else
+            None
 
-    let clearCount = (maxX - minX)
+let getRowZones (readings:Reading list) (row:int): ColRange list =
 
-    // Unclear any sensor on this row that is in the clear range.  There cannot be a beacon where there is a sensor
-    let sensorsToSubtract = readings |> List.filter (fun r -> (GetY r.sensor) = row &&
-                                                                (((GetX r.sensor) >= minX) || ((GetX r.sensor) <= maxX)))
+    readings
+        |> List.map (getRowZoneForSingleSensor row)
+        |> List.choose id
 
-    printfn "Subtracting %d sensors from clear count" sensorsToSubtract.Length
-    clearCount - sensorsToSubtract.Length
+
+let solvePart2 (readings:Reading list) (row:int): int =
+    let ranges = getRowZones readings row
+    ranges.Length
 
 let solve =
-    // let lines = Common.getSampleDataAsArray 2022 15
-    // let row = 10
+    let lines = Common.getSampleDataAsArray 2022 15
+    let row = 11
     
-    let lines = Common.getChallengeDataAsArray 2022 15
-    let row = 2_000_000
+    //let lines = Common.getChallengeDataAsArray 2022 15
+    //let row = 2_000_000
 
     // let lines = [| "Sensor at x=5, y=5: closest beacon is at x=5, y=8" |]
     // let lines = [| "Sensor at x=8, y=7: closest beacon is at x=2, y=10" |]
@@ -176,7 +130,7 @@ let solve =
     let readings = lines |> Seq.map parseLine |> List.ofSeq
     // printfn "All readings: %A" readings
     
-    let count = solvePart1 readings row
+    let count = solvePart2 readings row
 
     //printfn "Final state"
     //printf "%A" finalState
