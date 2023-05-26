@@ -159,7 +159,7 @@ let visualizeColRanges (row:int) (colRanges:ColRange list) : unit =
     ()
 
 
-let checkRow (row:int) (minCoord:int) (maxCoord:int) (readings:Reading list) : unit =
+let checkRow (row:int) (minCoord:int) (maxCoord:int) (readings:Reading list) : (int * ColRange list) option =
     // printfn "Checking row %d" row
 
     let ranges = getRowZones readings row
@@ -174,20 +174,31 @@ let checkRow (row:int) (minCoord:int) (maxCoord:int) (readings:Reading list) : u
 
     if (truncatedRanges.Length = 0 || truncatedRanges.Length > 1) then
         printfn "That looks interesting"
-
-    //printfn "\Visualization of cleared for row %d" row
-    //visualizeColRanges row truncatedRanges
-    ()
+        Some (row, truncatedRanges)
+    else
+        None
 
 let solvePart2 (pivotRow:int) (minCoord:int) (maxCoord:int) (readings:Reading list) : unit =
    
     // let maxIter = 10
     let maxIter = pivotRow
-    for row in seq { for j in 0 .. maxIter do 
+    let rows = seq { for j in 0 .. maxIter do 
                         yield pivotRow + j 
                         yield pivotRow - j
-                    } do
-        checkRow row minCoord maxCoord readings
+                    }
+    
+    let possibleHit = rows |> Seq.pick (fun row -> checkRow row minCoord maxCoord readings)
+
+    printfn "Possible hit is here %A" possibleHit
+
+    let row = fst possibleHit
+    let cleared = snd possibleHit
+    let col = cleared[0].endCol + 1
+    printfn "Is it row,col = %d,%d" row col
+
+    let frequency = 4000000L * int64 col + int64 row
+    printfn "Frequency %A" frequency
+
     ()
 
 let solve =
