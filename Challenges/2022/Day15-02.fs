@@ -160,22 +160,28 @@ let visualizeColRanges (row:int) (colRanges:ColRange list) : unit =
 
 
 let checkRow (row:int) (minCoord:int) (maxCoord:int) (readings:Reading list) : unit =
-    printfn "Checking row %d" row
+    // printfn "Checking row %d" row
 
     let ranges = getRowZones readings row
     // visualizeColRanges row ranges
     
-    printfn "Consolidating"
     let consolidatedRanges = consolidateColRanges ranges
     let truncatedRanges = consolidatedRanges |> List.map (fun range -> { startCol = Math.Max(range.startCol,minCoord); 
                                                                          endCol = Math.Min(range.endCol,maxCoord)
-                                                                       }) 
-    printfn "\Visualization of cleared for row %d" row
-    visualizeColRanges row truncatedRanges
+                                                                       })
+
+    // printfn "There are %d truncated ranges for row %d: %A" truncatedRanges.Length row truncatedRanges
+
+    if (truncatedRanges.Length = 0 || truncatedRanges.Length > 1) then
+        printfn "That looks interesting"
+
+    //printfn "\Visualization of cleared for row %d" row
+    //visualizeColRanges row truncatedRanges
     ()
 
 let solvePart2 (pivotRow:int) (minCoord:int) (maxCoord:int) (readings:Reading list) : unit =
-    // Assume we are most likely
+   
+    // let maxIter = 10
     let maxIter = pivotRow
     for row in seq { for j in 0 .. maxIter do 
                         yield pivotRow + j 
@@ -185,15 +191,13 @@ let solvePart2 (pivotRow:int) (minCoord:int) (maxCoord:int) (readings:Reading li
     ()
 
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 15
-    let row = 11
-    let coordMin = 0
-    let coordMax = 20
-    
-    //let lines = Common.getChallengeDataAsArray 2022 15
-    //let row = 2_000_000
+    //let lines = Common.getSampleDataAsArray 2022 15
     //let coordMin = 0
-    //let coordMax = 4_000_000
+    //let coordMax = 20
+    
+    let lines = Common.getChallengeDataAsArray 2022 15
+    let coordMin = 0
+    let coordMax = 4_000_000
 
     // let lines = [| "Sensor at x=5, y=5: closest beacon is at x=5, y=8" |]
     // let lines = [| "Sensor at x=8, y=7: closest beacon is at x=2, y=10" |]
