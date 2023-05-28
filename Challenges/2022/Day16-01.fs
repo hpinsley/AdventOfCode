@@ -14,11 +14,16 @@ type ValveInfo =
         leadsTo: string[]
     }
 
+type ValveState =
+    | Open
+    | Closed
+
 type Valve =
     {
         valveName: string;
         mutable flowRate: int;
         mutable neighbors: Valve[]
+        mutable valveState: ValveState        
     }
 
 let parseLine (line:string) : ValveInfo =
@@ -46,6 +51,7 @@ let parseValveInfo (valves:ValveInfo[]) : Valve list =
                                             valveName = k;
                                             flowRate = 0;
                                             neighbors = [||];
+                                            valveState = Closed
                                         }
                                     valveDict[k] <- v
                                     v
@@ -62,7 +68,7 @@ let printValveInfo (valves:ValveInfo[]) =
         printfn "Valve %s with flow %d links to %A" v.valveName v.flowRate v.leadsTo
 
 let printValve valve =
-    printfn "Valve %s with flow %d has %d neighbors" valve.valveName valve.flowRate valve.neighbors.Length
+    printfn "%s Valve %s with flow %d has %d neighbors" (if valve.valveState = Open then "Opened" else "Closed")  valve.valveName valve.flowRate valve.neighbors.Length
 
 let printValves (valves:Valve list) =
     for v in valves do
