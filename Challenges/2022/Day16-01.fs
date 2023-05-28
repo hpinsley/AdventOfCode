@@ -14,8 +14,14 @@ type ValveInfo =
         leadsTo: string[]
     }
 
+type Valve =
+    {
+        valveName: string;
+        mutable flowRate: int;
+        mutable neighbors: Valve[]
+    }
+
 let parseLine (line:string) : ValveInfo =
-    let sample = "Valve EB has flow rate=7; tunnels lead to valves IF, NH, AD, VI, DQ"
     let pattern = "Valve (..) has flow rate=(\d+); tunnel(s)? lead(s)? to valve(s)? (.*)"
     let m = Regex(pattern).Match(line)
     if (not m.Success) then failwith "regex"
@@ -29,9 +35,35 @@ let parseLine (line:string) : ValveInfo =
     }
     info
 
+let parseValveInfo (valves:ValveInfo[]) : Valve list =
+    let valveDict = new Dictionary<string, Valve>()
+
+    let getValve (k:string) = if (valveDict.ContainsKey(k))
+                                then 
+                                    valveDict[k]
+                                else
+                                    let (v:Valve) = {
+                                            valveName = k;
+                                            flowRate = 0;
+                                            neighbors = [||];
+                                        }
+                                    valveDict[k] <- v
+                                    v
+
+    for vi in valves do
+        let v = getValve vi.valveName
+        v.flowRate <- vi.flowRate
+        v.neighbors <- vi.leadsTo |> Array.map (fun s -> getValve s)
+    
+    valveDict.Values |> List.ofSeq
+
 let printValveInfo (valves:ValveInfo[]) =
     for v in valves do
         printfn "Valve %s with flow %d links to %A" v.valveName v.flowRate v.leadsTo
+
+let printValves (valves:Valve list) =
+    for v in valves do
+        printfn "Valve %s with flow %d links to %A" v.valveName v.flowRate v.neighbors
 
 let solve =
     let lines = Common.getSampleDataAsArray 2022 16
@@ -39,5 +71,8 @@ let solve =
     printAllLines lines
 
     let valveInfo = lines |> Array.map parseLine
+    let valves = parseValveInfo valveInfo
+
     printValveInfo valveInfo
+    printValves valves
     ()
