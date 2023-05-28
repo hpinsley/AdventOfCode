@@ -74,6 +74,40 @@ let printValves (valves:Valve list) =
     for v in valves do
         printValve v
 
+let rec getBestScore(fromValve:Valve) (stepsRemaining:int) (score:int) (visited:Set<string>) : int * Set<string> =
+
+    if (false && Set.contains fromValve.valveName visited)
+    then
+        (score, visited)
+    else
+        let newVisited = Set.add fromValve.valveName visited
+        printfn "Looking for best from valve %s (flow rate %d).  Steps remaining %d; cum score = %d" fromValve.valveName fromValve.flowRate stepsRemaining score
+        if (stepsRemaining <= 1)
+        then
+            (score, newVisited)
+        else
+            // printfn "Visiting valve %s with %d steps remaining" fromValve.valveName stepsRemaining
+            let left = stepsRemaining - 1
+
+            if (fromValve.valveState = Closed && fromValve.flowRate > 0)
+            then
+                printfn "Opening valve %s with flow rate %d and %d remaining" fromValve.valveName fromValve.flowRate stepsRemaining
+                fromValve.valveState <- Open
+                let openTheValveScore = getBestScore fromValve left (score + left * fromValve.flowRate) newVisited
+                let neighborScores = if (left = 0) then Array.empty else fromValve.neighbors |> Array.map (fun n -> getBestScore n left score newVisited)
+                let allChoices = Array.append neighborScores [| openTheValveScore |]
+                let best = allChoices |> Array.maxBy fst
+                best
+            else
+                if (left = 1)
+                then
+                    (score, newVisited)
+                else
+                    let neighborScores = fromValve.neighbors |> Array.map (fun n -> getBestScore n left score newVisited)
+                    let best = neighborScores |> Array.maxBy fst
+                    best
+
+    
 let solve =
     let lines = Common.getSampleDataAsArray 2022 16
     // let lines = Common.getChallengeDataAsArray 2022 16
@@ -91,4 +125,6 @@ let solve =
     printfn "\nStarting valve"
     printValve startingValve
 
+    let best = getBestScore startingValve 30 0 (Set.empty)
+    printfn "The best path relieves pressure of %A" best
     ()
