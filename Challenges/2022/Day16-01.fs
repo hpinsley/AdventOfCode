@@ -61,9 +61,12 @@ let printValveInfo (valves:ValveInfo[]) =
     for v in valves do
         printfn "Valve %s with flow %d links to %A" v.valveName v.flowRate v.leadsTo
 
+let printValve valve =
+    printfn "Valve %s with flow %d has %d neighbors" valve.valveName valve.flowRate valve.neighbors.Length
+
 let printValves (valves:Valve list) =
     for v in valves do
-        printfn "Valve %s with flow %d links to %A" v.valveName v.flowRate v.neighbors
+        printValve v
 
 let solve =
     let lines = Common.getSampleDataAsArray 2022 16
@@ -72,7 +75,14 @@ let solve =
 
     let valveInfo = lines |> Array.map parseLine
     let valves = parseValveInfo valveInfo
+    printfn ""
 
     printValveInfo valveInfo
     printValves valves
+
+    let startingValve = valves |> List.find (fun v -> v.valveName = valveInfo[0].valveName)
+
+    printfn "\nStarting valve"
+    printValve startingValve
+
     ()
