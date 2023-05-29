@@ -23,6 +23,40 @@ type Valve =
         mutable neighbors: Valve[]
     }
 
+type DistantNeighbor = {
+    valveName: string;
+    distance: int;
+}
+
+type HyperValve =
+    {
+        valveName: string;
+        flowRate: int;
+        neighbors: DistantNeighbor[];
+    }
+
+let buildHyperValves (valves:Valve list) (startingValve:Valve): HyperValve list =
+    let rec getDistantNeighbors (valve:Valve) (distance:int) (toIgnore:Set<string>) : DistantNeighbor[] =
+        let nextDoor = valve.neighbors |> Array.filter (fun v -> not (toIgnore.Contains v.valveName)) |> Array.filter (fun v -> v.flowRate > 0) |> Array.map (fun v -> { valveName = v.valveName; distance = distance })
+        let brokenNeighbors = valve.neighbors |> Array.filter (fun v -> not (toIgnore.Contains v.valveName)) |> Array.filter (fun v -> v.flowRate = 0)
+        let toIgnoreClose = nextDoor |> Array.map (fun v -> v.valveName) |> Set.ofArray |> Set.add valve.valveName
+        let toIgnoreUpdated = Set.union toIgnore toIgnoreClose
+        let reachable = brokenNeighbors |> Array.map (fun v -> getDistantNeighbors v (distance + 1) toIgnoreUpdated) |> Array.concat
+        reachable |> Array.append nextDoor
+
+    let initialList = valves
+                            |> List.map (fun v -> 
+                                                let reachable = getDistantNeighbors v 1 Set.empty
+                            
+                                                {
+                                                    valveName = v.valveName;
+                                                    flowRate = v.flowRate;
+                                                    neighbors = reachable;
+                                                }
+                                        )
+    let prunedList = initialList |> List.filter (fun hv -> hv.valveName = startingValve.valveName || hv.flowRate > 0)
+    prunedList
+
 let parseLine (line:string) : ValveInfo =
     let pattern = "Valve (..) has flow rate=(\d+); tunnel(s)? lead(s)? to valve(s)? (.*)"
     let m = Regex(pattern).Match(line)
@@ -63,14 +97,14 @@ let printValveInfo (valves:ValveInfo[]) =
     for v in valves do
         printfn "Valve %s with flow %d links to %A" v.valveName v.flowRate v.leadsTo
 
-let printValve valve =
+let printValve (valve:Valve) =
     printfn "Valve %s with flow %d has %d neighbors" valve.valveName valve.flowRate valve.neighbors.Length
 
 let printValves (valves:Valve list) =
     for v in valves do
         printValve v
 
-let rec getBestScore(fromValve:Valve) (stepsRemaining:int) (score:int) (valveOpen:Map<string, bool>) (visited:Set<string>) : int * Map<string, bool> * Set<string> =
+let rec getBestScore(fromValve:Valve) (stepsRemaining:int) (score:int) (valveOpen:Map<string, bool>) : int * Map<string, bool> =
 
     let allOpen = fun (valveOpen:Map<string,bool>) ->
         (valveOpen |> Map.filter (fun k v -> v) |> Seq.length) = valveOpen.Count
@@ -80,10 +114,9 @@ let rec getBestScore(fromValve:Valve) (stepsRemaining:int) (score:int) (valveOpe
     // if (stepsRemaining <= 0 || Set.contains fromValve.valveName visited)
     if (stepsRemaining <= 0 || allOpen valveOpen)
     then
-        (score, valveOpen, visited)
+        (score, valveOpen)
     else
         // printfn "Visiting valve %s with %d steps remaining" fromValve.valveName stepsRemaining
-        let nextVisited = Set.add fromValve.valveName visited
         let left = stepsRemaining - 1
         let isOpen = valveOpen[fromValve.valveName]
 
@@ -94,13 +127,13 @@ let rec getBestScore(fromValve:Valve) (stepsRemaining:int) (score:int) (valveOpe
             // printfn "Opening valve %s with flow rate %d and %d remaining" fromValve.valveName fromValve.flowRate stepsRemaining
             let updatedMap = Map.add fromValve.valveName true valveOpen
             let myRelief = left * fromValve.flowRate
-            let (openNeighorScore, openNeighborMap, openVisited) = fromValve.neighbors 
-                                                                    |> Array.map (fun n -> getBestScore n (left-1) (score + myRelief) updatedMap nextVisited)
-                                                                    |> Array.maxBy (fun (v, _, _) -> v)
+            let (openNeighorScore, openNeighborMap) = fromValve.neighbors 
+                                                                    |> Array.map (fun n -> getBestScore n (left-1) (score + myRelief) updatedMap)
+                                                                    |> Array.maxBy fst
 
-            let (closeNeighborScore, closeNeighborMap, closeVisited) = fromValve.neighbors 
-                                                                        |> Array.map (fun n -> getBestScore n (left) score valveOpen nextVisited)
-                                                                        |> Array.maxBy (fun (v, _, _) -> v)
+            let (closeNeighborScore, closeNeighborMap) = fromValve.neighbors 
+                                                                        |> Array.map (fun n -> getBestScore n (left) score valveOpen)
+                                                                        |> Array.maxBy fst
 
             let openScore = openNeighorScore
             let closeScore = closeNeighborScore
@@ -108,13 +141,13 @@ let rec getBestScore(fromValve:Valve) (stepsRemaining:int) (score:int) (valveOpe
             if (openScore >= closeScore)
             then
                 //printfn "Opening valve %s" fromValve.valveName
-                (openScore, openNeighborMap, openVisited)
+                (openScore, openNeighborMap)
             else
-                (closeScore, closeNeighborMap, closeVisited)
+                (closeScore, closeNeighborMap)
 
         else
-            let neighborScores = fromValve.neighbors |> Array.map (fun n -> getBestScore n left score valveOpen nextVisited)
-            let best = neighborScores |> Array.maxBy (fun (v, _, _) -> v)
+            let neighborScores = fromValve.neighbors |> Array.map (fun n -> getBestScore n left score valveOpen)
+            let best = neighborScores |> Array.maxBy fst
             best
     
 let solve =
@@ -135,13 +168,15 @@ let solve =
     printValves valves
 
     let startingValve = valves |> List.find (fun v -> v.valveName = valveInfo[0].valveName)
+    let hyperValves = buildHyperValves valves startingValve
+    printfn "%A" hyperValves
 
-    printfn "\nStarting valve"
-    printValve startingValve
 
-    let initialMap = valves |> List.map (fun v -> (v.valveName, false)) |> Map.ofList
-    let initialSet = Set.empty
+    //printfn "\nStarting valve"
+    //printValve startingValve
 
-    let (best, _, _) = getBestScore startingValve 20 0 initialMap initialSet
-    printfn "The best path relieves pressure of %A" best
+    //let initialMap = valves |> List.map (fun v -> (v.valveName, false)) |> Map.ofList
+
+    //let (best, _) = getBestScore startingValve 20 0 initialMap
+    //printfn "The best path relieves pressure of %A" best
     ()
