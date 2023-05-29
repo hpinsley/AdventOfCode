@@ -197,8 +197,8 @@ let solveHyperValves (valves:HyperValve seq) : int =
     score
 
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 16
-    // let lines = Common.getChallengeDataAsArray 2022 16
+    // let lines = Common.getSampleDataAsArray 2022 16
+    let lines = Common.getChallengeDataAsArray 2022 16
 
     //let lines = [|  "Valve AA has flow rate=0; tunnels lead to valves BB";
     //                "Valve BB has flow rate=13; tunnels lead to valves AA"
