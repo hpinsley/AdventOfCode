@@ -7,6 +7,8 @@ open System.Text.RegularExpressions
 open Microsoft.FSharp.Core.Operators.Checked
 open System.Collections.Generic
 
+let third = fun (_,_,v) -> v
+
 type ValveInfo =
     {
         valveName: string;
@@ -14,16 +16,11 @@ type ValveInfo =
         leadsTo: string[]
     }
 
-type ValveState =
-    | Open
-    | Closed
-
 type Valve =
     {
         valveName: string;
         mutable flowRate: int;
         mutable neighbors: Valve[]
-        mutable valveState: ValveState        
     }
 
 let parseLine (line:string) : ValveInfo =
@@ -51,7 +48,6 @@ let parseValveInfo (valves:ValveInfo[]) : Valve list =
                                             valveName = k;
                                             flowRate = 0;
                                             neighbors = [||];
-                                            valveState = Closed
                                         }
                                     valveDict[k] <- v
                                     v
@@ -68,49 +64,67 @@ let printValveInfo (valves:ValveInfo[]) =
         printfn "Valve %s with flow %d links to %A" v.valveName v.flowRate v.leadsTo
 
 let printValve valve =
-    printfn "%s Valve %s with flow %d has %d neighbors" (if valve.valveState = Open then "Opened" else "Closed")  valve.valveName valve.flowRate valve.neighbors.Length
+    printfn "Valve %s with flow %d has %d neighbors" valve.valveName valve.flowRate valve.neighbors.Length
 
 let printValves (valves:Valve list) =
     for v in valves do
         printValve v
 
-let rec getBestScore(fromValve:Valve) (stepsRemaining:int) (score:int) (visited:Set<string>) : int * Set<string> =
+let rec getBestScore(fromValve:Valve) (stepsRemaining:int) (score:int) (valveOpen:Map<string, bool>) (visited:Set<string>) : int * Map<string, bool> * Set<string> =
 
-    if (false && Set.contains fromValve.valveName visited)
+    let allOpen = fun (valveOpen:Map<string,bool>) ->
+        (valveOpen |> Map.filter (fun k v -> v) |> Seq.length) = valveOpen.Count
+        
+                                        
+    //printfn "Looking for best from valve %s (flow rate %d).  Steps remaining %d; cum score = %d" fromValve.valveName fromValve.flowRate stepsRemaining score
+    // if (stepsRemaining <= 0 || Set.contains fromValve.valveName visited)
+    if (stepsRemaining <= 0 || allOpen valveOpen)
     then
-        (score, visited)
+        (score, valveOpen, visited)
     else
-        let newVisited = Set.add fromValve.valveName visited
-        printfn "Looking for best from valve %s (flow rate %d).  Steps remaining %d; cum score = %d" fromValve.valveName fromValve.flowRate stepsRemaining score
-        if (stepsRemaining <= 1)
+        // printfn "Visiting valve %s with %d steps remaining" fromValve.valveName stepsRemaining
+        let nextVisited = Set.add fromValve.valveName visited
+        let left = stepsRemaining - 1
+        let isOpen = valveOpen[fromValve.valveName]
+
+        if (not isOpen && fromValve.flowRate > 0)
         then
-            (score, newVisited)
-        else
-            // printfn "Visiting valve %s with %d steps remaining" fromValve.valveName stepsRemaining
-            let left = stepsRemaining - 1
+            // We have to see if we should open the valve, or leave it closed and choose the best neighbor
 
-            if (fromValve.valveState = Closed && fromValve.flowRate > 0)
+            // printfn "Opening valve %s with flow rate %d and %d remaining" fromValve.valveName fromValve.flowRate stepsRemaining
+            let updatedMap = Map.add fromValve.valveName true valveOpen
+            let myRelief = left * fromValve.flowRate
+            let (openNeighorScore, openNeighborMap, openVisited) = fromValve.neighbors 
+                                                                    |> Array.map (fun n -> getBestScore n (left-1) (score + myRelief) updatedMap nextVisited)
+                                                                    |> Array.maxBy (fun (v, _, _) -> v)
+
+            let (closeNeighborScore, closeNeighborMap, closeVisited) = fromValve.neighbors 
+                                                                        |> Array.map (fun n -> getBestScore n (left) score valveOpen nextVisited)
+                                                                        |> Array.maxBy (fun (v, _, _) -> v)
+
+            let openScore = openNeighorScore
+            let closeScore = closeNeighborScore
+
+            if (openScore >= closeScore)
             then
-                printfn "Opening valve %s with flow rate %d and %d remaining" fromValve.valveName fromValve.flowRate stepsRemaining
-                fromValve.valveState <- Open
-                let openTheValveScore = getBestScore fromValve left (score + left * fromValve.flowRate) newVisited
-                let neighborScores = if (left = 0) then Array.empty else fromValve.neighbors |> Array.map (fun n -> getBestScore n left score newVisited)
-                let allChoices = Array.append neighborScores [| openTheValveScore |]
-                let best = allChoices |> Array.maxBy fst
-                best
+                //printfn "Opening valve %s" fromValve.valveName
+                (openScore, openNeighborMap, openVisited)
             else
-                if (left = 1)
-                then
-                    (score, newVisited)
-                else
-                    let neighborScores = fromValve.neighbors |> Array.map (fun n -> getBestScore n left score newVisited)
-                    let best = neighborScores |> Array.maxBy fst
-                    best
+                (closeScore, closeNeighborMap, closeVisited)
 
+        else
+            let neighborScores = fromValve.neighbors |> Array.map (fun n -> getBestScore n left score valveOpen nextVisited)
+            let best = neighborScores |> Array.maxBy (fun (v, _, _) -> v)
+            best
     
 let solve =
     let lines = Common.getSampleDataAsArray 2022 16
     // let lines = Common.getChallengeDataAsArray 2022 16
+
+    //let lines = [|  "Valve AA has flow rate=0; tunnels lead to valves BB";
+    //                "Valve BB has flow rate=13; tunnels lead to valves AA"
+    //            |]
+
     printAllLines lines
 
     let valveInfo = lines |> Array.map parseLine
@@ -125,6 +139,9 @@ let solve =
     printfn "\nStarting valve"
     printValve startingValve
 
-    let best = getBestScore startingValve 30 0 (Set.empty)
+    let initialMap = valves |> List.map (fun v -> (v.valveName, false)) |> Map.ofList
+    let initialSet = Set.empty
+
+    let (best, _, _) = getBestScore startingValve 20 0 initialMap initialSet
     printfn "The best path relieves pressure of %A" best
     ()
