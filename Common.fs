@@ -94,14 +94,27 @@ let printAllLines (lines:seq<string>) : unit =
     for line in lines do
         printfn "%s" line
 
-let rec combinations (k : int) (lst : 'a list) : 'a list list =
-    match k, lst with
-    | 0, _ -> [[]]
-    | _, [] -> []
-    | _, x :: xs ->
-        combinations k xs
-        @ combinations (k - 1) xs |> List.map (fun ys -> x :: ys)
+// Given a positive integer n, return all combinations of indices split between two "consumers"
+let allSplits (n: int) : (int list * int list) list =
+    let getOnBits (n: int) : seq<int> =
+        
+        seq {
+            let mutable v = n
+            let mutable bitNumber = 0
 
-let allSplits (k: uint) : (uint list * uint list) =
-    let v1 = 2 ^ k
-    let v2 = ~v1
+            while v <> 0 do
+                if (v &&& 1 = 1) then yield bitNumber
+                v <- v >>> 1
+                bitNumber <- bitNumber + 1
+        }
+    
+    seq {
+        let truncationMask = (pown 2 n) - 1
+        for k in seq { 0 .. truncationMask } do
+            let mask1 = k
+            let mask2 = ~~~k &&& truncationMask
+            let onBits1 = getOnBits mask1 |> List.ofSeq
+            let onBits2 = getOnBits mask2 |> List.ofSeq
+            yield (onBits1, onBits2)
+    } |> List.ofSeq
+ 

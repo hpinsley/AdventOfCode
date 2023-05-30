@@ -206,32 +206,25 @@ let solveHyperValves (valves:HyperValve seq) : int =
 
     //let (score, opened, remaining) = getBestScore allowedToOpen valveMap startingValve timeRemaining 0 openValves
     //score
-    let combos = combinations 2 goodValves
-
     0
 
 let solve =
-    // let lines = Common.getSampleDataAsArray 2022 16
-    let lines = Common.getChallengeDataAsArray 2022 16
+    let lines = Common.getSampleDataAsArray 2022 16
+    // let lines = Common.getChallengeDataAsArray 2022 16
 
-    //let lines = [|  "Valve AA has flow rate=0; tunnels lead to valves BB";
-    //                "Valve BB has flow rate=13; tunnels lead to valves AA"
-    //            |]
+    //printAllLines lines
 
-    printAllLines lines
+    //let valveInfo = lines |> Array.map parseLine
+    //let valves = parseValveInfo valveInfo
+    //printfn ""
 
-    let valveInfo = lines |> Array.map parseLine
-    let valves = parseValveInfo valveInfo
-    printfn ""
+    //let startingValve = valves |> List.find (fun v -> v.valveName = "AA")
+    //let hyperValves = buildHyperValves valves startingValve
+    //printHyperValves hyperValves
 
-    //printValveInfo valveInfo
-    //printValves valves
+    //let result = solveHyperValves hyperValves
+    //printfn "Part 2 Result is %d" result
 
-    let startingValve = valves |> List.find (fun v -> v.valveName = "AA")
-    let hyperValves = buildHyperValves valves startingValve
-    printHyperValves hyperValves
-
-    let result = solveHyperValves hyperValves
-    printfn "Part 2 Result is %d" result
-
-    ()
+    let x = allSplits 8
+    printfn "%A" x
+    printfn "Length = %d" x.Length
