@@ -109,12 +109,15 @@ let printHyperValves (valves:HyperValve seq) =
         printfn "Valve %s with flow %d has %d neighbors" valve.valveName valve.flowRate valve.neighbors.Length
         for dn in valve.neighbors do
             printfn "\t%s (%d)" dn.valveName dn.distance
+    let count = valves |> Seq.length
+    let countOfGoodValves = valves |> Seq.filter (fun v -> v.flowRate > 0) |> Seq.length
+    printfn "There are %d valves, %d of which are good ones" count countOfGoodValves
 
-let CallCache = new Dictionary<(string * int * int * Set<string>),(int * Set<string> * int)>();
+let CallCache = new Dictionary<(Set<string> * string * int * int * Set<string>),(int * Set<string> * int)>();
 
-let rec getBestScore (valveMap:Map<string, HyperValve>) (currentValve:HyperValve) (stepsRemaining:int) (score:int) (openValves:Set<string>) : (int * Set<string> * int) =
+let rec getBestScore (allowedToOpen:Set<string>) (valveMap:Map<string, HyperValve>) (currentValve:HyperValve) (stepsRemaining:int) (score:int) (openValves:Set<string>) : (int * Set<string> * int) =
 
-    let rec getBestScoreInternal (valveMap:Map<string, HyperValve>) (currentValve:HyperValve) (stepsRemaining:int) (score:int) (openValves:Set<string>) : (int * Set<string> * int) =
+    let rec getBestScoreInternal (allowedToOpen) (valveMap:Map<string, HyperValve>) (currentValve:HyperValve) (stepsRemaining:int) (score:int) (openValves:Set<string>) : (int * Set<string> * int) =
 
         //printfn "Score: %d %s (open are %s)" score prefix (String.Join(',', openValves))
         //printfn "There are %d valves in our list and %d are open" valveMap.Count openValves.Count
@@ -125,7 +128,7 @@ let rec getBestScore (valveMap:Map<string, HyperValve>) (currentValve:HyperValve
             // printfn "Visiting valve %s with %d steps remaining" fromValve.valveName stepsRemaining
             let isOpen = openValves |> Set.contains currentValve.valveName
 
-            if (not isOpen && currentValve.flowRate > 0)
+            if (not isOpen && currentValve.flowRate > 0 && Set.contains currentValve.valveName allowedToOpen)
             then
                 // We have to see if we should open the valve, or leave it closed and choose the best neighbor
 
@@ -135,7 +138,7 @@ let rec getBestScore (valveMap:Map<string, HyperValve>) (currentValve:HyperValve
                 let neighborScoresIfWeOpen = currentValve.neighbors
                                                                 |> Array.filter (fun dn -> dn.distance < (stepsRemaining - 1))
                                                                 |> Array.map (fun n -> (valveMap[n.valveName], n.distance))
-                                                                |> Array.map (fun (n,d) -> getBestScore valveMap n ((stepsRemaining - 1) - d) (score + myRelief) updatedSetOfOpenValves)
+                                                                |> Array.map (fun (n,d) -> getBestScore allowedToOpen valveMap n ((stepsRemaining - 1) - d) (score + myRelief) updatedSetOfOpenValves)
                 let (openScore, openNeighborMap, openRemaining) = 
                     if (Array.isEmpty neighborScoresIfWeOpen)
                     then
@@ -147,7 +150,7 @@ let rec getBestScore (valveMap:Map<string, HyperValve>) (currentValve:HyperValve
                 let neighborScoresIfWeClose = currentValve.neighbors 
                                                                 |> Array.filter (fun dn -> dn.distance < stepsRemaining)
                                                                 |> Array.map (fun n -> (valveMap[n.valveName], n.distance))
-                                                                |> Array.map (fun (n,d) -> getBestScore valveMap n (stepsRemaining - d) score openValves)
+                                                                |> Array.map (fun (n,d) -> getBestScore allowedToOpen valveMap n (stepsRemaining - d) score openValves)
 
                 let (closeScore, closeNeighborMap, closedRemaining) =
                     if (Array.isEmpty neighborScoresIfWeClose)
@@ -167,7 +170,7 @@ let rec getBestScore (valveMap:Map<string, HyperValve>) (currentValve:HyperValve
                 let neighborScores = currentValve.neighbors
                                         |> Array.filter (fun dn -> dn.distance < stepsRemaining)
                                         |> Array.map (fun n -> (valveMap[n.valveName], n.distance))
-                                        |> Array.map (fun (n,d) -> getBestScore valveMap n (stepsRemaining - d) score openValves)
+                                        |> Array.map (fun (n,d) -> getBestScore allowedToOpen valveMap n (stepsRemaining - d) score openValves)
             
                 if (Array.isEmpty neighborScores)
                 then
@@ -177,23 +180,35 @@ let rec getBestScore (valveMap:Map<string, HyperValve>) (currentValve:HyperValve
                     best
 
     // Outer function here
-    let key = (currentValve.valveName, stepsRemaining, score, openValves)
+    let key = (allowedToOpen, currentValve.valveName, stepsRemaining, score, openValves)
     if (CallCache.ContainsKey(key))
     then
         // printfn "Returning %A value from cache!" key
         CallCache[key]
     else
-        let result = getBestScoreInternal valveMap currentValve stepsRemaining score openValves
+        let result = getBestScoreInternal allowedToOpen valveMap currentValve stepsRemaining score openValves
         CallCache[key] <- result
         result
 
 let solveHyperValves (valves:HyperValve seq) : int =
-    let timeRemaining = 30
+    let timeRemaining = 26
     let valveMap = valves |> Seq.map (fun v -> (v.valveName, v)) |> Map.ofSeq
     let startingValve = valves |> Seq.find (fun v -> v.flowRate = 0)
     let openValves = Set.empty
-    let (score, opened, remaining) = getBestScore valveMap startingValve timeRemaining 0 openValves
-    score
+
+    
+    let goodValves = valves
+                            |> Seq.filter (fun v -> v.flowRate > 0)
+                            |> Seq.map (fun v -> v.valveName) 
+                            |> List.ofSeq
+
+    printfn "Permuting %d valves" goodValves.Length
+
+    //let (score, opened, remaining) = getBestScore allowedToOpen valveMap startingValve timeRemaining 0 openValves
+    //score
+    let combos = combinations 2 goodValves
+
+    0
 
 let solve =
     // let lines = Common.getSampleDataAsArray 2022 16

@@ -93,3 +93,15 @@ let (|ParseRegex|_|) regex str =
 let printAllLines (lines:seq<string>) : unit =
     for line in lines do
         printfn "%s" line
+
+let rec combinations (k : int) (lst : 'a list) : 'a list list =
+    match k, lst with
+    | 0, _ -> [[]]
+    | _, [] -> []
+    | _, x :: xs ->
+        combinations k xs
+        @ combinations (k - 1) xs |> List.map (fun ys -> x :: ys)
+
+let allSplits (k: uint) : (uint list * uint list) =
+    let v1 = 2 ^ k
+    let v2 = ~v1
