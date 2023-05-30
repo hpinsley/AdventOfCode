@@ -190,6 +190,17 @@ let rec getBestScore (allowedToOpen:Set<string>) (valveMap:Map<string, HyperValv
         CallCache[key] <- result
         result
 
+let getCombosToTry (valves:string list) (minNumberPerWorker:int) : (string list * string list) list =
+    let permutedIndices = allSplits valves.Length
+    let allCombos = permutedIndices
+                    |> List.map (fun (set1, set2) ->
+                                    (
+                                         set1 |> List.map (fun i -> valves[i])
+                                       , set2 |> List.map (fun i -> valves[i])
+                                    )
+                                )
+    allCombos |> List.filter (fun (set1, set2) -> set1.Length >= minNumberPerWorker && set2.Length >= minNumberPerWorker)
+
 let solveHyperValves (valves:HyperValve seq) : int =
     let timeRemaining = 26
     let valveMap = valves |> Seq.map (fun v -> (v.valveName, v)) |> Map.ofSeq
@@ -202,29 +213,29 @@ let solveHyperValves (valves:HyperValve seq) : int =
                             |> Seq.map (fun v -> v.valveName) 
                             |> List.ofSeq
 
-    printfn "Permuting %d valves" goodValves.Length
+    let minValvesAssignedPerWorker = 6
+    let attempts = getCombosToTry goodValves minValvesAssignedPerWorker
+    printfn "%A" attempts
+    printfn "Number of valves: %d, permuations: %d" goodValves.Length attempts.Length
 
     //let (score, opened, remaining) = getBestScore allowedToOpen valveMap startingValve timeRemaining 0 openValves
     //score
     0
 
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 16
-    // let lines = Common.getChallengeDataAsArray 2022 16
+    // let lines = Common.getSampleDataAsArray 2022 16
+    let lines = Common.getChallengeDataAsArray 2022 16
 
-    //printAllLines lines
+    printAllLines lines
 
-    //let valveInfo = lines |> Array.map parseLine
-    //let valves = parseValveInfo valveInfo
-    //printfn ""
+    let valveInfo = lines |> Array.map parseLine
+    let valves = parseValveInfo valveInfo
+    printfn ""
 
-    //let startingValve = valves |> List.find (fun v -> v.valveName = "AA")
-    //let hyperValves = buildHyperValves valves startingValve
-    //printHyperValves hyperValves
+    let startingValve = valves |> List.find (fun v -> v.valveName = "AA")
+    let hyperValves = buildHyperValves valves startingValve
+    printHyperValves hyperValves
 
-    //let result = solveHyperValves hyperValves
-    //printfn "Part 2 Result is %d" result
+    let result = solveHyperValves hyperValves
+    printfn "Part 2 Result is %d" result
 
-    let x = allSplits 8
-    printfn "%A" x
-    printfn "Length = %d" x.Length
