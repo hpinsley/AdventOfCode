@@ -183,7 +183,6 @@ let rec getBestScore (allowedToOpen:Set<string>) (valveMap:Map<string, HyperValv
     let key = (allowedToOpen, currentValve.valveName, stepsRemaining, score, openValves)
     if (CallCache.ContainsKey(key))
     then
-        // printfn "Returning %A value from cache!" key
         CallCache[key]
     else
         let result = getBestScoreInternal allowedToOpen valveMap currentValve stepsRemaining score openValves
@@ -213,18 +212,27 @@ let solveHyperValves (valves:HyperValve seq) : int =
                             |> Seq.map (fun v -> v.valveName) 
                             |> List.ofSeq
 
-    let minValvesAssignedPerWorker = 6
+    let minValvesAssignedPerWorker = goodValves.Length / 2
     let attempts = getCombosToTry goodValves minValvesAssignedPerWorker
     printfn "%A" attempts
     printfn "Number of valves: %d, permuations: %d" goodValves.Length attempts.Length
-
-    //let (score, opened, remaining) = getBestScore allowedToOpen valveMap startingValve timeRemaining 0 openValves
-    //score
-    0
+    let mutable results = []
+    for i in seq { 0 .. (attempts.Length - 1)} do
+        if i % 10 = 0 then
+            printfn "Iteration %d" i
+        let humanCanOpen = fst attempts[i] |> Set.ofSeq
+        let elephantCanOpen = snd attempts[i] |> Set.ofSeq
+        let (humanScore, _, _) = getBestScore humanCanOpen valveMap startingValve timeRemaining 0 openValves
+        let (elephantScore, _, _) = getBestScore elephantCanOpen valveMap startingValve timeRemaining 0 openValves
+        let totalScore = humanScore + elephantScore
+        results <- totalScore :: results
+    
+    let best = List.max results
+    best
 
 let solve =
-    // let lines = Common.getSampleDataAsArray 2022 16
-    let lines = Common.getChallengeDataAsArray 2022 16
+    let lines = Common.getSampleDataAsArray 2022 16
+    // let lines = Common.getChallengeDataAsArray 2022 16
 
     printAllLines lines
 
