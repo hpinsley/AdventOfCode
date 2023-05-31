@@ -7,6 +7,7 @@ open System.Text.RegularExpressions
 open Microsoft.FSharp.Core.Operators.Checked
 open System.Collections.Generic
 open System.Threading.Tasks
+open System.Collections.Concurrent
 
 let third = fun (_,_,v) -> v
 
@@ -114,7 +115,7 @@ let printHyperValves (valves:HyperValve seq) =
     let countOfGoodValves = valves |> Seq.filter (fun v -> v.flowRate > 0) |> Seq.length
     printfn "There are %d valves, %d of which are good ones" count countOfGoodValves
 
-let CallCache = new Dictionary<(Set<string> * string * int * int * Set<string>),(int * Set<string> * int)>();
+let CallCache = new ConcurrentDictionary<(Set<string> * string * int * int * Set<string>),(int * Set<string> * int)>();
 
 let rec getBestScore (allowedToOpen:Set<string>) (valveMap:Map<string, HyperValve>) (currentValve:HyperValve) (stepsRemaining:int) (score:int) (openValves:Set<string>) : (int * Set<string> * int) =
     let rec getBestScoreInternal (allowedToOpen) (valveMap:Map<string, HyperValve>) (currentValve:HyperValve) (stepsRemaining:int) (score:int) (openValves:Set<string>) : (int * Set<string> * int) =
@@ -219,30 +220,52 @@ let solveHyperValves (valves:HyperValve seq) : int =
     printfn "Number of valves: %d, permuations: %d" goodValves.Length attempts.Length
     let mutable results = []
 
+    let mutable options = new ParallelOptions()
+    options.MaxDegreeOfParallelism <- -1
+    //options.TaskScheduler <- TaskScheduler.Default
 
     let parallelLoopResult = Parallel.For(0, attempts.Length, 
+                                            options,
                                             fun (i:int) (p:ParallelLoopState) -> 
-                                                    printfn "Loop %d on thread %d" i System.Threading.Thread.CurrentThread.ManagedThreadId
-                                         )
+                                                    try
+                                                        printfn "Loop %d on thread %d" i System.Threading.Thread.CurrentThread.ManagedThreadId
+                                                        let humanCanOpen = fst attempts[i] |> Set.ofSeq
+                                                        let elephantCanOpen = snd attempts[i] |> Set.ofSeq
+                                                        let (humanScore, _, _) = getBestScore humanCanOpen valveMap startingValve timeRemaining 0 openValves
+                                                        let (elephantScore, _, _) = getBestScore elephantCanOpen valveMap startingValve timeRemaining 0 openValves
+                                                        let totalScore = humanScore + elephantScore
+                                                        lock results (fun () ->
+                                                                        printfn "Got lock in %d" i
+                                                                        results <- totalScore :: results
+                                                                        printfn "Stored results in %d" i
+                                                                      )
+                                                        printfn "Released lock for %d" i
+                                                    with ex  ->
+                                                        printfn "error: %s" ex.Message
 
     
-    for i in seq { 0 .. (attempts.Length - 1)} do
-        if i % 10 = 0 then
-            printfn "Iteration %d" i
-        let humanCanOpen = fst attempts[i] |> Set.ofSeq
-        let elephantCanOpen = snd attempts[i] |> Set.ofSeq
-        let (humanScore, _, _) = getBestScore humanCanOpen valveMap startingValve timeRemaining 0 openValves
-        let (elephantScore, _, _) = getBestScore elephantCanOpen valveMap startingValve timeRemaining 0 openValves
-        let totalScore = humanScore + elephantScore
-        results <- totalScore :: results
+                                         )
+
+    let resultCount = results.Length
+    printfn "The result count is %d" resultCount
+    
+    //for i in seq { 0 .. (attempts.Length - 1)} do
+    //    if i % 10 = 0 then
+    //        printfn "Iteration %d" i
+    //    let humanCanOpen = fst attempts[i] |> Set.ofSeq
+    //    let elephantCanOpen = snd attempts[i] |> Set.ofSeq
+    //    let (humanScore, _, _) = getBestScore humanCanOpen valveMap startingValve timeRemaining 0 openValves
+    //    let (elephantScore, _, _) = getBestScore elephantCanOpen valveMap startingValve timeRemaining 0 openValves
+    //    let totalScore = humanScore + elephantScore
+    //    results <- totalScore :: results
     
     let best = List.max results
     best
 
 let solve =
     printfn "Solve has been called"
-    // let lines = Common.getSampleDataAsArray 2022 16
-    let lines = Common.getChallengeDataAsArray 2022 16
+    let lines = Common.getSampleDataAsArray 2022 16
+    // let lines = Common.getChallengeDataAsArray 2022 16
 
     printAllLines lines
 
