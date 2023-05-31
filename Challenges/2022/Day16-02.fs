@@ -6,6 +6,7 @@ open Common
 open System.Text.RegularExpressions
 open Microsoft.FSharp.Core.Operators.Checked
 open System.Collections.Generic
+open System.Threading.Tasks
 
 let third = fun (_,_,v) -> v
 
@@ -217,6 +218,14 @@ let solveHyperValves (valves:HyperValve seq) : int =
     printfn "%A" attempts
     printfn "Number of valves: %d, permuations: %d" goodValves.Length attempts.Length
     let mutable results = []
+
+
+    let parallelLoopResult = Parallel.For(0, attempts.Length, 
+                                            fun (i:int) (p:ParallelLoopState) -> 
+                                                    printfn "Loop %d on thread %d" i System.Threading.Thread.CurrentThread.ManagedThreadId
+                                         )
+
+    
     for i in seq { 0 .. (attempts.Length - 1)} do
         if i % 10 = 0 then
             printfn "Iteration %d" i
