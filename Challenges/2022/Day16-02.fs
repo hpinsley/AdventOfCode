@@ -116,7 +116,6 @@ let printHyperValves (valves:HyperValve seq) =
 let CallCache = new Dictionary<(Set<string> * string * int * int * Set<string>),(int * Set<string> * int)>();
 
 let rec getBestScore (allowedToOpen:Set<string>) (valveMap:Map<string, HyperValve>) (currentValve:HyperValve) (stepsRemaining:int) (score:int) (openValves:Set<string>) : (int * Set<string> * int) =
-
     let rec getBestScoreInternal (allowedToOpen) (valveMap:Map<string, HyperValve>) (currentValve:HyperValve) (stepsRemaining:int) (score:int) (openValves:Set<string>) : (int * Set<string> * int) =
 
         //printfn "Score: %d %s (open are %s)" score prefix (String.Join(',', openValves))
@@ -181,9 +180,10 @@ let rec getBestScore (allowedToOpen:Set<string>) (valveMap:Map<string, HyperValv
 
     // Outer function here
     let key = (allowedToOpen, currentValve.valveName, stepsRemaining, score, openValves)
-    if (CallCache.ContainsKey(key))
-    then
-        CallCache[key]
+    let (found, v) = CallCache.TryGetValue(key)
+    // if (CallCache.ContainsKey(key))
+    if (found) then
+        v
     else
         let result = getBestScoreInternal allowedToOpen valveMap currentValve stepsRemaining score openValves
         CallCache[key] <- result
@@ -231,8 +231,9 @@ let solveHyperValves (valves:HyperValve seq) : int =
     best
 
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 16
-    // let lines = Common.getChallengeDataAsArray 2022 16
+    printfn "Solve has been called"
+    // let lines = Common.getSampleDataAsArray 2022 16
+    let lines = Common.getChallengeDataAsArray 2022 16
 
     printAllLines lines
 

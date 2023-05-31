@@ -7,7 +7,9 @@ open System.Text.RegularExpressions
 [<EntryPoint>]
 let main argv =
     printfn "Main driver"
-    Year2022Day16_Part2.solve
+    let x = Year2022Day16_Part2.solve
+    printfn "x is %A" x
+    printfn "After solve call"
     //Year2022Day16_Part1.solve
     //Year2022Day15_Part2.solve
     //Year2022Day15_Part1.solve
