@@ -8,6 +8,7 @@ open Microsoft.FSharp.Core.Operators.Checked
 open System.Collections.Generic
 open System.Threading.Tasks
 open System.Collections.Concurrent
+open System.Threading
 
 let third = fun (_,_,v) -> v
 
@@ -140,7 +141,10 @@ let rec getBestScore (allowedToOpen:Set<string>) (valveMap:Map<string, HyperValv
                 let neighborScoresIfWeOpen = currentValve.neighbors
                                                                 |> Array.filter (fun dn -> dn.distance < (stepsRemaining - 1))
                                                                 |> Array.map (fun n -> (valveMap[n.valveName], n.distance))
-                                                                |> Array.map (fun (n,d) -> getBestScore allowedToOpen valveMap n ((stepsRemaining - 1) - d) (score + myRelief) updatedSetOfOpenValves)
+                                                                |> Array.map (fun (n,d) ->
+                                                                                    //printfn "OPEN SECTION Recursing (if we open) (thread %d)" Thread.CurrentThread.ManagedThreadId
+                                                                                    getBestScore allowedToOpen valveMap n ((stepsRemaining - 1) - d) (score + myRelief) updatedSetOfOpenValves)
+                //printfn "OPEN SECTION Got neighborScoresIfWeOpen  (thread %d)" Thread.CurrentThread.ManagedThreadId
                 let (openScore, openNeighborMap, openRemaining) = 
                     if (Array.isEmpty neighborScoresIfWeOpen)
                     then
@@ -152,8 +156,11 @@ let rec getBestScore (allowedToOpen:Set<string>) (valveMap:Map<string, HyperValv
                 let neighborScoresIfWeClose = currentValve.neighbors 
                                                                 |> Array.filter (fun dn -> dn.distance < stepsRemaining)
                                                                 |> Array.map (fun n -> (valveMap[n.valveName], n.distance))
-                                                                |> Array.map (fun (n,d) -> getBestScore allowedToOpen valveMap n (stepsRemaining - d) score openValves)
-
+                                                                |> Array.map (fun (n,d) -> 
+                                                                                        //printfn "Recursing (if we DONT open) (thread %d)" Thread.CurrentThread.ManagedThreadId
+                                                                                        getBestScore allowedToOpen valveMap n (stepsRemaining - d) score openValves)
+                //printfn "OPEN SECTION Got neighborScoresIfWeClose  (thread %d)" Thread.CurrentThread.ManagedThreadId
+                
                 let (closeScore, closeNeighborMap, closedRemaining) =
                     if (Array.isEmpty neighborScoresIfWeClose)
                     then
@@ -168,12 +175,14 @@ let rec getBestScore (allowedToOpen:Set<string>) (valveMap:Map<string, HyperValv
                 else
                     (closeScore, closeNeighborMap, closedRemaining)
 
-            else
+            else    // This appears to be where it normally hangs
                 let neighborScores = currentValve.neighbors
                                         |> Array.filter (fun dn -> dn.distance < stepsRemaining)
                                         |> Array.map (fun n -> (valveMap[n.valveName], n.distance))
-                                        |> Array.map (fun (n,d) -> getBestScore allowedToOpen valveMap n (stepsRemaining - d) score openValves)
-            
+                                        |> Array.map (fun (n,d) ->
+                                            //printfn "CLOSED SECTION Recursing without UNOPEN (thread %d)" Thread.CurrentThread.ManagedThreadId
+                                            getBestScore allowedToOpen valveMap n (stepsRemaining - d) score openValves)
+                //printfn "CLOSED SECTION Got neighbor scores UNOPEN section (thread %d)" Thread.CurrentThread.ManagedThreadId
                 if (Array.isEmpty neighborScores)
                 then
                     (score, openValves, stepsRemaining - 1)
@@ -181,10 +190,9 @@ let rec getBestScore (allowedToOpen:Set<string>) (valveMap:Map<string, HyperValv
                     let best = neighborScores |> Array.maxBy fst3
                     best
 
-    // Outer function here
+
     let key = (allowedToOpen, currentValve.valveName, stepsRemaining, score, openValves)
     let (found, v) = CallCache.TryGetValue(key)
-    // if (CallCache.ContainsKey(key))
     if (found) then
         v
     else
@@ -222,31 +230,34 @@ let solveHyperValves (valves:HyperValve seq) : int =
     let mutable results = []
 
     let mutable options = new ParallelOptions()
-    options.MaxDegreeOfParallelism <- 2
+    options.MaxDegreeOfParallelism <- 1
     //options.TaskScheduler <- TaskScheduler.Default
+    let attemptsArray = attempts |> Array.ofList
 
     let parallelLoopResult = Parallel.For(0, attempts.Length, 
                                             options,
                                             fun (i:int) (p:ParallelLoopState) -> 
-                                                    try
-                                                        printfn "Loop %d on thread %d" i System.Threading.Thread.CurrentThread.ManagedThreadId
-                                                        let humanCanOpen = fst attempts[i] |> Set.ofSeq
-                                                        let elephantCanOpen = snd attempts[i] |> Set.ofSeq
-                                                        let (humanScore, _, _) = getBestScore humanCanOpen valveMap startingValve timeRemaining 0 openValves
-                                                        let (elephantScore, _, _) = getBestScore elephantCanOpen valveMap startingValve timeRemaining 0 openValves
-                                                        let totalScore = humanScore + elephantScore
-                                                        //lock results (fun () ->
-                                                        //                printfn "Got lock in %d" i
-                                                        //                results <- totalScore :: results
-                                                        //                printfn "Stored results in %d" i
-                                                        //              )
-                                                        printfn "Released lock for %d" i
-                                                    with ex  ->
-                                                        printfn "error: %s" ex.Message
+                                                let split = attemptsArray[i]
+                                                try
+                                                    printfn "Loop %d on thread %d" i System.Threading.Thread.CurrentThread.ManagedThreadId
+ 
+                                                    let humanCanOpen = fst split |> Set.ofSeq
+                                                    let elephantCanOpen = snd split |> Set.ofSeq
+                                                    let (humanScore, _, _) = getBestScore humanCanOpen valveMap startingValve timeRemaining 0 openValves
+                                                    let (elephantScore, _, _) = getBestScore elephantCanOpen valveMap startingValve timeRemaining 0 openValves
+                                                    let totalScore = humanScore + elephantScore
+                                                    lock results (fun () ->
+                                                                    printfn "Got lock in %d on thread %d" i Thread.CurrentThread.ManagedThreadId
+                                                                    results <- totalScore :: results
+                                                                    printfn "Stored results in %d on thread %d" i Thread.CurrentThread.ManagedThreadId
+                                                                  )
+                                                    printfn "Released lock for %d" i
+                                                with ex  ->
+                                                    printfn "error: %s" ex.Message
+                                                    )
 
-    
-                                         )
-    printfn "Parallel loop result %A" parallelLoopResult
+    printfn "ParallelLoopResult = %A" parallelLoopResult
+
     let resultCount = results.Length
     printfn "The result count is %d" resultCount
     
@@ -263,6 +274,15 @@ let solveHyperValves (valves:HyperValve seq) : int =
     let best = List.max results
     best
 
+//let solveHyperValvesAltThread (valves:HyperValve seq) : int =
+//    let task = System.Threading.Tasks.Task.Factory.StartNew (fun () ->
+//                                                                printfn "In Task with thread %d" System.Threading.Thread.CurrentThread.ManagedThreadId
+//                                                                let result = solveHyperValves valves
+//                                                                printfn "Final result is %A" result
+//                                                             )
+//    task.Wait()
+//    0
+
 let solve =
     printfn "Solve has been called"
     let lines = Common.getSampleDataAsArray 2022 16
@@ -278,6 +298,6 @@ let solve =
     let hyperValves = buildHyperValves valves startingValve
     printHyperValves hyperValves
 
-    let result = solveHyperValves hyperValves
+    let result = solveHyperValves (hyperValves |> Array.ofList)
     printfn "Part 2 Result is %d" result
 
