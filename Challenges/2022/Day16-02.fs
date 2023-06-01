@@ -116,6 +116,7 @@ let printHyperValves (valves:HyperValve seq) =
     printfn "There are %d valves, %d of which are good ones" count countOfGoodValves
 
 let CallCache = new ConcurrentDictionary<(Set<string> * string * int * int * Set<string>),(int * Set<string> * int)>();
+let Semaphore = ref 0
 
 let rec getBestScore (allowedToOpen:Set<string>) (valveMap:Map<string, HyperValve>) (currentValve:HyperValve) (stepsRemaining:int) (score:int) (openValves:Set<string>) : (int * Set<string> * int) =
     let rec getBestScoreInternal (allowedToOpen) (valveMap:Map<string, HyperValve>) (currentValve:HyperValve) (stepsRemaining:int) (score:int) (openValves:Set<string>) : (int * Set<string> * int) =
@@ -221,7 +222,7 @@ let solveHyperValves (valves:HyperValve seq) : int =
     let mutable results = []
 
     let mutable options = new ParallelOptions()
-    options.MaxDegreeOfParallelism <- -1
+    options.MaxDegreeOfParallelism <- 2
     //options.TaskScheduler <- TaskScheduler.Default
 
     let parallelLoopResult = Parallel.For(0, attempts.Length, 
@@ -234,18 +235,18 @@ let solveHyperValves (valves:HyperValve seq) : int =
                                                         let (humanScore, _, _) = getBestScore humanCanOpen valveMap startingValve timeRemaining 0 openValves
                                                         let (elephantScore, _, _) = getBestScore elephantCanOpen valveMap startingValve timeRemaining 0 openValves
                                                         let totalScore = humanScore + elephantScore
-                                                        lock results (fun () ->
-                                                                        printfn "Got lock in %d" i
-                                                                        results <- totalScore :: results
-                                                                        printfn "Stored results in %d" i
-                                                                      )
+                                                        //lock results (fun () ->
+                                                        //                printfn "Got lock in %d" i
+                                                        //                results <- totalScore :: results
+                                                        //                printfn "Stored results in %d" i
+                                                        //              )
                                                         printfn "Released lock for %d" i
                                                     with ex  ->
                                                         printfn "error: %s" ex.Message
 
     
                                          )
-
+    printfn "Parallel loop result %A" parallelLoopResult
     let resultCount = results.Length
     printfn "The result count is %d" resultCount
     
