@@ -10,6 +10,9 @@ open System.Threading.Tasks
 open System.Collections.Concurrent
 open System.Threading
 
+
+let locker = ref 0
+
 let third = fun (_,_,v) -> v
 
 type ValveInfo =
@@ -117,88 +120,88 @@ let printHyperValves (valves:HyperValve seq) =
     printfn "There are %d valves, %d of which are good ones" count countOfGoodValves
 
 let CallCache = new ConcurrentDictionary<(Set<string> * string * int * int * Set<string>),(int * Set<string> * int)>();
-let Semaphore = ref 0
 
-let rec getBestScore (allowedToOpen:Set<string>) (valveMap:Map<string, HyperValve>) (currentValve:HyperValve) (stepsRemaining:int) (score:int) (openValves:Set<string>) : (int * Set<string> * int) =
-    let rec getBestScoreInternal (allowedToOpen) (valveMap:Map<string, HyperValve>) (currentValve:HyperValve) (stepsRemaining:int) (score:int) (openValves:Set<string>) : (int * Set<string> * int) =
-
-        //printfn "Score: %d %s (open are %s)" score prefix (String.Join(',', openValves))
-        //printfn "There are %d valves in our list and %d are open" valveMap.Count openValves.Count
-        if (stepsRemaining <= 0)
-        then
-            (score, openValves, stepsRemaining)
-        else
-            // printfn "Visiting valve %s with %d steps remaining" fromValve.valveName stepsRemaining
-            let isOpen = openValves |> Set.contains currentValve.valveName
-
-            if (not isOpen && currentValve.flowRate > 0 && Set.contains currentValve.valveName allowedToOpen)
-            then
-                // We have to see if we should open the valve, or leave it closed and choose the best neighbor
-
-                // printfn "Opening valve %s with flow rate %d and %d remaining" fromValve.valveName fromValve.flowRate stepsRemaining
-                let updatedSetOfOpenValves = Set.add currentValve.valveName openValves
-                let myRelief = (stepsRemaining - 1) * currentValve.flowRate
-                let neighborScoresIfWeOpen = currentValve.neighbors
-                                                                |> Array.filter (fun dn -> dn.distance < (stepsRemaining - 1))
-                                                                |> Array.map (fun n -> (valveMap[n.valveName], n.distance))
-                                                                |> Array.map (fun (n,d) ->
-                                                                                    //printfn "OPEN SECTION Recursing (if we open) (thread %d)" Thread.CurrentThread.ManagedThreadId
-                                                                                    getBestScore allowedToOpen valveMap n ((stepsRemaining - 1) - d) (score + myRelief) updatedSetOfOpenValves)
-                //printfn "OPEN SECTION Got neighborScoresIfWeOpen  (thread %d)" Thread.CurrentThread.ManagedThreadId
-                let (openScore, openNeighborMap, openRemaining) = 
-                    if (Array.isEmpty neighborScoresIfWeOpen)
-                    then
-                        (score + myRelief, updatedSetOfOpenValves, stepsRemaining)
-                    else
-                        Array.maxBy fst3 neighborScoresIfWeOpen
-            
-            
-                let neighborScoresIfWeClose = currentValve.neighbors 
-                                                                |> Array.filter (fun dn -> dn.distance < stepsRemaining)
-                                                                |> Array.map (fun n -> (valveMap[n.valveName], n.distance))
-                                                                |> Array.map (fun (n,d) -> 
-                                                                                        //printfn "Recursing (if we DONT open) (thread %d)" Thread.CurrentThread.ManagedThreadId
-                                                                                        getBestScore allowedToOpen valveMap n (stepsRemaining - d) score openValves)
-                //printfn "OPEN SECTION Got neighborScoresIfWeClose  (thread %d)" Thread.CurrentThread.ManagedThreadId
-                
-                let (closeScore, closeNeighborMap, closedRemaining) =
-                    if (Array.isEmpty neighborScoresIfWeClose)
-                    then
-                        (score, openValves, stepsRemaining - 1)
-                    else
-                        Array.maxBy fst3 neighborScoresIfWeClose
-
-                if (openScore >= closeScore)
-                then
-                    //printfn "Opening valve %s" fromValve.valveName
-                    (openScore, openNeighborMap, openRemaining)
-                else
-                    (closeScore, closeNeighborMap, closedRemaining)
-
-            else    // This appears to be where it normally hangs
-                let neighborScores = currentValve.neighbors
-                                        |> Array.filter (fun dn -> dn.distance < stepsRemaining)
-                                        |> Array.map (fun n -> (valveMap[n.valveName], n.distance))
-                                        |> Array.map (fun (n,d) ->
-                                            //printfn "CLOSED SECTION Recursing without UNOPEN (thread %d)" Thread.CurrentThread.ManagedThreadId
-                                            getBestScore allowedToOpen valveMap n (stepsRemaining - d) score openValves)
-                //printfn "CLOSED SECTION Got neighbor scores UNOPEN section (thread %d)" Thread.CurrentThread.ManagedThreadId
-                if (Array.isEmpty neighborScores)
-                then
-                    (score, openValves, stepsRemaining - 1)
-                else
-                    let best = neighborScores |> Array.maxBy fst3
-                    best
-
+let rec getBestScore (recCount:int) (allowedToOpen:Set<string>) (valveMap:Map<string, HyperValve>) (currentValve:HyperValve) (stepsRemaining:int) (score:int) (openValves:Set<string>) : (int * Set<string> * int) =
 
     let key = (allowedToOpen, currentValve.valveName, stepsRemaining, score, openValves)
     let (found, v) = CallCache.TryGetValue(key)
     if (found) then
         v
     else
-        let result = getBestScoreInternal allowedToOpen valveMap currentValve stepsRemaining score openValves
+        let result = getBestScoreInternal recCount allowedToOpen valveMap currentValve stepsRemaining score openValves
         CallCache[key] <- result
         result
+
+and getBestScoreInternal (recCount:int) (allowedToOpen) (valveMap:Map<string, HyperValve>) (currentValve:HyperValve) (stepsRemaining:int) (score:int) (openValves:Set<string>) : (int * Set<string> * int) =
+
+    //printfn "Score: %d %s (open are %s)" score prefix (String.Join(',', openValves))
+    //printfn "There are %d valves in our list and %d are open" valveMap.Count openValves.Count
+    if (stepsRemaining <= 0)
+    then
+        (score, openValves, stepsRemaining)
+    else
+        // printfn "Visiting valve %s with %d steps remaining" fromValve.valveName stepsRemaining
+        let isOpen = openValves |> Set.contains currentValve.valveName
+
+        if (not isOpen && currentValve.flowRate > 0 && Set.contains currentValve.valveName allowedToOpen)
+        then
+            // We have to see if we should open the valve, or leave it closed and choose the best neighbor
+
+            // printfn "Opening valve %s with flow rate %d and %d remaining" fromValve.valveName fromValve.flowRate stepsRemaining
+            let updatedSetOfOpenValves = Set.add currentValve.valveName openValves
+            let myRelief = (stepsRemaining - 1) * currentValve.flowRate
+            let neighborScoresIfWeOpen = currentValve.neighbors
+                                                            |> Array.filter (fun dn -> dn.distance < (stepsRemaining - 1))
+                                                            |> Array.map (fun n -> (valveMap[n.valveName], n.distance))
+                                                            |> Array.map (fun (n,d) ->
+                                                                                //printfn "OPEN SECTION Recursing (if we open) (thread %d)" Thread.CurrentThread.ManagedThreadId
+                                                                                getBestScore (recCount + 1) allowedToOpen valveMap n ((stepsRemaining - 1) - d) (score + myRelief) updatedSetOfOpenValves)
+            //printfn "OPEN SECTION Got neighborScoresIfWeOpen  (thread %d)" Thread.CurrentThread.ManagedThreadId
+            let (openScore, openNeighborMap, openRemaining) = 
+                if (Array.isEmpty neighborScoresIfWeOpen)
+                then
+                    (score + myRelief, updatedSetOfOpenValves, stepsRemaining)
+                else
+                    Array.maxBy fst3 neighborScoresIfWeOpen
+            
+            
+            let neighborScoresIfWeClose = currentValve.neighbors 
+                                                            |> Array.filter (fun dn -> dn.distance < stepsRemaining)
+                                                            |> Array.map (fun n -> (valveMap[n.valveName], n.distance))
+                                                            |> Array.map (fun (n,d) -> 
+                                                                                    //printfn "Recursing (if we DONT open) (thread %d)" Thread.CurrentThread.ManagedThreadId
+                                                                                    getBestScore (recCount + 1) allowedToOpen valveMap n (stepsRemaining - d) score openValves)
+            //printfn "OPEN SECTION Got neighborScoresIfWeClose  (thread %d)" Thread.CurrentThread.ManagedThreadId
+                
+            let (closeScore, closeNeighborMap, closedRemaining) =
+                if (Array.isEmpty neighborScoresIfWeClose)
+                then
+                    (score, openValves, stepsRemaining - 1)
+                else
+                    Array.maxBy fst3 neighborScoresIfWeClose
+
+            if (openScore >= closeScore)
+            then
+                //printfn "Opening valve %s" fromValve.valveName
+                (openScore, openNeighborMap, openRemaining)
+            else
+                (closeScore, closeNeighborMap, closedRemaining)
+
+        else    // This appears to be where it normally hangs
+            let neighborScores = currentValve.neighbors
+                                    |> Array.filter (fun dn -> dn.distance < stepsRemaining)
+                                    |> Array.map (fun n -> (valveMap[n.valveName], n.distance))
+                                    |> Array.map (fun (n,d) ->
+                                        //printfn "CLOSED SECTION Recursing without UNOPEN (thread %d)" Thread.CurrentThread.ManagedThreadId
+                                        getBestScore (recCount + 1) allowedToOpen valveMap n (stepsRemaining - d) score openValves)
+            //printfn "CLOSED SECTION Got neighbor scores UNOPEN section (thread %d)" Thread.CurrentThread.ManagedThreadId
+            if (Array.isEmpty neighborScores)
+            then
+                (score, openValves, stepsRemaining - 1)
+            else
+                let best = neighborScores |> Array.maxBy fst3
+                best
+
 
 let getCombosToTry (valves:string list) (minNumberPerWorker:int) : (string list * string list) list =
     let permutedIndices = allSplits valves.Length
@@ -230,28 +233,35 @@ let solveHyperValves (valves:HyperValve seq) : int =
     let mutable results = []
 
     let mutable options = new ParallelOptions()
-    options.MaxDegreeOfParallelism <- 1
+    options.MaxDegreeOfParallelism <- 2
     //options.TaskScheduler <- TaskScheduler.Default
     let attemptsArray = attempts |> Array.ofList
 
     let parallelLoopResult = Parallel.For(0, attempts.Length, 
                                             options,
                                             fun (i:int) (p:ParallelLoopState) -> 
+                                                printfn "Parallel Loop state for %d on thread %d has exception flag %A and isStopped %A" 
+                                                            i
+                                                            Thread.CurrentThread.ManagedThreadId
+                                                            p.IsExceptional
+                                                            p.IsStopped
+
                                                 let split = attemptsArray[i]
                                                 try
-                                                    printfn "Loop %d on thread %d" i System.Threading.Thread.CurrentThread.ManagedThreadId
+                                                    printfn "In TRY %d on thread %d" i System.Threading.Thread.CurrentThread.ManagedThreadId
  
                                                     let humanCanOpen = fst split |> Set.ofSeq
                                                     let elephantCanOpen = snd split |> Set.ofSeq
-                                                    let (humanScore, _, _) = getBestScore humanCanOpen valveMap startingValve timeRemaining 0 openValves
-                                                    let (elephantScore, _, _) = getBestScore elephantCanOpen valveMap startingValve timeRemaining 0 openValves
-                                                    let totalScore = humanScore + elephantScore
-                                                    lock results (fun () ->
+                                                    //let (humanScore, _, _) = getBestScore 0 humanCanOpen valveMap startingValve timeRemaining 0 openValves
+                                                    //let (elephantScore, _, _) = getBestScore 0 elephantCanOpen valveMap startingValve timeRemaining 0 openValves
+                                                    // let totalScore = humanScore + elephantScore
+                                                    let totalScore = 10
+                                                    lock locker (fun () ->
                                                                     printfn "Got lock in %d on thread %d" i Thread.CurrentThread.ManagedThreadId
                                                                     results <- totalScore :: results
                                                                     printfn "Stored results in %d on thread %d" i Thread.CurrentThread.ManagedThreadId
                                                                   )
-                                                    printfn "Released lock for %d" i
+                                                    printfn "Released lock for %d on thread %d" i Thread.CurrentThread.ManagedThreadId
                                                 with ex  ->
                                                     printfn "error: %s" ex.Message
                                                     )
