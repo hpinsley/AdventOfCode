@@ -78,6 +78,16 @@ let solve =
     let windDirections = getWindDirection lines[0]
     printfn "%A (of length %d)" windDirections windDirections.Length
 
+    let windStream = Seq.initInfinite (fun i -> windDirections[i % windDirections.Length])
+    let rockStream = Seq.initInfinite (fun i -> RockTemplates[i % RockTemplates.Length])
+    let windEnumerator = windStream.GetEnumerator()
+    let rockEnumerator = rockStream.GetEnumerator()
+
+    while rockEnumerator.MoveNext() do
+        let mutable rock = rockEnumerator.Current
+        printRockTemplate rock
+        printfn ""
+
     printfn "We have %d rock templates" RockTemplates.Length
     for rock in RockTemplates do
         printfn ""
