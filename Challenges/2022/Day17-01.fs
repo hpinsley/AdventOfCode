@@ -81,7 +81,7 @@ let getWindDirection (line:string) : int[] =
         |> Array.ofSeq
 
 let solvePart1 (cave:Cave) (windEnumerator:IEnumerator<int>) (rockTemplateEnumerator:IEnumerator<RockTemplate>) : unit =
-    let maxRocksToFall = 1
+    let maxRocksToFall = 2
     for r in seq { 0 .. maxRocksToFall - 1} do
         printfn "Dropping rock %d" r
         rockTemplateEnumerator.MoveNext() |> ignore
