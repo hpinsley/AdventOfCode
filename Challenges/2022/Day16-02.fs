@@ -119,18 +119,25 @@ let printHyperValves (valves:HyperValve seq) =
     let countOfGoodValves = valves |> Seq.filter (fun v -> v.flowRate > 0) |> Seq.length
     printfn "There are %d valves, %d of which are good ones" count countOfGoodValves
 
-let CallCache = new ConcurrentDictionary<(Set<string> * string * int * int * Set<string>),(int * Set<string> * int)>();
+let mutable CallCache = new ConcurrentDictionary<(Set<string> * string * int * int * Set<string>),(int * Set<string> * int)>();
 
 let rec getBestScore (recCount:int) (allowedToOpen:Set<string>) (valveMap:Map<string, HyperValve>) (currentValve:HyperValve) (stepsRemaining:int) (score:int) (openValves:Set<string>) : (int * Set<string> * int) =
+    let useCache = true
 
-    let key = (allowedToOpen, currentValve.valveName, stepsRemaining, score, openValves)
-    let (found, v) = CallCache.TryGetValue(key)
-    if (found) then
-        v
+    if (not useCache)
+    then
+        getBestScoreInternal recCount allowedToOpen valveMap currentValve stepsRemaining score openValves
     else
-        let result = getBestScoreInternal recCount allowedToOpen valveMap currentValve stepsRemaining score openValves
-        CallCache[key] <- result
-        result
+        let key = (allowedToOpen, currentValve.valveName, stepsRemaining, score, openValves)
+    
+        let (found, v) = CallCache.TryGetValue(key)
+        if (found) then
+            v
+        else
+            let result = getBestScoreInternal recCount allowedToOpen valveMap currentValve stepsRemaining score openValves
+            CallCache.AddOrUpdate(key, result, fun k v -> result) |> ignore
+            //CallCache[key] <- result
+            result
 
 and getBestScoreInternal (recCount:int) (allowedToOpen) (valveMap:Map<string, HyperValve>) (currentValve:HyperValve) (stepsRemaining:int) (score:int) (openValves:Set<string>) : (int * Set<string> * int) =
 
@@ -215,7 +222,8 @@ let getCombosToTry (valves:string list) (minNumberPerWorker:int) : (string list 
     allCombos |> List.filter (fun (set1, set2) -> set1.Length >= minNumberPerWorker && set2.Length >= minNumberPerWorker)
 
 let solveHyperValves (valves:HyperValve seq) : int =
-    let timeRemaining = 26
+    // let timeRemaining = 26
+    let timeRemaining = 5
     let valveMap = valves |> Seq.map (fun v -> (v.valveName, v)) |> Map.ofSeq
     let startingValve = valves |> Seq.find (fun v -> v.flowRate = 0)
     let openValves = Set.empty
@@ -230,14 +238,14 @@ let solveHyperValves (valves:HyperValve seq) : int =
     let attempts = getCombosToTry goodValves minValvesAssignedPerWorker
     printfn "%A" attempts
     printfn "Number of valves: %d, permuations: %d" goodValves.Length attempts.Length
-    let mutable results = []
+    let mutable best = Int32.MinValue
 
     let mutable options = new ParallelOptions()
-    options.MaxDegreeOfParallelism <- 2
+    options.MaxDegreeOfParallelism <- -1
     //options.TaskScheduler <- TaskScheduler.Default
-    let attemptsArray = attempts |> Array.ofList
+    let attemptsArray = attempts |> Array.ofList // |> Array.take 1
 
-    let parallelLoopResult = Parallel.For(0, attempts.Length, 
+    let parallelLoopResult = Parallel.For(0, attemptsArray.Length, 
                                             options,
                                             fun (i:int) (p:ParallelLoopState) -> 
                                                 printfn "Parallel Loop state for %d on thread %d has exception flag %A and isStopped %A" 
@@ -252,24 +260,30 @@ let solveHyperValves (valves:HyperValve seq) : int =
  
                                                     let humanCanOpen = fst split |> Set.ofSeq
                                                     let elephantCanOpen = snd split |> Set.ofSeq
-                                                    //let (humanScore, _, _) = getBestScore 0 humanCanOpen valveMap startingValve timeRemaining 0 openValves
-                                                    //let (elephantScore, _, _) = getBestScore 0 elephantCanOpen valveMap startingValve timeRemaining 0 openValves
-                                                    // let totalScore = humanScore + elephantScore
-                                                    let totalScore = 10
-                                                    lock locker (fun () ->
-                                                                    printfn "Got lock in %d on thread %d" i Thread.CurrentThread.ManagedThreadId
-                                                                    results <- totalScore :: results
-                                                                    printfn "Stored results in %d on thread %d" i Thread.CurrentThread.ManagedThreadId
-                                                                  )
-                                                    printfn "Released lock for %d on thread %d" i Thread.CurrentThread.ManagedThreadId
+                                                    let (humanScore, _, _) = getBestScore 0 humanCanOpen valveMap startingValve timeRemaining 0 openValves
+                                                    let (elephantScore, _, _) = getBestScore 0 elephantCanOpen valveMap startingValve timeRemaining 0 openValves
+                                                    let totalScore = humanScore + elephantScore
+                                                    // let totalScore = humanScore
+                                                    if (totalScore > best)
+                                                    then
+                                                        printfn "Updating best to %d on thread %d" totalScore Thread.CurrentThread.ManagedThreadId
+                                                        best <- totalScore
+                                                        printfn "Updated best to %d on thread %d" best Thread.CurrentThread.ManagedThreadId
+
+                                                    //lock locker (fun () ->
+                                                    //                printfn "Got lock in %d on thread %d" i Thread.CurrentThread.ManagedThreadId
+                                                    //                results <- totalScore :: results
+                                                    //                printfn "Stored results in %d on thread %d" i Thread.CurrentThread.ManagedThreadId
+                                                    //              )
+                                                    //printfn "Released lock for %d on thread %d" i Thread.CurrentThread.ManagedThreadId
+                                                    ()
                                                 with ex  ->
                                                     printfn "error: %s" ex.Message
                                                     )
 
     printfn "ParallelLoopResult = %A" parallelLoopResult
 
-    let resultCount = results.Length
-    printfn "The result count is %d" resultCount
+    printfn "The best is %d" best
     
     //for i in seq { 0 .. (attempts.Length - 1)} do
     //    if i % 10 = 0 then
@@ -281,7 +295,6 @@ let solveHyperValves (valves:HyperValve seq) : int =
     //    let totalScore = humanScore + elephantScore
     //    results <- totalScore :: results
     
-    let best = List.max results
     best
 
 //let solveHyperValvesAltThread (valves:HyperValve seq) : int =
@@ -308,6 +321,14 @@ let solve =
     let hyperValves = buildHyperValves valves startingValve
     printHyperValves hyperValves
 
-    let result = solveHyperValves (hyperValves |> Array.ofList)
-    printfn "Part 2 Result is %d" result
+    //let result = solveHyperValves (hyperValves |> Array.ofList)
+    //printfn "Part 2 Result is %d" result
+    let t = Task.Factory.StartNew(fun () -> 
+                                        let result = solveHyperValves (hyperValves |> Array.ofList)
+                                        printfn "Part 2 Result is %d" result
+                                 )
+
+    printfn "Waiting..."
+    t.Wait()
+    printfn "Done"
 
