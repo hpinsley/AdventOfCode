@@ -9,30 +9,55 @@ open System.Collections.Generic
 
 type Rock =
     {
-        height: int;
-        width: int;
-        occupies: (int * int) Set;
+        rows: int;
+        cols: int;
+        occupies: (int * int) Set;      // Let's use rows and cols not x and y
     }
 
 let RockTemplates = [|
-                        { height = 1; width = 4; 
+                        { rows = 1; cols = 4; 
                             occupies = Set.ofList 
                                         [   
-                                            (0,0);  (1,0);  (2,0);  (3,0)
+                                            (0,0);  (0,1);  (0,2);  (0,3)
                                         ]
                         }
 
-                        { height = 3; width = 3; occupies = Set.ofList
+                        { rows = 3; cols = 3; occupies = Set.ofList
                                         [
-                                                    (1,0);
-                                            (0,1);  (1,1);  (2,1);
-                                                    (1,2)
+                                                    (0,1);
+                                            (1,0);  (1,1);  (1,2);
+                                                    (2,1)
                                         ]  
+                        }                        
+ 
+                        { rows = 3; cols = 3; occupies = Set.ofList
+                                        [
+                                                            (0,2);
+                                                            (1,2);
+                                            (2,0);  (2,1);  (2,2);
+                                        ]  
+                        }                        
+                        { rows = 4; cols = 1; 
+                            occupies = Set.ofList 
+                                        [   
+                                            (0,0);
+                                            (1,0);
+                                            (2,0);
+                                            (3,0);
+                                        ]
                         }
+
+                        { rows = 2; cols = 2; occupies = Set.ofList
+                                        [
+                                            (0,0);  (0,1);
+                                            (1,0);  (1,1);
+                                        ]  
+                        }                        
                     |]
 
 let printRockTemplate (rock:Rock) : unit =
-    let grid = Array2D.init rock.width rock.height (fun x y -> if rock.oc) 
+    let grid = Array2D.init rock.rows rock.cols (fun row col -> if Set.contains (row,col) rock.occupies then '#' else '.') 
+    printGrid grid id
 
 let getWindDirection (line:string) : int[] =
     line
@@ -54,4 +79,7 @@ let solve =
     printfn "%A (of length %d)" windDirections windDirections.Length
 
     printfn "We have %d rock templates" RockTemplates.Length
+    for rock in RockTemplates do
+        printfn ""
+        printRockTemplate rock
     ()
