@@ -71,7 +71,7 @@ let (rockTemplates:RockTemplate[]) = [|
                         |]
 
 let printRockTemplate (rock:RockTemplate) : unit =
-    let grid = Array2D.init rock.rows rock.cols (fun row col -> if Set.contains (row,col) rock.occupies then '#' else '.') 
+    let grid = Array2D.init rock.rows rock.cols (fun row col -> if Set.contains (rock.rows - 1 - row,col) rock.occupies then '#' else '.') 
     printGrid grid id
 
 let printCave (cave:Cave) : unit =
@@ -107,7 +107,7 @@ let canBlowSideways (cave:Cave) (rock:Rock) : bool =
     let minCol = Seq.min cols
     let maxCol = Seq.max cols
 
-    if (minCol < 0 || maxCol > caveWidth)
+    if (minCol <= 0 || maxCol > caveWidth)
     then
         false
     else
@@ -131,8 +131,10 @@ let solvePart1 (maxRocksToFall:int) (initialCave:Cave) (windEnumerator:IEnumerat
         rockTemplateEnumerator.MoveNext() |> ignore
         let template = rockTemplateEnumerator.Current
 
-        printRockTemplate template
-        printfn ""
+        //printRockTemplate template
+        //printfn ""
+        //printfn "Cave before it falls\n"
+        //printCave cave
 
         let startingRow = cave.maxHeight + 4
         let startingCol = 3
@@ -178,8 +180,8 @@ let solvePart1 (maxRocksToFall:int) (initialCave:Cave) (windEnumerator:IEnumerat
                                     maxHeight = max cave.maxHeight (maxHeight rock)
                         }
         //printfn "\nAfter rock %d cave is:" r
-        printCave cave
-        printfn ""
+        //printCave cave
+        //printfn ""
     cave
 
 
@@ -212,10 +214,10 @@ let solve =
 
     printfn "Cave: %A" cave
 
-    let maxRocksToFall = 6
+    let maxRocksToFall = 2022
     let finalCave = solvePart1 maxRocksToFall cave windEnumerator rockTemplateEnumerator
     
-    printfn "\nFinal cave:\n"
-    printCave finalCave
+    //printfn "\nFinal cave:\n"
+    //printCave finalCave
     printfn "\nAnswer: %d" finalCave.maxHeight
     ()
