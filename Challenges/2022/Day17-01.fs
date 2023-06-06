@@ -27,6 +27,8 @@ type Cave =
         rocks: Rock list
     }
 
+let caveWidth = 7
+
 let (rockTemplates:RockTemplate[]) = [|
                             { rows = 1; cols = 4; 
                                 occupies = Set.ofList 
@@ -37,33 +39,33 @@ let (rockTemplates:RockTemplate[]) = [|
 
                             { rows = 3; cols = 3; occupies = Set.ofList
                                             [
-                                                        (0,1);
+                                                        (2,1);
                                                 (1,0);  (1,1);  (1,2);
-                                                        (2,1)
+                                                        (0,1);
                                             ]  
                             }                        
  
                             { rows = 3; cols = 3; occupies = Set.ofList
                                             [
-                                                                (0,2);
+                                                                (2,2);
                                                                 (1,2);
-                                                (2,0);  (2,1);  (2,2);
+                                                (0,0);  (0,1);  (0,2);
                                             ]  
                             }                        
                             { rows = 4; cols = 1; 
                                 occupies = Set.ofList 
                                             [   
-                                                (0,0);
-                                                (1,0);
-                                                (2,0);
                                                 (3,0);
+                                                (2,0);
+                                                (1,0);
+                                                (0,0);
                                             ]
                             }
 
                             { rows = 2; cols = 2; occupies = Set.ofList
                                             [
-                                                (0,0);  (0,1);
                                                 (1,0);  (1,1);
+                                                (0,0);  (0,1);
                                             ]  
                             }                        
                         |]
@@ -71,6 +73,14 @@ let (rockTemplates:RockTemplate[]) = [|
 let printRockTemplate (rock:RockTemplate) : unit =
     let grid = Array2D.init rock.rows rock.cols (fun row col -> if Set.contains (row,col) rock.occupies then '#' else '.') 
     printGrid grid id
+
+let printCave (cave:Cave) : unit =
+    let grid = Array2D.create (cave.maxHeight + 1) 9 false
+    for rock in cave.rocks do
+        for (r,c) in rock.occupies do
+            let flippedRow = cave.maxHeight - r
+            grid[flippedRow,c] <- true
+    printGrid grid (fun b -> if b then '#' else '.')
 
 let getWindDirection (line:string) : int[] =
     line
@@ -80,8 +90,41 @@ let getWindDirection (line:string) : int[] =
                                 | _ -> failwith "unknown direction")
         |> Array.ofSeq
 
-let solvePart1 (cave:Cave) (windEnumerator:IEnumerator<int>) (rockTemplateEnumerator:IEnumerator<RockTemplate>) : unit =
-    let maxRocksToFall = 2
+let canMoveDown (cave:Cave) (rock:Rock) : bool =
+    let minRow = rock.occupies |> Seq.map fst |> Seq.min
+    if (minRow = 0)
+    then
+        false
+    else
+        cave.rocks
+            |> Seq.exists (fun caveRock -> Set.intersect caveRock.occupies rock.occupies
+                                            |> Set.isEmpty
+                                            |> not)
+            |> not
+                        
+let canBlowSideways (cave:Cave) (rock:Rock) : bool =
+    let cols = rock.occupies |> Seq.map snd
+    let minCol = Seq.min cols
+    let maxCol = Seq.max cols
+
+    if (minCol < 0 || maxCol > caveWidth)
+    then
+        false
+    else
+        cave.rocks
+            |> Seq.exists (fun caveRock -> Set.intersect caveRock.occupies rock.occupies
+                                            |> Set.isEmpty
+                                            |> not)
+            |> not
+
+let maxHeight (rock:Rock) : int =
+    rock.occupies
+        |> Seq.map (fun (row, col) -> row)
+        |> Seq.max
+
+let solvePart1 (maxRocksToFall:int) (initialCave:Cave) (windEnumerator:IEnumerator<int>) (rockTemplateEnumerator:IEnumerator<RockTemplate>) : Cave =
+    let mutable (cave:Cave) = initialCave
+
     for r in seq { 0 .. maxRocksToFall - 1} do
         printfn "Dropping rock %d" r
         rockTemplateEnumerator.MoveNext() |> ignore
@@ -89,15 +132,49 @@ let solvePart1 (cave:Cave) (windEnumerator:IEnumerator<int>) (rockTemplateEnumer
         let startingRow = cave.maxHeight + 4
         let startingCol = 3
 
-        let (rock:Rock) = {
+        let mutable (rock:Rock) = {
             rows = template.rows
             cols = template.cols
             occupies = template.occupies
                         |> Seq.map (fun (row,col) -> (row + startingRow, col + startingCol))
                         |> Set.ofSeq
         }
-        printfn "Rock %d = %A" r rock
-        ()
+
+        //printRockTemplate template
+        //printfn "\n"
+
+        let mutable rockCameToRest = false
+        while (not rockCameToRest) do
+            // First blow sideways.  Get the wind, and shift right or left if possible
+            windEnumerator.MoveNext() |> ignore
+            let wind = windEnumerator.Current
+            let mutable movedRock = { rock with occupies = rock.occupies
+                                                    |> Seq.map (fun (row, col) ->
+                                                                    row, col + wind)
+                                                    |> Set.ofSeq
+                            }
+            //printfn "Rock: %A, Moved Rock: %A" rock movedRock
+            if (canBlowSideways cave movedRock)
+            then
+                rock <- movedRock
+
+            // Now try to move down
+            movedRock <- { rock with occupies = rock.occupies
+                                                    |> Seq.map (fun (row, col) ->
+                                                                    row - 1, col)
+                                                    |> Set.ofSeq
+                            }
+            if (canMoveDown cave movedRock)
+            then
+                rock <- movedRock
+            else
+                rockCameToRest <- true
+                cave <- { cave with rocks = rock :: cave.rocks
+                                    maxHeight = max cave.maxHeight (maxHeight rock)
+                        }
+        //printfn "\nAfter rock %d cave is:" r
+        //printCave cave
+    cave
 
 
 let solve =
@@ -129,5 +206,10 @@ let solve =
 
     printfn "Cave: %A" cave
 
-    solvePart1 cave windEnumerator rockTemplateEnumerator
+    let maxRocksToFall = 2022
+    let finalCave = solvePart1 maxRocksToFall cave windEnumerator rockTemplateEnumerator
+    
+    printfn "\nFinal cave:\n"
+    printCave finalCave
+    printfn "Answer: %d" finalCave.maxHeight
     ()
