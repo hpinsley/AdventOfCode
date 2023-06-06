@@ -127,8 +127,13 @@ let solvePart1 (maxRocksToFall:int) (initialCave:Cave) (windEnumerator:IEnumerat
 
     for r in seq { 0 .. maxRocksToFall - 1} do
         printfn "Dropping rock %d" r
+        
         rockTemplateEnumerator.MoveNext() |> ignore
         let template = rockTemplateEnumerator.Current
+
+        printRockTemplate template
+        printfn ""
+
         let startingRow = cave.maxHeight + 4
         let startingCol = 3
 
@@ -173,7 +178,8 @@ let solvePart1 (maxRocksToFall:int) (initialCave:Cave) (windEnumerator:IEnumerat
                                     maxHeight = max cave.maxHeight (maxHeight rock)
                         }
         //printfn "\nAfter rock %d cave is:" r
-        //printCave cave
+        printCave cave
+        printfn ""
     cave
 
 
@@ -206,10 +212,10 @@ let solve =
 
     printfn "Cave: %A" cave
 
-    let maxRocksToFall = 2022
+    let maxRocksToFall = 6
     let finalCave = solvePart1 maxRocksToFall cave windEnumerator rockTemplateEnumerator
     
     printfn "\nFinal cave:\n"
     printCave finalCave
-    printfn "Answer: %d" finalCave.maxHeight
+    printfn "\nAnswer: %d" finalCave.maxHeight
     ()
