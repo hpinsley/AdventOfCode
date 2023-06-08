@@ -83,6 +83,34 @@ let getTopRowColumns (cave:Cave) : Set<int> =
 
     topColumns
 
+// Get the "depth" of each column.  The depth is
+// max height across all columns minus the height of the column
+let getColumnDepths (cave:Cave) =
+    let allRockPositions = cave.rocks
+                            |> Seq.map (fun rock -> rock.occupies)
+                            |> Seq.concat
+
+    let colSequence = seq { 1 .. caveWidth }
+
+    let floor = colSequence |> Seq.map (fun c -> (-1, c))
+
+    let allOccupants = Seq.append allRockPositions floor
+
+    let depthByColumn = colSequence
+                                |> Seq.map (
+                                                fun c ->
+                                                    let colHeight =
+                                                        allOccupants
+                                                            |> Seq.filter (fun (row,col) -> col = c)
+                                                            |> Seq.map (fun (row, col) -> cave.maxHeight - row)
+                                                            |> Seq.min
+                                                    (c, colHeight)
+                                            )
+                                |> Map.ofSeq
+
+
+    depthByColumn
+
 //let getRepeatState (totalRockCount:int64) (rockTemplateId:int) (cave:Cave) : RepeatDetectState =
 //    {
 //        totalRockCount = totalRockCount;
@@ -141,7 +169,7 @@ let maxHeight (rock:Rock) : int =
         |> Seq.map (fun (row, col) -> row)
         |> Seq.max
 
-let solvePart1 (maxRocksToFall:int64) (initialCave:Cave) (windEnumerator:IEnumerator<int>) (rockTemplateEnumerator:IEnumerator<RockTemplate>) : Cave =
+let solvePart2 (maxRocksToFall:int64) (initialCave:Cave) (windEnumerator:IEnumerator<int>) (rockTemplateEnumerator:IEnumerator<RockTemplate>) : Cave =
     let mutable (cave:Cave) = initialCave
 
     for r in seq { 0L .. maxRocksToFall - 1L} do
@@ -198,9 +226,14 @@ let solvePart1 (maxRocksToFall:int64) (initialCave:Cave) (windEnumerator:IEnumer
                 cave <- { cave with rocks = rock :: cave.rocks
                                     maxHeight = max cave.maxHeight (maxHeight rock)
                         }
-        //printfn "\nAfter rock %d cave is:" r
-        //printCave cave
-        //printfn ""
+        printfn "\nAfter rock %d cave is:" r
+        printCave cave
+        printfn ""
+
+
+        let colDepths = getColumnDepths cave
+        printfn "^-- Coldepths are %A" colDepths
+
         let totalRockCount = r + 1L
         let topRow = getTopRowColumns cave
         let colCount = Seq.length topRow
@@ -259,7 +292,7 @@ let solve =
     printfn "Remainder is %d" remainder
     printfn "Factor is %d" factor
     
-    let finalCave = solvePart1 maxRocksToFall cave windEnumerator rockTemplateEnumerator
+    let finalCave = solvePart2 maxRocksToFall cave windEnumerator rockTemplateEnumerator
     
     //printfn "\nFinal cave:\n"
     //printCave finalCave
