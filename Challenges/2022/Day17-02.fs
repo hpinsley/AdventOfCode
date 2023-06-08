@@ -92,7 +92,7 @@ let getColumnDepths (cave:Cave) =
 
     let colSequence = seq { 1 .. caveWidth }
 
-    let floor = colSequence |> Seq.map (fun c -> (-1, c))
+    let floor = colSequence |> Seq.map (fun c -> (0, c))
 
     let allOccupants = Seq.append allRockPositions floor
 
