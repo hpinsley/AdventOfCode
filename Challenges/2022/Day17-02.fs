@@ -1,4 +1,4 @@
-﻿module Year2022Day17_Part1
+﻿module Year2022Day17_Part2
 
 open System
 open System.IO
@@ -9,6 +9,7 @@ open System.Collections.Generic
 
 type RockTemplate =
     {
+        templateId: int;
         rows: int;
         cols: int;
         occupies: (int * int) Set;      // Let's use rows and cols not x and y
@@ -30,14 +31,14 @@ type Cave =
 let caveWidth = 7
 
 let (rockTemplates:RockTemplate[]) = [|
-                            { rows = 1; cols = 4; 
+                            { templateId = 0; rows = 1; cols = 4; 
                                 occupies = Set.ofList 
                                             [   
                                                 (0,0);  (0,1);  (0,2);  (0,3)
                                             ]
                             }
 
-                            { rows = 3; cols = 3; occupies = Set.ofList
+                            { templateId = 1; rows = 3; cols = 3; occupies = Set.ofList
                                             [
                                                         (2,1);
                                                 (1,0);  (1,1);  (1,2);
@@ -45,14 +46,14 @@ let (rockTemplates:RockTemplate[]) = [|
                                             ]  
                             }                        
  
-                            { rows = 3; cols = 3; occupies = Set.ofList
+                            { templateId = 2; rows = 3; cols = 3; occupies = Set.ofList
                                             [
                                                                 (2,2);
                                                                 (1,2);
                                                 (0,0);  (0,1);  (0,2);
                                             ]  
                             }                        
-                            { rows = 4; cols = 1; 
+                            { templateId = 3; rows = 4; cols = 1; 
                                 occupies = Set.ofList 
                                             [   
                                                 (3,0);
@@ -62,7 +63,7 @@ let (rockTemplates:RockTemplate[]) = [|
                                             ]
                             }
 
-                            { rows = 2; cols = 2; occupies = Set.ofList
+                            { templateId = 4; rows = 2; cols = 2; occupies = Set.ofList
                                             [
                                                 (1,0);  (1,1);
                                                 (0,0);  (0,1);
@@ -70,6 +71,24 @@ let (rockTemplates:RockTemplate[]) = [|
                             }                        
                         |]
 
+let (heightWhenNewFloorDetected:int option array) = Array.create rockTemplates.Length None
+
+let getTopRowColumns (cave:Cave) : Set<int> =
+    let topColumns = cave.rocks
+                        |> Seq.map (fun rock -> rock.occupies)
+                        |> Seq.concat
+                        |> Seq.filter (fun (r,c) -> r = cave.maxHeight)
+                        |> Seq.map (fun (r,c) -> c)
+                        |> Set.ofSeq
+
+    topColumns
+
+//let getRepeatState (totalRockCount:int64) (rockTemplateId:int) (cave:Cave) : RepeatDetectState =
+//    {
+//        totalRockCount = totalRockCount;
+//        lastRockTemplateId = rockTemplateId;
+//        topLayers = cave.rocks
+//    }
 let printRockTemplate (rock:RockTemplate) : unit =
     let grid = Array2D.init rock.rows rock.cols (fun row col -> if Set.contains (rock.rows - 1 - row,col) rock.occupies then '#' else '.') 
     printGrid grid id
@@ -122,10 +141,10 @@ let maxHeight (rock:Rock) : int =
         |> Seq.map (fun (row, col) -> row)
         |> Seq.max
 
-let solvePart1 (maxRocksToFall:int) (initialCave:Cave) (windEnumerator:IEnumerator<int>) (rockTemplateEnumerator:IEnumerator<RockTemplate>) : Cave =
+let solvePart1 (maxRocksToFall:int64) (initialCave:Cave) (windEnumerator:IEnumerator<int>) (rockTemplateEnumerator:IEnumerator<RockTemplate>) : Cave =
     let mutable (cave:Cave) = initialCave
 
-    for r in seq { 0 .. maxRocksToFall - 1} do
+    for r in seq { 0L .. maxRocksToFall - 1L} do
         printfn "Dropping rock %d" r
         
         rockTemplateEnumerator.MoveNext() |> ignore
@@ -182,6 +201,21 @@ let solvePart1 (maxRocksToFall:int) (initialCave:Cave) (windEnumerator:IEnumerat
         //printfn "\nAfter rock %d cave is:" r
         //printCave cave
         //printfn ""
+        let totalRockCount = r + 1L
+        let topRow = getTopRowColumns cave
+        let colCount = Seq.length topRow
+        //printfn ""
+        //printCave cave
+        printfn "Rocks count: %d. Top row has filled %d columns" totalRockCount colCount
+        if (colCount = caveWidth)
+        then
+            // Floor detected
+            if (Option.isSome heightWhenNewFloorDetected[template.templateId])
+            then
+                printfn "Found repeat for template id %d" template.templateId
+            else
+                heightWhenNewFloorDetected[template.templateId] <- Some cave.maxHeight
+
     cave
 
 
@@ -191,6 +225,8 @@ let solve =
 
     // printAllLines lines
     printfn "There are %d lines in the input and the first one is %d chars" lines.Length lines[0].Length
+
+    let result = findCycle lines[0]
 
     let windDirections = getWindDirection lines[0]
     printfn "%A (of length %d)" windDirections windDirections.Length
@@ -214,7 +250,15 @@ let solve =
 
     printfn "Cave: %A" cave
 
-    let maxRocksToFall = 2022
+    let maxRocksToFall = 20000L
+    let requestedRocksToFall = 1_000_000_000_000L
+    let repeatFactor = 2671L
+    let remainder = requestedRocksToFall % repeatFactor
+    let factor = requestedRocksToFall / repeatFactor
+
+    printfn "Remainder is %d" remainder
+    printfn "Factor is %d" factor
+    
     let finalCave = solvePart1 maxRocksToFall cave windEnumerator rockTemplateEnumerator
     
     //printfn "\nFinal cave:\n"

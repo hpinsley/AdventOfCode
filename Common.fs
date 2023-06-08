@@ -118,3 +118,28 @@ let allSplits (n: int) : (int list * int list) list =
             yield (onBits1, onBits2)
     } |> List.ofSeq
  
+
+// I have not tested this algorithm (Floyd's cycle-finding algorith)
+let findCycle (str: string) : (int * int) =
+    let tortoise = str[0]
+    let hare = str[0]
+
+    let rec findMeetingPoint (t: char) (h: char) =
+        if t = h then t
+        else findMeetingPoint str[int(t)] str[int(str[int(h)])]
+
+    let cycleStart = str[0]
+    let meetingPoint = findMeetingPoint tortoise hare
+
+    let rec findCycleStart (cs: char) (mp: char) =
+        if cs = mp then cs
+        else findCycleStart str[int(cs)] str[int(mp)]
+
+    let rec findCycleLength (cs: char) (cl: int) (mp: char) =
+        if cs <> mp then findCycleLength str[int(cs)] (cl + 1) str[int(mp)]
+        else cl
+
+    let cycleStartPoint = findCycleStart cycleStart meetingPoint
+    let cycleLength = findCycleLength cycleStartPoint 1 cycleStartPoint
+
+    (int(cycleStartPoint)), cycleLength
