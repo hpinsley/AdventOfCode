@@ -88,6 +88,7 @@ type RepeatSizes = {
             cycleLength: int;
             cycleHeight: int;
             firstRockTemplateIdToCycle: int;
+            startOfFirstCycle: RepeatDetectState
     }
 
 let (heightWhenNewFloorDetected:int option array) = Array.create rockTemplates.Length None
@@ -275,22 +276,23 @@ let solvePart2 (maxRocksToFall:int) (initialCave:Cave) (windDirections:int[]) (r
                         |> List.filter (fun s -> s.colDepths = repeatState.colDepths && 
                                                                 s.windIndex = repeatState.windIndex)
 
-        //if (matchingPrevStates.Length > 0)
-        //then
-        //    let tallestMatch = matchingPrevStates[0]
-        //    printfn ""
-        //    printCave cave
+        if (matchingPrevStates.Length > 0)
+        then
+            let tallestMatch = matchingPrevStates[0]
+            //printfn ""
+            //printCave cave
 
-        //    printfn "Found repeat after rock %d for template id %d, wind index %d. Previous height %d. New height %d" 
-        //                cave.rocks.Length template.templateId windIndex tallestMatch.caveHeight repeatState.caveHeight
+            printfn "Found repeat after rock %d for template id %d, wind index %d. Previous height %d. New height %d" 
+                        cave.rocks.Length template.templateId windIndex tallestMatch.caveHeight repeatState.caveHeight
 
-        //    foundRepeatFactor <- Some {
-        //                                rockCountBeforeCycle = tallestMatch.totalRockCount;
-        //                                heightBeforeCycle = tallestMatch.caveHeight;
-        //                                cycleLength = repeatState.totalRockCount - tallestMatch.totalRockCount;
-        //                                cycleHeight = repeatState.caveHeight - tallestMatch.caveHeight
-        //                                firstRockTemplateIdToCycle = template.templateId
-        //                               }
+            foundRepeatFactor <- Some {
+                                        startOfFirstCycle = tallestMatch;
+                                        rockCountBeforeCycle = tallestMatch.totalRockCount;
+                                        heightBeforeCycle = tallestMatch.caveHeight;
+                                        cycleLength = repeatState.totalRockCount - tallestMatch.totalRockCount;
+                                        cycleHeight = repeatState.caveHeight - tallestMatch.caveHeight
+                                        firstRockTemplateIdToCycle = template.templateId
+                                       }
             
         repeatStatesByRockType[template.templateId] <- repeatState :: repeatStatesByRockType[template.templateId]
         r <- r + 1
@@ -328,8 +330,9 @@ let solve =
     printfn "Cave: %A" cave
 
     let maxRocksToFall = 2022
-    // let requestedRocksToFall = 1_000_000_000_000L
-    let requestedRocksToFall = 2022L
+    
+    let requestedRocksToFall = 1_000_000_000_000L
+    // let requestedRocksToFall = 2022L
     //let repeatFactor = 26L
     //let remainder = requestedRocksToFall % repeatFactor
     //let factor = requestedRocksToFall / repeatFactor
@@ -344,25 +347,25 @@ let solve =
             let rocksAfterCyclesStart = requestedRocksToFall - int64(repeatCounts.rockCountBeforeCycle)
             let numCyles = rocksAfterCyclesStart / (int64(repeatCounts.cycleLength))
             let rocksToDropAfterLastCycle = int(rocksAfterCyclesStart % (int64(repeatCounts.cycleLength)))
-            let lastDivFactor = rocksToDropAfterLastCycle / rockTemplates.Length
-            let lastModFactor = rocksToDropAfterLastCycle % rockTemplates.Length
-            let templateIndex = lastModFactor
-            let topRock = repeatStatesByRockType[lastModFactor][lastDivFactor]
+
             let resultRockCountToFind = repeatCounts.rockCountBeforeCycle + rocksToDropAfterLastCycle
+
             let x = repeatStatesByRockType
                         |> Array.map (fun l -> Array.ofList l)
                         |> Array.concat
                         |> Array.find (fun rs -> rs.totalRockCount = resultRockCountToFind)
 
-            let heightAfterLastCycle = 0L
+            let heightAfterLastCycle = x.caveHeight - repeatCounts.startOfFirstCycle.caveHeight
 
             let totalHeight = int64(repeatCounts.heightBeforeCycle) + 
                               numCyles * int64(repeatCounts.cycleHeight) +
-                              heightAfterLastCycle
+                              int64(heightAfterLastCycle)
 
-            let correctAnswer = 3068L
-            // let correctAnswer = 1514285714288L
+            // let correctAnswer = 3068L
+            let correctAnswer = 1514285714288L
             let difference = correctAnswer - totalHeight
+            printfn "Our answer is %d (difference is %d)" totalHeight difference
+
             ()
         | None ->
             ()
