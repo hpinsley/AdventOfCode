@@ -239,7 +239,7 @@ let getRepeatFactor (maxRocksToFall:int) (initialCave:Cave) (windDirections:int[
             //printfn "Rock: %A, Moved Rock: %A" rock movedRock
             if (canBlowSideways cave movedRock)
             then
-                //printfn "Rock %d MOVES horizontally %s" r (if windIndex = -1 then "Left" else "Right")
+                //printfn "Rock %d MOVES horizontally %s" r (if wind = -1 then "Left" else "Right")
                 rock <- movedRock
             else
                 //printfn "Rock %d CANNOT move horizontally %s" r (if windIndex = -1 then "Left" else "Right")
@@ -308,10 +308,10 @@ let solvePart2 (maxRocksToFall:int) (initialCave:Cave) (windDirections:int[]) (r
         rockTemplateEnumerator.MoveNext() |> ignore
         let template = rockTemplateEnumerator.Current
 
-        //printRockTemplate template
-        //printfn ""
-        //printfn "Cave before it falls\n"
-        //printCave cave
+        printRockTemplate template
+        printfn ""
+        printfn "Cave before it falls\n"
+        printCave cave
 
         let startingRow = cave.maxHeight + 4
         let startingCol = 3
