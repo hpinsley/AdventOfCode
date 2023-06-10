@@ -191,17 +191,16 @@ let maxHeight (rock:Rock) : int =
         |> Seq.map (fun (row, col) -> row)
         |> Seq.max
 
-let getRepeatFactor (maxRocksToFall:int) (initialCave:Cave) (windDirections:int[]) (rockTemplateEnumerator:IEnumerator<RockTemplate>) : (RepeatSizes option * Cave) =
+let solvePart2 (maxRocksToFall:int) (initialCave:Cave) (windDirections:int[]) (rockTemplateEnumerator:IEnumerator<RockTemplate>) : (RepeatSizes option * Cave) =
     let mutable (cave:Cave) = initialCave
 
-    let mutable windIndex = -1
     let mutable r = -1
     let mutable windIndex = -1
     let mutable foundRepeatFactor = None
 
     while ((Option.isNone foundRepeatFactor) && r <= maxRocksToFall) do
         r <- r + 1
-        printfn "Dropping rock %d" r
+        printfn "Dropping rock %d with cave height = %d" r cave.maxHeight
         
         rockTemplateEnumerator.MoveNext() |> ignore
         let template = rockTemplateEnumerator.Current
@@ -231,6 +230,7 @@ let getRepeatFactor (maxRocksToFall:int) (initialCave:Cave) (windDirections:int[
             // First blow sideways.  Get the wind, and shift right or left if possible
             windIndex <- (windIndex + 1) % windDirections.Length
             let wind = windDirections[windIndex]
+            printfn "Wind: %d" wind
             let mutable movedRock = { rock with occupies = rock.occupies
                                                     |> Seq.map (fun (row, col) ->
                                                                     row, col + wind)
@@ -242,7 +242,8 @@ let getRepeatFactor (maxRocksToFall:int) (initialCave:Cave) (windDirections:int[
                 //printfn "Rock %d MOVES horizontally %s" r (if wind = -1 then "Left" else "Right")
                 rock <- movedRock
             else
-                //printfn "Rock %d CANNOT move horizontally %s" r (if windIndex = -1 then "Left" else "Right")
+                ()
+                //printfn "Rock %d CANNOT move horizontally %s" r (if wind = -1 then "Left" else "Right")
 
             // Now try to move down
             movedRock <- { rock with occupies = rock.occupies
@@ -297,92 +298,6 @@ let getRepeatFactor (maxRocksToFall:int) (initialCave:Cave) (windDirections:int[
     // Finished with the rocks
     (foundRepeatFactor, cave)
 
-let solvePart2 (maxRocksToFall:int) (initialCave:Cave) (windDirections:int[]) (rockTemplateEnumerator:IEnumerator<RockTemplate>) : Cave =
-    let mutable (cave:Cave) = initialCave
-
-    let mutable windIndex = -1
-
-    for r in seq { 0 .. maxRocksToFall - 1} do
-        //printfn "Dropping rock %d" r
-        
-        rockTemplateEnumerator.MoveNext() |> ignore
-        let template = rockTemplateEnumerator.Current
-
-        printRockTemplate template
-        printfn ""
-        printfn "Cave before it falls\n"
-        printCave cave
-
-        let startingRow = cave.maxHeight + 4
-        let startingCol = 3
-
-        let mutable (rock:Rock) = {
-            rows = template.rows
-            cols = template.cols
-            occupies = template.occupies
-                        |> Seq.map (fun (row,col) -> (row + startingRow, col + startingCol))
-                        |> Set.ofSeq
-        }
-
-        //printRockTemplate template
-        //printfn "\n"
-
-        let mutable rockCameToRest = false
-
-        while (not rockCameToRest) do
-            // First blow sideways.  Get the wind, and shift right or left if possible
-            windIndex <- r % windDirections.Length
-            let wind = windDirections[windIndex]
-            let mutable movedRock = { rock with occupies = rock.occupies
-                                                    |> Seq.map (fun (row, col) ->
-                                                                    row, col + wind)
-                                                    |> Set.ofSeq
-                            }
-            //printfn "Rock: %A, Moved Rock: %A" rock movedRock
-            if (canBlowSideways cave movedRock)
-            then
-                rock <- movedRock
-
-            // Now try to move down
-            movedRock <- { rock with occupies = rock.occupies
-                                                    |> Seq.map (fun (row, col) ->
-                                                                    row - 1, col)
-                                                    |> Set.ofSeq
-                            }
-            if (canMoveDown cave movedRock)
-            then
-                rock <- movedRock
-            else
-                rockCameToRest <- true
-                cave <- { cave with rocks = rock :: cave.rocks
-                                    maxHeight = max cave.maxHeight (maxHeight rock)
-                        }
-        // Rock has come to reset here
-        let totalRockCount = r + 1
-        let repeatState = getRepeatState windIndex totalRockCount template.templateId cave
-
-        // We store our previous states in a an array (indexed by rock type) of state lists
-        let previousStates = repeatStatesByRockType[template.templateId]
-        // We have repeated when the 
-        let matchingPrevStates =
-                    previousStates
-                        |> List.filter (fun s -> s.colDepths = repeatState.colDepths && 
-                                                                s.windIndex = repeatState.windIndex)
-
-        if (matchingPrevStates.Length > 0)
-        then
-            let tallestMatch = matchingPrevStates[0]
-            //printfn ""
-            //printCave cave
-            printfn "Found repeat after rock %d for template id %d, wind index %d. Previous height %d. New height %d" 
-                        cave.rocks.Length template.templateId windIndex tallestMatch.caveHeight repeatState.caveHeight
-            printfn ""
-
-        repeatStatesByRockType[template.templateId] <- repeatState :: repeatStatesByRockType[template.templateId]
-
-    // Finished with the rocks
-    cave
-
 let solve =
     let lines = Common.getSampleDataAsArray 2022 17
     // let lines = Common.getChallengeDataAsArray 2022 17
@@ -422,7 +337,7 @@ let solve =
     //printfn "Remainder is %d" remainder
     //printfn "Factor is %d" factor
     
-    let (repeatCountsOption, cave)  = getRepeatFactor maxRocksToFall cave windDirections rockTemplateEnumerator
+    let (repeatCountsOption, cave)  = solvePart2 maxRocksToFall cave windDirections rockTemplateEnumerator
 
     match repeatCountsOption with
         | Some repeatCounts ->
