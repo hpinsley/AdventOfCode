@@ -194,12 +194,11 @@ let maxHeight (rock:Rock) : int =
 let solvePart2 (maxRocksToFall:int) (initialCave:Cave) (windDirections:int[]) (rockTemplateEnumerator:IEnumerator<RockTemplate>) : (RepeatSizes option * Cave) =
     let mutable (cave:Cave) = initialCave
 
-    let mutable r = -1
+    let mutable r = 0
     let mutable windIndex = -1
     let mutable foundRepeatFactor = None
 
-    while ((Option.isNone foundRepeatFactor) && r <= maxRocksToFall) do
-        r <- r + 1
+    while ((Option.isNone foundRepeatFactor) && r < maxRocksToFall) do
         printfn "Dropping rock %d with cave height = %d" r cave.maxHeight
         
         rockTemplateEnumerator.MoveNext() |> ignore
@@ -230,7 +229,7 @@ let solvePart2 (maxRocksToFall:int) (initialCave:Cave) (windDirections:int[]) (r
             // First blow sideways.  Get the wind, and shift right or left if possible
             windIndex <- (windIndex + 1) % windDirections.Length
             let wind = windDirections[windIndex]
-            printfn "Wind: %d" wind
+            //printfn "Wind: %d" wind
             let mutable movedRock = { rock with occupies = rock.occupies
                                                     |> Seq.map (fun (row, col) ->
                                                                     row, col + wind)
@@ -279,21 +278,22 @@ let solvePart2 (maxRocksToFall:int) (initialCave:Cave) (windDirections:int[]) (r
         //if (matchingPrevStates.Length > 0)
         //then
         //    let tallestMatch = matchingPrevStates[0]
-            //printfn ""
-            //printCave cave
+        //    printfn ""
+        //    printCave cave
 
-            //printfn "Found repeat after rock %d for template id %d, wind index %d. Previous height %d. New height %d" 
-            //            cave.rocks.Length template.templateId windIndex tallestMatch.caveHeight repeatState.caveHeight
+        //    printfn "Found repeat after rock %d for template id %d, wind index %d. Previous height %d. New height %d" 
+        //                cave.rocks.Length template.templateId windIndex tallestMatch.caveHeight repeatState.caveHeight
 
-            //foundRepeatFactor <- Some {
-            //                            rockCountBeforeCycle = tallestMatch.totalRockCount;
-            //                            heightBeforeCycle = tallestMatch.caveHeight;
-            //                            cycleLength = repeatState.totalRockCount - tallestMatch.totalRockCount;
-            //                            cycleHeight = repeatState.caveHeight - tallestMatch.caveHeight
-            //                            firstRockTemplateIdToCycle = template.templateId
-            //                           }
+        //    foundRepeatFactor <- Some {
+        //                                rockCountBeforeCycle = tallestMatch.totalRockCount;
+        //                                heightBeforeCycle = tallestMatch.caveHeight;
+        //                                cycleLength = repeatState.totalRockCount - tallestMatch.totalRockCount;
+        //                                cycleHeight = repeatState.caveHeight - tallestMatch.caveHeight
+        //                                firstRockTemplateIdToCycle = template.templateId
+        //                               }
             
         repeatStatesByRockType[template.templateId] <- repeatState :: repeatStatesByRockType[template.templateId]
+        r <- r + 1
 
     // Finished with the rocks
     (foundRepeatFactor, cave)
