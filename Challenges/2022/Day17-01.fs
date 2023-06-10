@@ -186,8 +186,8 @@ let solvePart1 (maxRocksToFall:int) (initialCave:Cave) (windEnumerator:IEnumerat
 
 
 let solve =
-    // let lines = Common.getSampleDataAsArray 2022 17
-    let lines = Common.getChallengeDataAsArray 2022 17
+    let lines = Common.getSampleDataAsArray 2022 17
+    // let lines = Common.getChallengeDataAsArray 2022 17
 
     // printAllLines lines
     printfn "There are %d lines in the input and the first one is %d chars" lines.Length lines[0].Length
