@@ -109,6 +109,7 @@ let getOriginPoints (lines:string[]) : Point[] =
                 )
 
 let compareAndMarkCubes (cube1:Cube) (cube2:Cube) : unit =
+    // printfn "Comparing cube %d to cube %d" cube1.cubeNumber cube2.cubeNumber
     match getCommonSide cube1 cube2 with
             | Some (side1, side2) ->
                 printfn "Cube %d side %A matches Cube %d side %A"
@@ -122,17 +123,21 @@ let compareAndMarkCubes (cube1:Cube) (cube2:Cube) : unit =
 
 let solve =
     // let lines = Common.getSampleDataAsArray 2022 18
-    // let lines = Common.getChallengeDataAsArray 2022 18
-    let lines = [| "1,1,1"; "2,1,1"|]
+    let lines = Common.getChallengeDataAsArray 2022 18
+    // let lines = [| "1,1,1"; "2,1,1"|]
     // printAllLines lines
     let originPoints = getOriginPoints lines
     printfn "There are %d cubes to build" originPoints.Length
     printfn ""
 
     let cubes = originPoints |> Array.mapi generateCube
-    compareAndMarkCubes cubes[0] cubes[1]
+    for (cube1, cube2) in allCombinations cubes do
+        compareAndMarkCubes cube1 cube2
 
-    printfn "\nMarked cubes"
-    printfn "%A" cubes
+    let sideCount = 6 * cubes.Length
+    let occludedCount = cubes |> Array.sumBy (fun c -> c.occludedCount)
+    let viewAbleCount = sideCount - occludedCount
 
+    printfn "Of the %d sides, %d are occluded and %d are visible"
+        sideCount occludedCount viewAbleCount
     ()

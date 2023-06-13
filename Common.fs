@@ -118,6 +118,12 @@ let allSplits (n: int) : (int list * int list) list =
             yield (onBits1, onBits2)
     } |> List.ofSeq
  
+let allCombinations<'a> (v:'a[]) : ('a * 'a) seq =
+    seq {
+        for i in seq {0..v.Length - 1} do
+            for j in seq {i + 1 .. v.Length - 1} do
+                yield (v[i], v[j])
+    }
 
 // I have not tested this algorithm (Floyd's cycle-finding algorith)
 let findCycle (str: string) : (int * int) =
