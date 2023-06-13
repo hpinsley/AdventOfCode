@@ -36,6 +36,7 @@ type Cube = {
     right: NamedSide
     front: NamedSide
     back: NamedSide
+    mutable occludedCount: int
 }
 
 let generateCube (cubeNumber:int) (origin:Point): Cube =
@@ -75,6 +76,7 @@ let generateCube (cubeNumber:int) (origin:Point): Cube =
 
     let (cube:Cube) = {
                         cubeNumber = cubeNumber
+                        occludedCount = 0
                         bottom = { sideName = Bottom; points = bottom }
                         top = { sideName = Top; points = top }
                         left = { sideName = Left; points = left }
@@ -106,6 +108,18 @@ let getOriginPoints (lines:string[]) : Point[] =
                     }
                 )
 
+let compareAndMarkCubes (cube1:Cube) (cube2:Cube) : unit =
+    match getCommonSide cube1 cube2 with
+            | Some (side1, side2) ->
+                printfn "Cube %d side %A matches Cube %d side %A"
+                            cube1.cubeNumber side1.sideName
+                            cube2.cubeNumber side2.sideName
+
+                cube1.occludedCount <- cube1.occludedCount + 1
+                cube2.occludedCount <- cube2.occludedCount + 1
+            | None ->
+                ()
+
 let solve =
     // let lines = Common.getSampleDataAsArray 2022 18
     // let lines = Common.getChallengeDataAsArray 2022 18
@@ -116,12 +130,9 @@ let solve =
     printfn ""
 
     let cubes = originPoints |> Array.mapi generateCube
+    compareAndMarkCubes cubes[0] cubes[1]
 
-    match getCommonSide cubes[0] cubes[1] with
-                | Some (side1, side2) ->
-                        printfn "Match: Cube1: %A with Cube2: %A" side1.sideName side2.sideName
-                | None ->
-                        printfn "No match"
-
+    printfn "\nMarked cubes"
+    printfn "%A" cubes
 
     ()
