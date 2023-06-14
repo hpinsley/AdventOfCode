@@ -1,4 +1,4 @@
-﻿module Year2022Day18_Part1
+﻿module Year2022Day18_Part2
 
 open System
 open System.IO
@@ -27,14 +27,22 @@ type NamedSide =
         points: Set<Point>
     }
 
+type CubeType =
+    | Exterior
+    | Interior
+
 type Cube = {
-    cubeNumber: int;
+    cubeNumber: int
+    cubeType: CubeType
+    origin: Point
     bottom: NamedSide
     top: NamedSide
     left: NamedSide
     right: NamedSide
     front: NamedSide
     back: NamedSide
+    allPoints: Set<Point>
+
     mutable occludedCount: int
 }
 
@@ -75,6 +83,8 @@ let generateCube (cubeNumber:int) (origin:Point): Cube =
 
     let (cube:Cube) = {
                         cubeNumber = cubeNumber
+                        cubeType = Exterior
+                        origin = origin
                         occludedCount = 0
                         bottom = { sideName = Bottom; points = bottom }
                         top = { sideName = Top; points = top }
@@ -82,6 +92,14 @@ let generateCube (cubeNumber:int) (origin:Point): Cube =
                         right = { sideName = Right; points = right }
                         front = { sideName = Front; points = front }
                         back = { sideName = Back; points = back }
+                        allPoints = bottom
+                                        |> Set.union top
+                                        |> Set.union bottom
+                                        |> Set.union left
+                                        |> Set.union right
+                                        |> Set.union front
+                                        |> Set.union back
+
                       }
 
     cube
@@ -119,6 +137,20 @@ let compareAndMarkCubes (cube1:Cube) (cube2:Cube) : unit =
                 cube2.occludedCount <- cube2.occludedCount + 1
             | None ->
                 ()
+let findInteriorCubes (droplets:Cube[]) : Cube[] =
+
+    let coordsX = droplets|> Seq.map (fun c -> c.allPoints |> Seq.map (fun p -> p.x)) |> Seq.concat
+    let coordsY = droplets|> Seq.map (fun c -> c.allPoints |> Seq.map (fun p -> p.y)) |> Seq.concat
+    let coordsZ = droplets|> Seq.map (fun c -> c.allPoints |> Seq.map (fun p -> p.z)) |> Seq.concat
+
+    let minX = Seq.min coordsX
+    let minY = Seq.min coordsY
+    let minZ = Seq.min coordsZ
+    let maxX = Seq.max coordsX
+    let maxY = Seq.max coordsY
+    let maxZ = Seq.max coordsZ
+    printfn "Extent is from (%d, %d, %d) to (%d, %d, %d)" minX minY minZ maxX maxY maxZ
+    [||]
 
 let solve =
     let lines = Common.getSampleDataAsArray 2022 18
@@ -130,6 +162,9 @@ let solve =
     printfn ""
 
     let cubes = originPoints |> Array.mapi generateCube
+
+    let interiorCubes = findInteriorCubes cubes
+
     for (cube1, cube2) in allCombinations cubes do
         compareAndMarkCubes cube1 cube2
 
