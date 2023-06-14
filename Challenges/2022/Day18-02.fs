@@ -46,7 +46,7 @@ type Cube = {
     mutable occludedCount: int
 }
 
-let generateCube (cubeNumber:int) (origin:Point): Cube =
+let generateCube (cubeType:CubeType) (cubeNumber:int) (origin:Point): Cube =
     let bottom  = [|    { x = origin.x; y = origin.y; z = origin.z }; 
                     { x = origin.x; y = origin.y + 1; z = origin.z };
                     { x = origin.x + 1; y = origin.y; z = origin.z };
@@ -83,7 +83,7 @@ let generateCube (cubeNumber:int) (origin:Point): Cube =
 
     let (cube:Cube) = {
                         cubeNumber = cubeNumber
-                        cubeType = Exterior
+                        cubeType = cubeType
                         origin = origin
                         occludedCount = 0
                         bottom = { sideName = Bottom; points = bottom }
@@ -161,7 +161,7 @@ let solve =
     printfn "There are %d cubes to build" originPoints.Length
     printfn ""
 
-    let cubes = originPoints |> Array.mapi generateCube
+    let cubes = originPoints |> Array.mapi (generateCube Exterior)
 
     let interiorCubes = findInteriorCubes cubes
 
