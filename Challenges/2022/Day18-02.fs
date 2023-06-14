@@ -149,9 +149,28 @@ let findInteriorCubes (droplets:Cube[]) : Cube[] =
     let maxX = Seq.max coordsX
     let maxY = Seq.max coordsY
     let maxZ = Seq.max coordsZ
-    printfn "Extent is from (%d, %d, %d) to (%d, %d, %d)" minX minY minZ maxX maxY maxZ
-    [||]
 
+    let exteriorOrigins = droplets
+                            |> Seq.map (fun c -> c.origin)
+                            |> Set.ofSeq
+
+    let exteriorCount = exteriorOrigins.Count
+
+    let interiorCubes = 
+        seq {
+            for x in seq {minX .. maxX } do
+                for y in seq {minY .. maxY } do
+                    for z in seq { minZ .. maxZ } do
+                        let interiorOrigin = { x = x; y = y; z = z }
+                        if (not (Set.contains interiorOrigin exteriorOrigins))
+                        then
+                            yield interiorOrigin
+        } 
+            |> Seq.mapi (fun i origin -> generateCube Interior (i + exteriorCount) origin)
+            |> Array.ofSeq
+
+    interiorCubes
+ 
 let solve =
     let lines = Common.getSampleDataAsArray 2022 18
     // let lines = Common.getChallengeDataAsArray 2022 18
@@ -164,6 +183,7 @@ let solve =
     let cubes = originPoints |> Array.mapi (generateCube Exterior)
 
     let interiorCubes = findInteriorCubes cubes
+    printfn "Interior cubes:\n%A\n" interiorCubes
 
     for (cube1, cube2) in allCombinations cubes do
         compareAndMarkCubes cube1 cube2
