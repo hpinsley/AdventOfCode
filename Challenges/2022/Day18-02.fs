@@ -125,19 +125,30 @@ let getOriginPoints (lines:string[]) : Point[] =
                     }
                 )
 
-let compareAndMarkCubes (cube1:Cube) (cube2:Cube) : unit =
+let compareAndMarkCubes (onlyDifferentOccludeds:bool) (cube1:Cube) (cube2:Cube) : unit =
     // printfn "Comparing cube %d to cube %d" cube1.cubeNumber cube2.cubeNumber
-    match getCommonSide cube1 cube2 with
-            | Some (side1, side2) ->
-                printfn "Cube %d side %A matches Cube %d side %A"
-                            cube1.cubeNumber side1.sideName
-                            cube2.cubeNumber side2.sideName
+    let targetCubeOrigin = { x = 2; y = 1; z = 5 }
 
-                cube1.occludedCount <- cube1.occludedCount + 1
-                cube2.occludedCount <- cube2.occludedCount + 1
-            | None ->
-                ()
-let findInteriorCubes (droplets:Cube[]) : Cube[] =
+    if (not onlyDifferentOccludeds || cube1.cubeType <> cube2.cubeType) then
+        match getCommonSide cube1 cube2 with
+                | Some (side1, side2) ->
+                    //printfn "Cube %d side %A matches Cube %d side %A"
+                    //            cube1.cubeNumber side1.sideName
+                    //            cube2.cubeNumber side2.sideName
+
+                    if (cube1.origin = targetCubeOrigin || cube2.origin = targetCubeOrigin)
+                    then
+                        printfn "%b Occlusion between (%d,%d,%d) and (%d,%d,%d)"
+                                    onlyDifferentOccludeds
+                                    cube1.origin.x cube1.origin.y cube1.origin.z
+                                    cube2.origin.x cube2.origin.y cube2.origin.z
+
+                    cube1.occludedCount <- cube1.occludedCount + 1
+                    cube2.occludedCount <- cube2.occludedCount + 1
+                | None ->
+                    ()
+
+let findFillerCubes (droplets:Cube[]) : Cube[] =
 
     let coordsX = droplets|> Seq.map (fun c -> c.allPoints |> Seq.map (fun p -> p.x)) |> Seq.concat
     let coordsY = droplets|> Seq.map (fun c -> c.allPoints |> Seq.map (fun p -> p.y)) |> Seq.concat
@@ -180,18 +191,52 @@ let solve =
     printfn "There are %d cubes to build" originPoints.Length
     printfn ""
 
-    let cubes = originPoints |> Array.mapi (generateCube Exterior)
+    let exteriorCubes = originPoints |> Array.mapi (generateCube Exterior)
+    let fillerCubes = findFillerCubes exteriorCubes
 
-    let interiorCubes = findInteriorCubes cubes
-    printfn "Interior cubes:\n%A\n" interiorCubes
+    let allCubesInitial = Array.append exteriorCubes fillerCubes
+    
+    for (cube1, cube2) in allCombinations allCubesInitial do
+        compareAndMarkCubes false cube1 cube2
 
-    for (cube1, cube2) in allCombinations cubes do
-        compareAndMarkCubes cube1 cube2
+    let interiorCubes = fillerCubes
+                            |> Array.filter (fun c -> c.occludedCount = 6)
 
-    let sideCount = 6 * cubes.Length
-    let occludedCount = cubes |> Array.sumBy (fun c -> c.occludedCount)
+    let allCubes = Array.append exteriorCubes interiorCubes
+    // let allCubes = exteriorCubes
+    Array.ForEach (allCubes, fun c -> c.occludedCount <- 0) // Reset the counts
+
+    // Consider only exterior for now
+    for (cube1, cube2) in allCombinations exteriorCubes do
+        compareAndMarkCubes false cube1 cube2
+
+    let sideCount = 6 * exteriorCubes.Length
+    let occludedCount = exteriorCubes |> Array.sumBy (fun c -> c.occludedCount)
     let viewAbleCount = sideCount - occludedCount
 
-    printfn "Of the %d sides, %d are occluded and %d are visible"
-        sideCount occludedCount viewAbleCount
+    Array.ForEach (allCubes, fun c -> c.occludedCount <- 0) // Reset the counts
+
+    // Consider exterior and interior for now
+    for (cube1, cube2) in allCombinations allCubes do
+        compareAndMarkCubes false cube1 cube2
+
+    let extraOccludedCount = exteriorCubes |> Array.sumBy (fun c -> c.occludedCount)
+
+    let interiorSideCount = 6 * interiorCubes.Length
+    let interiorOccludedCount = interiorCubes |> Array.sumBy (fun c -> c.occludedCount)
+    let interiorViewableCount = interiorSideCount - interiorOccludedCount
+
+    let airPockets = interiorCubes |> Array.filter (fun c -> c.occludedCount = 6)
+    printfn "There are %d air pockets" airPockets.Length
+
+    printfn "Exterior: Of the %d cubes with %d sides, %d are occluded and %d are visible"
+        exteriorCubes.Length sideCount occludedCount viewAbleCount
+    printfn "Interior: Of the %d cubes with %d sides, %d are occluded and %d are visible"
+        interiorCubes.Length interiorSideCount interiorOccludedCount interiorViewableCount
+    printfn "Extra excluded (from interiors occuding): %d" extraOccludedCount
+    printfn "Cube origins"
+    for c in (allCubes 
+                |> Array.sortBy (fun c -> c.origin)) do 
+        printfn "%A: Origin: (%d,%d,%d).  Occluded = %d, Visible = %d" c.cubeType c.origin.x c.origin.y c.origin.z c.occludedCount (6 - c.occludedCount)
+
     ()
