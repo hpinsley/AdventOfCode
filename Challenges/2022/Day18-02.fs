@@ -127,7 +127,6 @@ let getOriginPoints (lines:string[]) : Point[] =
 
 let compareAndMarkCubes (onlyDifferentOccludeds:bool) (cube1:Cube) (cube2:Cube) : unit =
     // printfn "Comparing cube %d to cube %d" cube1.cubeNumber cube2.cubeNumber
-    let targetCubeOrigin = { x = 2; y = 1; z = 5 }
 
     if (not onlyDifferentOccludeds || cube1.cubeType <> cube2.cubeType) then
         match getCommonSide cube1 cube2 with
@@ -135,14 +134,7 @@ let compareAndMarkCubes (onlyDifferentOccludeds:bool) (cube1:Cube) (cube2:Cube) 
                     //printfn "Cube %d side %A matches Cube %d side %A"
                     //            cube1.cubeNumber side1.sideName
                     //            cube2.cubeNumber side2.sideName
-
-                    if (cube1.origin = targetCubeOrigin || cube2.origin = targetCubeOrigin)
-                    then
-                        printfn "%b Occlusion between (%d,%d,%d) and (%d,%d,%d)"
-                                    onlyDifferentOccludeds
-                                    cube1.origin.x cube1.origin.y cube1.origin.z
-                                    cube2.origin.x cube2.origin.y cube2.origin.z
-
+   
                     cube1.occludedCount <- cube1.occludedCount + 1
                     cube2.occludedCount <- cube2.occludedCount + 1
                 | None ->
@@ -192,9 +184,125 @@ let findFillerCubes (droplets:Cube[]) : Cube[] =
     interiorCubes
  
 let solve =
+    (* Exterior: Of the 13 cubes with 78 sides, 14 are occluded and 64 are visible
+    Interior: Of the 1 cubes with 6 sides, 0 are occluded and 6 are visible
+    Surface area is 58 
+    *)
     // let lines = Common.getSampleDataAsArray 2022 18
+
     let lines = Common.getChallengeDataAsArray 2022 18
-    // let lines = [| "1,1,1"; "2,1,1"|]
+    let lines = [| "1,1,0"; "2,1,1"|]
+    let lines = 
+                [|
+                    "0,0,0"; "1,0,0"; "2,0,0";
+                    "0,1,0"; (*"1,1,0";*) "2,1,0";
+                    "0,2,0"; "1,2,0"; "2,2,0";
+                    "0,0,1"; "1,0,1"; "2,0,1";
+                    "0,1,1"; (* "1,1,1";*) "2,1,1";
+                    "0,2,1"; "1,2,1"; "2,2,1";
+                    "0,0,2"; "1,0,2"; "2,0,2";
+                    "0,1,2"; "1,1,2"; "2,1,2";
+                    "0,2,2"; "1,2,2"; "2,2,2";
+                |]
+
+    (*
+        Exterior: Of the 64 cubes with 384 sides, 288 are occluded and 96 are visible
+        Interior: Of the 0 cubes with 0 sides, 0 are occluded and 0 are visible
+        Surface area is 96
+    *)
+    let lines = [|
+                "0,0,0"; "1,0,0"; "2,0,0"; "3,0,0";
+                "0,1,0"; "1,1,0"; "2,1,0"; "3,1,0";
+                "0,2,0"; "1,2,0"; "2,2,0"; "3,2,0";
+                "0,3,0"; "1,3,0"; "2,3,0"; "3,3,0";
+                "0,0,1"; "1,0,1"; "2,0,1"; "3,0,1";
+                "0,1,1"; "1,1,1"; "2,1,1"; "3,1,1";
+                "0,2,1"; "1,2,1"; "2,2,1"; "3,2,1";
+                "0,3,1"; "1,3,1"; "2,3,1"; "3,3,1";
+                "0,0,2"; "1,0,2"; "2,0,2"; "3,0,2";
+                "0,1,2"; "1,1,2"; "2,1,2"; "3,1,2";
+                "0,2,2"; "1,2,2"; "2,2,2"; "3,2,2";
+                "0,3,2"; "1,3,2"; "2,3,2"; "3,3,2";
+                "0,0,3"; "1,0,3"; "2,0,3"; "3,0,3";
+                "0,1,3"; "1,1,3"; "2,1,3"; "3,1,3";
+                "0,2,3"; "1,2,3"; "2,2,3"; "3,2,3";
+                "0,3,3"; "1,3,3"; "2,3,3"; "3,3,3";
+            |]
+
+    (*
+        Exterior: Of the 63 cubes with 378 sides, 276 are occluded and 102 are visible
+        Interior: Of the 1 cubes with 6 sides, 0 are occluded and 6 are visible
+        Surface area is 96
+    *)
+    let lines = [|
+                "0,0,0"; "1,0,0"; "2,0,0"; "3,0,0";
+                "0,1,0"; "1,1,0"; "2,1,0"; "3,1,0";
+                "0,2,0"; "1,2,0"; "2,2,0"; "3,2,0";
+                "0,3,0"; "1,3,0"; "2,3,0"; "3,3,0";
+                "0,0,1"; "1,0,1"; "2,0,1"; "3,0,1";
+                "0,1,1"; "1,1,1"; "2,1,1"; "3,1,1";
+                "0,2,1"; (*"1,2,1";*) "2,2,1"; "3,2,1";
+                "0,3,1"; "1,3,1"; "2,3,1"; "3,3,1";
+                "0,0,2"; "1,0,2"; "2,0,2"; "3,0,2";
+                "0,1,2"; "1,1,2"; "2,1,2"; "3,1,2";
+                "0,2,2"; "1,2,2"; "2,2,2"; "3,2,2";
+                "0,3,2"; "1,3,2"; "2,3,2"; "3,3,2";
+                "0,0,3"; "1,0,3"; "2,0,3"; "3,0,3";
+                "0,1,3"; "1,1,3"; "2,1,3"; "3,1,3";
+                "0,2,3"; "1,2,3"; "2,2,3"; "3,2,3";
+                "0,3,3"; "1,3,3"; "2,3,3"; "3,3,3";
+            |]
+
+    (*
+        Exterior: Of the 62 cubes with 372 sides, 266 are occluded and 106 are visible
+        Interior: Of the 2 cubes with 12 sides, 2 are occluded and 10 are visible
+        Surface area is 96
+    *)
+    let lines = [|
+                "0,0,0"; "1,0,0"; "2,0,0"; "3,0,0";
+                "0,1,0"; "1,1,0"; "2,1,0"; "3,1,0";
+                "0,2,0"; "1,2,0"; "2,2,0"; "3,2,0";
+                "0,3,0"; "1,3,0"; "2,3,0"; "3,3,0";
+                "0,0,1"; "1,0,1"; "2,0,1"; "3,0,1";
+                "0,1,1"; "1,1,1"; "2,1,1"; "3,1,1";
+                "0,2,1"; (*"1,2,1";*) "2,2,1"; "3,2,1";
+                "0,3,1"; "1,3,1"; "2,3,1"; "3,3,1";
+                "0,0,2"; "1,0,2"; "2,0,2"; "3,0,2";
+                "0,1,2"; "1,1,2"; "2,1,2"; "3,1,2";
+                "0,2,2"; (*"1,2,2";*) "2,2,2"; "3,2,2";
+                "0,3,2"; "1,3,2"; "2,3,2"; "3,3,2";
+                "0,0,3"; "1,0,3"; "2,0,3"; "3,0,3";
+                "0,1,3"; "1,1,3"; "2,1,3"; "3,1,3";
+                "0,2,3"; "1,2,3"; "2,2,3"; "3,2,3";
+                "0,3,3"; "1,3,3"; "2,3,3"; "3,3,3";
+            |]
+
+    (*
+        Exterior: Of the 62 cubes with 372 sides, 264 are occluded and 108 are visible
+        Interior: Of the 2 cubes with 12 sides, 0 are occluded and 12 are visible
+        Surface area is 96
+    *)
+    let lines = [|
+                "0,0,0"; "1,0,0"; "2,0,0"; "3,0,0";
+                "0,1,0"; "1,1,0"; "2,1,0"; "3,1,0";
+                "0,2,0"; "1,2,0"; "2,2,0"; "3,2,0";
+                "0,3,0"; "1,3,0"; "2,3,0"; "3,3,0";
+                "0,0,1"; "1,0,1"; "2,0,1"; "3,0,1";
+                "0,1,1"; (*"1,1,1";*) "2,1,1"; "3,1,1";
+                "0,2,1"; "1,2,1"; "2,2,1"; "3,2,1";
+                "0,3,1"; "1,3,1"; "2,3,1"; "3,3,1";
+                "0,0,2"; "1,0,2"; "2,0,2"; "3,0,2";
+                "0,1,2"; "1,1,2"; "2,1,2"; "3,1,2";
+                "0,2,2"; "1,2,2"; (*"2,2,2";*) "3,2,2";
+                "0,3,2"; "1,3,2"; "2,3,2"; "3,3,2";
+                "0,0,3"; "1,0,3"; "2,0,3"; "3,0,3";
+                "0,1,3"; "1,1,3"; "2,1,3"; "3,1,3";
+                "0,2,3"; "1,2,3"; "2,2,3"; "3,2,3";
+                "0,3,3"; "1,3,3"; "2,3,3"; "3,3,3";
+            |]
+
+    let lines = Common.getSampleDataAsArray 2022 18
+
     // printAllLines lines
     let originPoints = getOriginPoints lines
     printfn "There are %d cubes to build" originPoints.Length
@@ -203,17 +311,19 @@ let solve =
     let exteriorCubes = originPoints |> Array.mapi (generateCube Exterior)
     let interiorCubes = findFillerCubes exteriorCubes
     
-    //for (cube1, cube2) in allCombinations exteriorCubes do
-    //    compareAndMarkCubes false cube1 cube2
-
-    //for (cube1, cube2) in allCombinations interiorCubes do
-    //    compareAndMarkCubes false cube1 cube2
-
-    let allCubes = Array.append exteriorCubes interiorCubes
-    for (cube1, cube2) in allCombinations allCubes do
+    for (cube1, cube2) in allCombinations exteriorCubes do
         compareAndMarkCubes false cube1 cube2
 
+    for (cube1, cube2) in allCombinations interiorCubes do
+        compareAndMarkCubes false cube1 cube2
+
+    //let allCubes = Array.append exteriorCubes interiorCubes
+    //for (cube1, cube2) in allCombinations allCubes do
+    //    compareAndMarkCubes false cube1 cube2
+
+    // 2068 too low - when marking the different cube types independently
     // 2070 is too low
+    // 2072 is too low (and others have gotten that)
     let sideCount = 6 * exteriorCubes.Length
     let occludedCount = exteriorCubes |> Array.sumBy (fun c -> c.occludedCount)
     let viewAbleCount = sideCount - occludedCount
