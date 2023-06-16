@@ -140,48 +140,56 @@ let compareAndMarkCubes (onlyDifferentOccludeds:bool) (cube1:Cube) (cube2:Cube) 
                 | None ->
                     ()
 
+
 let findFillerCubes (droplets:Cube[]) : Cube[] =
 
     let coordsX = droplets|> Seq.map (fun c -> c.allPoints |> Seq.map (fun p -> p.x)) |> Seq.concat
     let coordsY = droplets|> Seq.map (fun c -> c.allPoints |> Seq.map (fun p -> p.y)) |> Seq.concat
     let coordsZ = droplets|> Seq.map (fun c -> c.allPoints |> Seq.map (fun p -> p.z)) |> Seq.concat
 
-    let minX = Seq.min coordsX
-    let minY = Seq.min coordsY
-    let minZ = Seq.min coordsZ
-    let maxX = Seq.max coordsX
-    let maxY = Seq.max coordsY
-    let maxZ = Seq.max coordsZ
+    let minX = (Seq.min coordsX) - 1
+    let minY = (Seq.min coordsY) - 1
+    let minZ = (Seq.min coordsZ) - 1
+    let maxX = (Seq.max coordsX) + 1
+    let maxY = (Seq.max coordsY) + 1
+    let maxZ = (Seq.max coordsZ) + 1
 
     let exteriorOrigins = droplets
                             |> Seq.map (fun c -> c.origin)
                             |> Set.ofSeq
-
+    
     let exteriorCount = exteriorOrigins.Count
+    let startingPoint = { x = minX; y = minY; z = minZ }
+    
+    let rec floodFill (p:Point) (airOrigins:Set<Point>) : Set<Point> =
+        if (
+               (p.x < minX || p.x > maxX)
+            || (p.y < minY || p.y > maxY)
+            || (p.z < minZ || p.z > maxZ)
+        )
+        then
+            airOrigins
 
-    let interiorCubes = 
-        seq {
-            for x in seq {minX .. maxX } do
-                for y in seq {minY .. maxY } do
-                    for z in seq { minZ .. maxZ } do
-                        let interiorOrigin = { x = x; y = y; z = z }
-                        if (not (Set.contains interiorOrigin exteriorOrigins))
-                        then
-                            if (
-                                     (Seq.exists (fun p -> p.x = interiorOrigin.x && p.y = interiorOrigin.y && p.z < interiorOrigin.z) exteriorOrigins)
-                                  && (Seq.exists (fun p -> p.x = interiorOrigin.x && p.y = interiorOrigin.y && p.z > interiorOrigin.z) exteriorOrigins)
-                                  && (Seq.exists (fun p -> p.y = interiorOrigin.y && p.z = interiorOrigin.z && p.x < interiorOrigin.x) exteriorOrigins)
-                                  && (Seq.exists (fun p -> p.y = interiorOrigin.y && p.z = interiorOrigin.z && p.x > interiorOrigin.x) exteriorOrigins)
-                                  && (Seq.exists (fun p -> p.z = interiorOrigin.z && p.x = interiorOrigin.x && p.y < interiorOrigin.y) exteriorOrigins)
-                                  && (Seq.exists (fun p -> p.z = interiorOrigin.z && p.x = interiorOrigin.x && p.y > interiorOrigin.y) exteriorOrigins)
-                            )
-                            then
-                                yield interiorOrigin
-        } 
-            |> Seq.mapi (fun i origin -> generateCube Interior (i + exteriorCount) origin)
-            |> Array.ofSeq
+        elif not (Set.contains p exteriorOrigins || Set.contains p airOrigins)
+        then
+            airOrigins
+                |> Set.add p
+                |> floodFill { p with x = p.x - 1 }
+                |> floodFill { p with x = p.x + 1 }
+                |> floodFill { p with y = p.y - 1 }
+                |> floodFill { p with y = p.y + 1 }
+                |> floodFill { p with z = p.z - 1 }
+                |> floodFill { p with z = p.z + 1 }
+        else
+            airOrigins
 
-    interiorCubes
+    let allAir = floodFill startingPoint (Set.empty)      
+
+    let airCubes = allAir
+                    |> Seq.mapi (fun i origin -> generateCube Interior (i + exteriorCount) origin)
+                    |> Array.ofSeq
+
+    airCubes
  
 let solve =
     (* Exterior: Of the 13 cubes with 78 sides, 14 are occluded and 64 are visible
@@ -292,8 +300,8 @@ let solve =
                 "0,2,1"; "1,2,1"; "2,2,1"; "3,2,1";
                 "0,3,1"; "1,3,1"; "2,3,1"; "3,3,1";
                 "0,0,2"; "1,0,2"; "2,0,2"; "3,0,2";
-                "0,1,2"; "1,1,2"; "2,1,2"; "3,1,2";
-                "0,2,2"; "1,2,2"; (*"2,2,2";*) "3,2,2";
+                "0,1,2"; (*"1,1,2";*) (*"2,1,2";*) "3,1,2";
+                "0,2,2"; "1,2,2"; "2,2,2"; "3,2,2";
                 "0,3,2"; "1,3,2"; "2,3,2"; "3,3,2";
                 "0,0,3"; "1,0,3"; "2,0,3"; "3,0,3";
                 "0,1,3"; "1,1,3"; "2,1,3"; "3,1,3";
@@ -301,7 +309,6 @@ let solve =
                 "0,3,3"; "1,3,3"; "2,3,3"; "3,3,3";
             |]
 
-    let lines = Common.getSampleDataAsArray 2022 18
 
     // printAllLines lines
     let originPoints = getOriginPoints lines
