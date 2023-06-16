@@ -175,7 +175,16 @@ let findFillerCubes (droplets:Cube[]) : Cube[] =
                         let interiorOrigin = { x = x; y = y; z = z }
                         if (not (Set.contains interiorOrigin exteriorOrigins))
                         then
-                            yield interiorOrigin
+                            if (
+                                     (Seq.exists (fun p -> p.x = interiorOrigin.x && p.y = interiorOrigin.y && p.z < interiorOrigin.z) exteriorOrigins)
+                                  && (Seq.exists (fun p -> p.x = interiorOrigin.x && p.y = interiorOrigin.y && p.z > interiorOrigin.z) exteriorOrigins)
+                                  && (Seq.exists (fun p -> p.y = interiorOrigin.y && p.z = interiorOrigin.z && p.x < interiorOrigin.x) exteriorOrigins)
+                                  && (Seq.exists (fun p -> p.y = interiorOrigin.y && p.z = interiorOrigin.z && p.x > interiorOrigin.x) exteriorOrigins)
+                                  && (Seq.exists (fun p -> p.z = interiorOrigin.z && p.x = interiorOrigin.x && p.y < interiorOrigin.y) exteriorOrigins)
+                                  && (Seq.exists (fun p -> p.z = interiorOrigin.z && p.x = interiorOrigin.x && p.y > interiorOrigin.y) exteriorOrigins)
+                            )
+                            then
+                                yield interiorOrigin
         } 
             |> Seq.mapi (fun i origin -> generateCube Interior (i + exteriorCount) origin)
             |> Array.ofSeq
@@ -183,8 +192,8 @@ let findFillerCubes (droplets:Cube[]) : Cube[] =
     interiorCubes
  
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 18
-    // let lines = Common.getChallengeDataAsArray 2022 18
+    // let lines = Common.getSampleDataAsArray 2022 18
+    let lines = Common.getChallengeDataAsArray 2022 18
     // let lines = [| "1,1,1"; "2,1,1"|]
     // printAllLines lines
     let originPoints = getOriginPoints lines
@@ -192,51 +201,32 @@ let solve =
     printfn ""
 
     let exteriorCubes = originPoints |> Array.mapi (generateCube Exterior)
-    let fillerCubes = findFillerCubes exteriorCubes
-
-    let allCubesInitial = Array.append exteriorCubes fillerCubes
+    let interiorCubes = findFillerCubes exteriorCubes
     
-    for (cube1, cube2) in allCombinations allCubesInitial do
-        compareAndMarkCubes false cube1 cube2
+    //for (cube1, cube2) in allCombinations exteriorCubes do
+    //    compareAndMarkCubes false cube1 cube2
 
-    let interiorCubes = fillerCubes
-                            |> Array.filter (fun c -> c.occludedCount = 6)
+    //for (cube1, cube2) in allCombinations interiorCubes do
+    //    compareAndMarkCubes false cube1 cube2
 
     let allCubes = Array.append exteriorCubes interiorCubes
-    // let allCubes = exteriorCubes
-    Array.ForEach (allCubes, fun c -> c.occludedCount <- 0) // Reset the counts
-
-    // Consider only exterior for now
-    for (cube1, cube2) in allCombinations exteriorCubes do
-        compareAndMarkCubes false cube1 cube2
-
-    let sideCount = 6 * exteriorCubes.Length
-    let occludedCount = exteriorCubes |> Array.sumBy (fun c -> c.occludedCount)
-    let viewAbleCount = sideCount - occludedCount
-
-    Array.ForEach (allCubes, fun c -> c.occludedCount <- 0) // Reset the counts
-
-    // Consider exterior and interior for now
     for (cube1, cube2) in allCombinations allCubes do
         compareAndMarkCubes false cube1 cube2
 
-    let extraOccludedCount = exteriorCubes |> Array.sumBy (fun c -> c.occludedCount)
+    // 2070 is too low
+    let sideCount = 6 * exteriorCubes.Length
+    let occludedCount = exteriorCubes |> Array.sumBy (fun c -> c.occludedCount)
+    let viewAbleCount = sideCount - occludedCount
 
     let interiorSideCount = 6 * interiorCubes.Length
     let interiorOccludedCount = interiorCubes |> Array.sumBy (fun c -> c.occludedCount)
     let interiorViewableCount = interiorSideCount - interiorOccludedCount
 
-    let airPockets = interiorCubes |> Array.filter (fun c -> c.occludedCount = 6)
-    printfn "There are %d air pockets" airPockets.Length
-
     printfn "Exterior: Of the %d cubes with %d sides, %d are occluded and %d are visible"
         exteriorCubes.Length sideCount occludedCount viewAbleCount
     printfn "Interior: Of the %d cubes with %d sides, %d are occluded and %d are visible"
         interiorCubes.Length interiorSideCount interiorOccludedCount interiorViewableCount
-    printfn "Extra excluded (from interiors occuding): %d" extraOccludedCount
-    printfn "Cube origins"
-    for c in (allCubes 
-                |> Array.sortBy (fun c -> c.origin)) do 
-        printfn "%A: Origin: (%d,%d,%d).  Occluded = %d, Visible = %d" c.cubeType c.origin.x c.origin.y c.origin.z c.occludedCount (6 - c.occludedCount)
-
+    
+    let surfaceArea = viewAbleCount - interiorViewableCount
+    printfn "Surface area is %d" surfaceArea
     ()
