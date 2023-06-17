@@ -141,7 +141,7 @@ let compareAndMarkCubes (onlyDifferentOccludeds:bool) (cube1:Cube) (cube2:Cube) 
                     ()
 
 
-let findFillerCubes (droplets:Cube[]) : Cube[] =
+let findSurfaceArea (droplets:Cube[]) : int =
 
     let coordsX = droplets|> Seq.map (fun c -> c.allPoints |> Seq.map (fun p -> p.x)) |> Seq.concat
     let coordsY = droplets|> Seq.map (fun c -> c.allPoints |> Seq.map (fun p -> p.y)) |> Seq.concat
@@ -160,36 +160,51 @@ let findFillerCubes (droplets:Cube[]) : Cube[] =
     
     let exteriorCount = exteriorOrigins.Count
     let startingPoint = { x = minX; y = minY; z = minZ }
-    
-    let rec floodFill (p:Point) (airOrigins:Set<Point>) : Set<Point> =
+    let airOrigins = HashSet<Point>()
+
+    let queue = Queue<Point>()
+    queue.Enqueue startingPoint
+    while (queue.Count > 0) do
+        let p = queue.Dequeue()
+
         if (
-               (p.x < minX || p.x > maxX)
-            || (p.y < minY || p.y > maxY)
-            || (p.z < minZ || p.z > maxZ)
+               (p.x >= minX && p.x <= maxX)
+            && (p.y >= minY && p.y <= maxY)
+            && (p.z >= minZ && p.z <= maxZ)
+            && not (Set.contains p exteriorOrigins)
+            && not (airOrigins.Contains(p))
         )
         then
-            airOrigins
+            airOrigins.Add(p) |> ignore
 
-        elif not (Set.contains p exteriorOrigins || Set.contains p airOrigins)
-        then
-            airOrigins
-                |> Set.add p
-                |> floodFill { p with x = p.x - 1 }
-                |> floodFill { p with x = p.x + 1 }
-                |> floodFill { p with y = p.y - 1 }
-                |> floodFill { p with y = p.y + 1 }
-                |> floodFill { p with z = p.z - 1 }
-                |> floodFill { p with z = p.z + 1 }
-        else
-            airOrigins
+            queue.Enqueue({ p with x = p.x - 1 })
+            queue.Enqueue({ p with x = p.x + 1 })
+            queue.Enqueue({ p with y = p.y - 1 })
+            queue.Enqueue({ p with y = p.y + 1 })
+            queue.Enqueue({ p with z = p.z - 1 })
+            queue.Enqueue({ p with z = p.z + 1 })
 
-    let allAir = floodFill startingPoint (Set.empty)      
 
-    let airCubes = allAir
+    let airCubes = airOrigins
                     |> Seq.mapi (fun i origin -> generateCube Interior (i + exteriorCount) origin)
                     |> Array.ofSeq
 
-    airCubes
+    // Now that we've filled all possible air
+    let surfaceArea = airCubes |> Array.fold 
+                                    (fun (hits:int) (air:Cube) -> 
+                                            let hitsForThisPocket = 
+                                                droplets
+                                                    |> Array.sumBy(
+                                                            fun droplet ->
+                                                                match getCommonSide droplet air with
+                                                                    | Some (_, _) -> 1
+                                                                    | None -> 0
+                                                                  )
+                                            hits + hitsForThisPocket
+                                    )
+                                    0
+
+    surfaceArea
  
 let solve =
     (* Exterior: Of the 13 cubes with 78 sides, 14 are occluded and 64 are visible
@@ -309,6 +324,9 @@ let solve =
                 "0,3,3"; "1,3,3"; "2,3,3"; "3,3,3";
             |]
 
+    // let lines = Common.getSampleDataAsArray 2022 18
+    let lines = Common.getChallengeDataAsArray 2022 18
+
 
     // printAllLines lines
     let originPoints = getOriginPoints lines
@@ -316,34 +334,36 @@ let solve =
     printfn ""
 
     let exteriorCubes = originPoints |> Array.mapi (generateCube Exterior)
-    let interiorCubes = findFillerCubes exteriorCubes
-    
-    for (cube1, cube2) in allCombinations exteriorCubes do
-        compareAndMarkCubes false cube1 cube2
+    //let interiorCubes = findSurfaceArea exteriorCubes
+    let surfaceArea = findSurfaceArea exteriorCubes
+    printfn "%d" surfaceArea
 
-    for (cube1, cube2) in allCombinations interiorCubes do
-        compareAndMarkCubes false cube1 cube2
-
-    //let allCubes = Array.append exteriorCubes interiorCubes
-    //for (cube1, cube2) in allCombinations allCubes do
+    //for (cube1, cube2) in allCombinations exteriorCubes do
     //    compareAndMarkCubes false cube1 cube2
 
-    // 2068 too low - when marking the different cube types independently
-    // 2070 is too low
-    // 2072 is too low (and others have gotten that)
-    let sideCount = 6 * exteriorCubes.Length
-    let occludedCount = exteriorCubes |> Array.sumBy (fun c -> c.occludedCount)
-    let viewAbleCount = sideCount - occludedCount
+    //for (cube1, cube2) in allCombinations interiorCubes do
+    //    compareAndMarkCubes false cube1 cube2
 
-    let interiorSideCount = 6 * interiorCubes.Length
-    let interiorOccludedCount = interiorCubes |> Array.sumBy (fun c -> c.occludedCount)
-    let interiorViewableCount = interiorSideCount - interiorOccludedCount
+    ////let allCubes = Array.append exteriorCubes interiorCubes
+    ////for (cube1, cube2) in allCombinations allCubes do
+    ////    compareAndMarkCubes false cube1 cube2
 
-    printfn "Exterior: Of the %d cubes with %d sides, %d are occluded and %d are visible"
-        exteriorCubes.Length sideCount occludedCount viewAbleCount
-    printfn "Interior: Of the %d cubes with %d sides, %d are occluded and %d are visible"
-        interiorCubes.Length interiorSideCount interiorOccludedCount interiorViewableCount
+    //// 2068 too low - when marking the different cube types independently
+    //// 2070 is too low
+    //// 2072 is too low (and others have gotten that)
+    //let sideCount = 6 * exteriorCubes.Length
+    //let occludedCount = exteriorCubes |> Array.sumBy (fun c -> c.occludedCount)
+    //let viewAbleCount = sideCount - occludedCount
+
+    //let interiorSideCount = 6 * interiorCubes.Length
+    //let interiorOccludedCount = interiorCubes |> Array.sumBy (fun c -> c.occludedCount)
+    //let interiorViewableCount = interiorSideCount - interiorOccludedCount
+
+    //printfn "Exterior: Of the %d cubes with %d sides, %d are occluded and %d are visible"
+    //    exteriorCubes.Length sideCount occludedCount viewAbleCount
+    //printfn "Interior: Of the %d cubes with %d sides, %d are occluded and %d are visible"
+    //    interiorCubes.Length interiorSideCount interiorOccludedCount interiorViewableCount
     
-    let surfaceArea = viewAbleCount - interiorViewableCount
-    printfn "Surface area is %d" surfaceArea
+    //let surfaceArea = viewAbleCount - interiorViewableCount
+    //printfn "Surface area is %d" surfaceArea
     ()
