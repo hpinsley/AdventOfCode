@@ -7,6 +7,8 @@ open System.Text.RegularExpressions
 open Microsoft.FSharp.Core.Operators.Checked
 open System.Collections.Generic
 
+let MinuteLimit = 24
+
 type Material =
     | Ore
     | Clay
@@ -20,6 +22,7 @@ type RobotSpec = {
 
 type Robot = {
     spec: RobotSpec;
+    creationMinute: int;
 }
 
 type BluePrint = {
@@ -29,7 +32,8 @@ type BluePrint = {
 
 type State = {
     inventory: Map<Material, int>
-    robots: List<Robot>
+    robots: Robot list
+    minute: int
 }
 
 let parseMaterial (s:string) : Material =
@@ -59,11 +63,41 @@ let makeRobotSpec (m:Match) (robotType:Material) (matchBase:int) : RobotSpec =
     
     robotSpec
 
-let optimizeBlueprint (blueprint:BluePrint) : unit =
-    //let state = {
-    //    inventory = Map.empty
-    //    robots = [] as List<Robot>
-    //}
+let makeRobot (bluePrint:BluePrint) (creationMinute: int) (material:Material) =
+    let spec = bluePrint.robotSpecs |> Array.find (fun spec -> spec.manufactures = material)
+    let robot = {
+        spec = spec
+        creationMinute = creationMinute
+    }
+    robot
+
+let createAltStates (bluePrint: BluePrint, rootState:State) : State list =
+    let materials = bluePrint.robotSpecs |> Array.map (fun s -> s.manufactures)
+
+    for material in materials do
+        let spec = bluePrint.robotSpecs |> Array.find (fun s -> s.manufactures = material)
+        for createCount in seq { 0.. 3} do
+            
+
+    []
+
+let optimizeBlueprint (bluePrint:BluePrint) : unit =
+    let robot = makeRobot bluePrint 0 Ore
+    let robots = [ robot ]
+
+    let state = {
+        inventory = Map.empty
+        robots = robots
+        minute = 0
+    }
+
+    let states = Queue<State>()
+    states.Enqueue state
+
+    while (states.Count > 0) do
+        let state = states.Dequeue()
+        let altStates = createAltStates(bluePrint, state)
+        ()
     ()
 
 let parseLine (line:string) : BluePrint =
