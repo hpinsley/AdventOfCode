@@ -25,9 +25,21 @@ type BluePrint = {
 
 let parseLine (line:string) : BluePrint =
 
-    let pattern = "Blueprint (\d+): Each ore robot costs (\d+) (\w+)(<oreExtra> and (\d+) (\w+))?\. Each clay robot costs (\d+) (\w+)( and (\d+) (\w+))?. Each obsidian robot costs (\d+) (\w+)(<obsidianExtra> and (\d+) (\w+))?\. Each geode robot costs (\d+) (\w+)( and (\d+) (\w+))?."
-    let pattern = "Blueprint (\d+): Each ore robot costs (\d+) ore\. Each clay robot costs 2 ore\. Each obsidian robot costs 3 ore and 14 clay\. Each geode robot costs 2 ore and 7 obsidian\."
-    
+    let pattern = "Blueprint (\d+): Each ore robot costs (\d+) (\w+)(<oreExtra> and (\d+) (\w+))?\. Each clay robot costs (\d+) (\w+)(<clayExtra> and (\d+) (\w+))?\. Each obsidian robot costs (\d+) (\w+)(<obsidianExtra> and (\d+) (\w+))?\. Each geode robot costs (\d+) (\w+)( and (\d+) (\w+))?\."
+    let pattern = "Blueprint (\d+): Each ore robot costs (\d+) (\w+)(<oreExtra> and (\d+) (\w+))?\. Each clay robot costs (\d+) (\w+)\. Each obsidian robot costs 3 ore and 14 clay\. Each geode robot costs 2 ore and 7 obsidian\."
+    let pattern = "Blueprint 1: Each ore robot costs 4 ore\. Each clay robot costs 2 ore\. Each obsidian robot costs 3 ore and 14 clay\. Each geode robot costs 2 ore and 7 obsidian\."
+    let pattern = "Blueprint (\d+): Each ore robot costs (\d+) (\w+)(<oreExtra> and (\d+) (\w+))?\. Each clay robot costs 2 ore\. Each obsidian robot costs 3 ore and 14 clay\. Each geode robot costs 2 ore and 7 obsidian\."
+    let pattern = "Blueprint (\d+): Each ore robot costs (\d+) (\w+)(<oreExtra> and (\d+) (\w+))?\. Each clay robot costs (\d+) (\w+)\. Each obsidian robot costs 3 ore and 14 clay\. Each geode robot costs 2 ore and 7 obsidian\."
+    let pattern = "Blueprint (\d+): Each ore robot costs (\d+) (\w+)(<oreExtra> and (\d+) (\w+))?\. Each clay robot costs (\d+) (\w+)\. Each obsidian robot costs (\d+) (\w+) and 14 clay\. Each geode robot costs 2 ore and 7 obsidian\."
+    let pattern = "Blueprint (\d+): Each ore robot costs (\d+) (\w+)(<oreExtra> and (\d+) (\w+))?\. Each clay robot costs (\d+) (\w+)\. Each obsidian robot costs (\d+) (\w+)( and 14 clay)?\. Each geode robot costs 2 ore and 7 obsidian\."
+    let pattern = "Blueprint (\d+): Each ore robot costs (\d+) (\w+)(<oreExtra> and (\d+) (\w+))?\. Each clay robot costs (\d+) (\w+)\. Each obsidian robot costs (\d+) (\w+)( and (\d+) clay)?\. Each geode robot costs 2 ore and 7 obsidian\."
+    let pattern = "Blueprint (\d+): Each ore robot costs (\d+) (\w+)(<oreExtra> and (\d+) (\w+))?\. Each clay robot costs (\d+) (\w+)\. Each obsidian robot costs (\d+) (\w+)( and (\d+) (\w+))?\. Each geode robot costs 2 ore and 7 obsidian\."
+    let pattern = "Blueprint (\d+): Each ore robot costs (\d+) (\w+)(<oreExtra> and (\d+) (\w+))?\. Each clay robot costs (\d+) (\w+)(<clayExtra> and (\d+) (\w+))?\. Each obsidian robot costs (\d+) (\w+)( and (\d+) (\w+))?\. Each geode robot costs 2 ore and 7 obsidian\."
+    let pattern = "Blueprint (\d+): Each ore robot costs (\d+) (\w+)(<oreExtra> and (\d+) (\w+))?\. Each clay robot costs (\d+) (\w+)(<clayExtra> and (\d+) (\w+))?\. Each obsidian robot costs (\d+) (\w+)( and (\d+) (\w+))?\. Each geode robot costs 2 ore and 7 obsidian\."
+    let pattern = "Blueprint (\d+): Each ore robot costs (\d+) (\w+)(<oreExtra> and (\d+) (\w+))?\. Each clay robot costs (\d+) (\w+)(<clayExtra> and (\d+) (\w+))?\. Each obsidian robot costs (\d+) (\w+)( and (\d+) (\w+))?\. Each geode robot costs 2 ore and 7 obsidian\."
+    let pattern = "Blueprint (\d+): Each ore robot costs (\d+) (\w+)(<oreExtra> and (\d+) (\w+))?\. Each clay robot costs (\d+) (\w+)(<clayExtra> and (\d+) (\w+))?\. Each obsidian robot costs (\d+) (\w+)( and (\d+) (\w+))?\. Each geode robot costs (\d+) (\w+)( and (\d+) (\w+))?\."
+    let pattern = "Blueprint (\d+): Each ore robot costs (\d+) (\w+)( and (\d+) (\w+))?\. Each clay robot costs (\d+) (\w+)( and (\d+) (\w+))?\. Each obsidian robot costs (\d+) (\w+)( and (\d+) (\w+))?\. Each geode robot costs (\d+) (\w+)( and (\d+) (\w+))?\."
+
     let m = Regex.Match(line, pattern)
     if (not m.Success)
     then
@@ -44,6 +56,7 @@ let solve =
     let lines = Common.getSampleDataAsArray 2022 19
     //let lines = Common.getChallengeDataAsArray 2022 19
     printAllLines lines
-    let machines = lines |> Array.map parseLine
-    printfn "%A" machines
+    //let machines = lines |> Array.map parseLine
+    //printfn "%A" machines
+    parseLine lines[0] |> ignore
     ()
