@@ -13,14 +13,23 @@ type Material =
     | Obsidian
     | Geode
 
-type Robot = {
+type RobotSpec = {
     manufactures: Material
     requires: Map<Material, int>
 }
 
+type Robot = {
+    spec: RobotSpec;
+}
+
 type BluePrint = {
     planNumber: int
-    machines: Robot[]
+    robotSpecs: RobotSpec[]
+}
+
+type State = {
+    inventory: Map<Material, int>
+    robots: List<Robot>
 }
 
 let parseMaterial (s:string) : Material =
@@ -30,7 +39,7 @@ let parseMaterial (s:string) : Material =
         | "obsidian" -> Obsidian
         | "geode" -> Geode
 
-let makeRobot (m:Match) (robotType:Material) (matchBase:int) : Robot =
+let makeRobotSpec (m:Match) (robotType:Material) (matchBase:int) : RobotSpec =
     let q1 = int m.Groups[matchBase].Value
     let m1 = parseMaterial m.Groups[matchBase + 1].Value
 
@@ -43,11 +52,19 @@ let makeRobot (m:Match) (robotType:Material) (matchBase:int) : Robot =
         else
             [(m1, q1)]
         
-    let robot = {
+    let robotSpec = {
         manufactures = robotType
         requires = Map.ofList materials
     }
-    robot
+    
+    robotSpec
+
+let optimizeBlueprint (blueprint:BluePrint) : unit =
+    //let state = {
+    //    inventory = Map.empty
+    //    robots = [] as List<Robot>
+    //}
+    ()
 
 let parseLine (line:string) : BluePrint =
 
@@ -58,12 +75,14 @@ let parseLine (line:string) : BluePrint =
     then
         failwith "No match"
 
-    let oreRobot = makeRobot m Ore 2
-    let clayRobot = makeRobot m Clay 7
+    let oreRobot = makeRobotSpec m Ore 2
+    let clayRobot = makeRobotSpec m Clay 7
+    let obsidianRobot = makeRobotSpec m Obsidian 12
+    let geodeRobot = makeRobotSpec m Geode 17
 
     let bluePrint = {
         planNumber = int m.Groups[1].Value
-        machines = [| oreRobot; clayRobot |]
+        robotSpecs = [| oreRobot; clayRobot; obsidianRobot; geodeRobot |]
     }
 
     bluePrint
