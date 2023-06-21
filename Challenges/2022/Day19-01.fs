@@ -9,6 +9,9 @@ open System.Collections.Generic
 
 let MinuteLimit = 24
 
+// Define trimming points (minute, min geode)
+let Threshholds = [(20, 1)]
+
 type Material =
     | Ore
     | Clay
@@ -126,27 +129,61 @@ let rec createAltStates (bluePrint: BluePrint) (rootState:State) (materialOption
                 else
                     createAltStates bluePrint rootState (getSuccessorMaterial material) 0
             
-            rootState :: newStates    
-    
+            let uniqueNewStates = newStates |> List.filter (fun s -> s <> rootState)    
+            rootState :: uniqueNewStates
+
 let optimizeBlueprint (bluePrint:BluePrint) : unit =
     let robot = makeRobot bluePrint 0 Ore
     let robots = [ robot ]
 
-    let state = {
-        inventory = [(Ore, 0); (Clay, 0); (Obsidian, 0); (Geode, 0)]
-                        |> Map.ofSeq
-        robots = robots
-        minute = 0
+    let initialState = {
+            inventory = [(Ore, 0); (Clay, 0); (Obsidian, 0); (Geode, 0)]
+                            |> Map.ofSeq
+            robots = robots
+            minute = 1
     }
 
     let states = Queue<State>()
-    states.Enqueue state
+    states.Enqueue initialState
+    let mutable finishedStates = []
 
     while (states.Count > 0) do
+        if (states.Count % 10000 = 0)
+        then
+            printfn "State count = %d" states.Count
+
         let state = states.Dequeue()
-        let altStates = createAltStates bluePrint state (Some Ore) 0
-        printfn "altStates: %A" altStates
-        ()
+        if (Threshholds |> List.exists (fun (minute, minGeode) ->
+                                            state.minute >= minute && state.inventory[Geode] < minGeode))
+        then
+            ()
+        else
+            let altStates = createAltStates bluePrint state (Some Ore) 0
+            //printfn "altStates: %A" altStates
+            for state in altStates do
+                if (state.minute < MinuteLimit)
+                then
+                    let minute = state.minute + 1
+                    let newStuff = state.robots
+                                    |> List.filter (fun r -> state.minute > r.creationMinute)
+                                    |> List.countBy (fun r -> r.spec.manufactures)
+                                    |> Map.ofList
+                    let newInventory = state.inventory
+                                        |> Map.toList
+                                        |> List.map (fun (m, v) -> 
+                                                            let toAdd = newStuff 
+                                                                            |> Map.tryFind m
+                                                                            |> Option.defaultValue 0     
+                                                            (m, v + toAdd)
+                                                    )
+                                        |> Map.ofList
+                    let advancedState = { state with
+                                            minute = minute
+                                            inventory = newInventory
+                                        }
+                    states.Enqueue(advancedState)
+                else
+                    finishedStates <- state :: finishedStates
     ()
 
 let parseLine (line:string) : BluePrint =
