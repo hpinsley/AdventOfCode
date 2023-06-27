@@ -9,17 +9,14 @@ open System.Collections.Generic
 
 let MinuteLimit = 24
 
-// Define trimming points (minute, min geode)
-let Threshholds = [(19, 1)]
-
 type Material =
     | Ore
     | Clay
     | Obsidian
     | Geode
 
-let MinRobots = [16, 
-                    [(Ore, 1); (Clay, 4); (Obsidian, 2); (Geode, 0)]
+let MinRobots = [22, 
+                    [(Ore, 0); (Clay, 0); (Obsidian, 1); (Geode, 1)]
                 ]
 let getSuccessorMaterial (fromMaterial:Material) : Material option =
     match fromMaterial with
@@ -27,6 +24,13 @@ let getSuccessorMaterial (fromMaterial:Material) : Material option =
         | Clay -> Some Obsidian
         | Obsidian -> Some Geode
         | Geode -> None
+
+let getPredecessorMaterial (fromMaterial:Material) : Material option =
+    match fromMaterial with
+        | Ore -> None
+        | Clay -> Some Ore
+        | Obsidian -> Some Clay
+        | Geode -> Some Obsidian
 
 type RobotSpec = {
     manufactures: Material
@@ -130,12 +134,12 @@ let rec createAltStates (bluePrint: BluePrint) (rootState:State) (materialOption
                         createAltStates bluePrint rootState materialOption (robotCount + 1)
                         
                 else
-                    createAltStates bluePrint rootState (getSuccessorMaterial material) 0
+                    createAltStates bluePrint rootState (getPredecessorMaterial material) 0
             
             let uniqueNewStates = newStates |> List.filter (fun s -> s <> rootState)    
             rootState :: uniqueNewStates
 
-let optimizeBlueprint (bluePrint:BluePrint) : State =
+let optimizeBlueprint (bluePrint:BluePrint) : int =
     let robot = makeRobot bluePrint 0 Ore
     let robots = [ robot ]
 
@@ -171,11 +175,7 @@ let optimizeBlueprint (bluePrint:BluePrint) : State =
                                 |> List.map (fun (m, l) -> (m, l.Length))
                                 |> Map.ofList
 
-        if (Threshholds |> List.exists (fun (minute, minGeode) ->
-                                            state.minute >= minute && state.inventory[Geode] < minGeode))
-        then
-            ()
-        elif (MinRobots |>
+        if (MinRobots |>
                 List.exists (fun (t, minRobots) ->
                                     state.minute >= t &&
                                     (minRobots |>
@@ -187,17 +187,16 @@ let optimizeBlueprint (bluePrint:BluePrint) : State =
         then
             ()
         else
-            let altStates = createAltStates bluePrint state (Some Ore) 0
+            let altStates = createAltStates bluePrint state (Some Geode) 0
             //printfn "altStates: %A" altStates
-            for state in altStates do
-                if (state.minute < MinuteLimit)
+            for altState in altStates do
+                if (altState.minute <= MinuteLimit)
                 then
-                    let minute = state.minute + 1       //Start
-                    let newStuff = state.robots
-                                    |> List.filter (fun r -> minute > r.creationMinute)
+                    let newStuff = altState.robots
+                                    |> List.filter (fun r -> altState.minute > r.creationMinute)
                                     |> List.countBy (fun r -> r.spec.manufactures)
                                     |> Map.ofList
-                    let newInventory = state.inventory
+                    let newInventory = altState.inventory
                                         |> Map.toList
                                         |> List.map (fun (m, v) -> 
                                                             let toAdd = newStuff 
@@ -206,15 +205,15 @@ let optimizeBlueprint (bluePrint:BluePrint) : State =
                                                             (m, v + toAdd)
                                                     )
                                         |> Map.ofList
-                    let advancedState = { state with
-                                            minute = minute
+                    let advancedState = { altState with
+                                            minute = altState.minute + 1
                                             inventory = newInventory
                                         }
                     states.Enqueue(advancedState)
                 else
-                    finishedStates <- state :: finishedStates
-    let best = finishedStates |> List.maxBy (fun s -> s.inventory[Geode])
-    best
+                    finishedStates <- altState :: finishedStates
+    let bestState = finishedStates |> List.maxBy (fun s -> s.inventory[Geode])
+    bestState.inventory[Geode]
 
 let parseLine (line:string) : BluePrint =
 
