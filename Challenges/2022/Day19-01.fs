@@ -16,9 +16,8 @@ type Material =
     | Geode
 
 let MinRobots = [
-                    //(6, [(Ore, 0); (Clay, 1); (Obsidian, 0); (Geode, 0)])
-                    (6, [(Ore, 1); (Clay, 2); (Obsidian, 0); (Geode, 0)])
-                    (19, [(Ore, 0); (Clay, 0); (Obsidian, 0); (Geode, 1)])
+                    //(6, [(Ore, 1); (Clay, 2); (Obsidian, 0); (Geode, 0)])
+                    //(19, [(Ore, 0); (Clay, 0); (Obsidian, 0); (Geode, 1)])
                     //(22, [(Ore, 0); (Clay, 0); (Obsidian, 1); (Geode, 1)])
                 ]
 
@@ -28,6 +27,13 @@ let getSuccessorMaterial (fromMaterial:Material) : Material option =
         | Clay -> Some Obsidian
         | Obsidian -> Some Geode
         | Geode -> None
+
+let getSuccessorMaterials (fromMaterial:Material) : Material list =
+    match fromMaterial with
+        | Ore -> [Clay; Obsidian; Geode]
+        | Clay -> [Obsidian; Geode]
+        | Obsidian -> [Geode]
+        | Geode -> []
 
 let getPredecessorMaterial (fromMaterial:Material) : Material option =
     match fromMaterial with
@@ -97,47 +103,65 @@ let rec createAltStates (bluePrint: BluePrint) (rootState:State) (siblings:State
     match materialOption with
         | None -> siblings
         | Some material ->
-            let requirements = bluePrint.robotSpecs[material].requires
-            let creationMinute = rootState.minute
 
-            let newInventory =
+            // Skip this robot if we have enough of it to create all successor's
+            // Sum up how much of this material we would need to create one of each
+            // of it's successor robot types.  If we have enough, then skip this robot
+
+            let robotsTypes = getSuccessorMaterials material
+            let maxRequired = robotsTypes
+                                |> List.sumBy (fun rt -> bluePrint.robotSpecs[rt].requires
+                                                                |> Map.tryFind material
+                                                                |> Option.defaultValue 0)
+
+            let onHand = rootState.inventory[material]
+
+            if (maxRequired > 0 && onHand >= maxRequired)
+            then
+                // Skip it
+                siblings
+            else
+                let requirements = bluePrint.robotSpecs[material].requires
+                let creationMinute = rootState.minute
+
+                let newInventory =
                 
-                rootState.inventory 
-                    |> Seq.map (fun kvp ->
-                                    let requiredAmount =
-                                        (Map.tryFind kvp.Key requirements)
-                                            |> Option.defaultValue 0
-                                            |> (*) robotCount
+                    rootState.inventory 
+                        |> Seq.map (fun kvp ->
+                                        let requiredAmount =
+                                            (Map.tryFind kvp.Key requirements)
+                                                |> Option.defaultValue 0
+                                                |> (*) robotCount
 
-                                    (kvp.Key, kvp.Value - requiredAmount)
-                                )
-                                |> Map.ofSeq
+                                        (kvp.Key, kvp.Value - requiredAmount)
+                                    )
+                                    |> Map.ofSeq
 
-            let canCreateRobots = newInventory
-                                    |> Map.values
-                                    |> Seq.exists (fun v -> v < 0)
-                                    |> not
+                let canCreateRobots = newInventory
+                                        |> Map.values
+                                        |> Seq.exists (fun v -> v < 0)
+                                        |> not
 
-            let newStates =
-                if (canCreateRobots)
-                then
-                    let newRobots =
-                        seq { 1 .. robotCount}
-                            |> Seq.map (fun _ -> makeRobot bluePrint creationMinute material)
-                            |> List.ofSeq
+                let newStates =
+                    if (canCreateRobots)
+                    then
+                        let newRobots =
+                            seq { 1 .. robotCount}
+                                |> Seq.map (fun _ -> makeRobot bluePrint creationMinute material)
+                                |> List.ofSeq
 
-                    let newState = { rootState with
-                                        robots = rootState.robots |> List.append newRobots
-                                        inventory = newInventory
-                                    }
+                        let newState = { rootState with
+                                            robots = rootState.robots |> List.append newRobots
+                                            inventory = newInventory
+                                        }
                     
-                    createAltStates bluePrint newState (newState :: siblings) materialOption (robotCount + 1)                
-                else
-                    createAltStates bluePrint rootState (rootState :: siblings) (getPredecessorMaterial material) 0
+                        createAltStates bluePrint newState (newState :: siblings) materialOption (robotCount + 1)                
+                    else
+                        createAltStates bluePrint rootState (rootState :: siblings) (getPredecessorMaterial material) 0
             
-            let allStates = List.append siblings newStates
-            let uniqueNewStates = allStates |> List.distinct
-            uniqueNewStates
+                let allStates = List.append siblings newStates
+                let uniqueNewStates = allStates |> List.distinct
+                uniqueNewStates
 
 let shouldBeTrimmed (state:State) : bool =
     let robotsByMaterial = state.robots 
@@ -177,6 +201,7 @@ let optimizeBlueprint (bluePrint:BluePrint) : int =
         if (states.Count % 10000 = 0)
         then
             printfn "State count = %d" states.Count
+
 
         let dequeuedState = states.Dequeue()
         if (dequeuedState.minute = MinuteLimit)
