@@ -98,6 +98,8 @@ let makeRobot (bluePrint:BluePrint) (creationMinute: int) (material:Material) =
     }
     robot
 
+let mutable skipCount = 0
+
 // Create states with all possible robot spawning
 let rec createAltStates (bluePrint: BluePrint) (rootState:State) (siblings:State list) (materialOption:Material option) (robotCount:int): State list =
     match materialOption with
@@ -109,16 +111,25 @@ let rec createAltStates (bluePrint: BluePrint) (rootState:State) (siblings:State
             // of it's successor robot types.  If we have enough, then skip this robot
 
             let robotsTypes = getSuccessorMaterials material
-            let maxRequired = robotsTypes
-                                |> List.sumBy (fun rt -> bluePrint.robotSpecs[rt].requires
-                                                                |> Map.tryFind material
-                                                                |> Option.defaultValue 0)
+            let maxRequired = if material = Geode
+                              then
+                                1000 // We require as many Geode robots as possible
+                               else
+                                robotsTypes
+                                    |> List.map (fun rt -> bluePrint.robotSpecs[rt].requires
+                                                                    |> Map.tryFind material
+                                                                    |> Option.defaultValue 0)
+                                    |> List.max
 
-            let onHand = rootState.inventory[material]
+            let robotsWeHave = rootState.robots
+                                |> Seq.filter (fun r -> r.spec.manufactures = material)
+                                |> Seq.length
 
-            if (maxRequired > 0 && onHand >= maxRequired)
+            if (maxRequired > 0 && robotsWeHave >= maxRequired)
             then
                 // Skip it
+                skipCount <- skipCount + 1
+                printfn "Skipped %d states" skipCount
                 siblings
             else
                 let requirements = bluePrint.robotSpecs[material].requires
