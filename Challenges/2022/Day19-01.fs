@@ -27,11 +27,14 @@ type BluePrint = {
 }
 
 type State = {
+    stateId: int
     inventory: int[]
     factory: int[]
     mutable pendingRobot: int option
     mutable minute: int
 }
+
+let mutable stateId = 0
 
 let parseMaterial (s:string) : Material =
     match s with
@@ -39,6 +42,31 @@ let parseMaterial (s:string) : Material =
         | "clay" -> Clay
         | "obsidian" -> Obsidian
         | "geode" -> Geode
+
+let SkipThreshholds = [|
+    (22, [| 1; 4; 2; 2 |])
+    (21, [| 1; 4; 2; 1 |])
+    (19, [| 1; 4; 1; 1 |])
+    (14, [| 1; 4; 1; 0 |])
+    (6, [| 1; 2; 0; 0 |])
+|]
+
+let shouldSkipState(state:State) : bool =
+    let threshhold = SkipThreshholds
+                        |> Array.tryFind (fun (minute, _) -> state.minute = minute)
+    match threshhold with
+        | Some thresh ->
+                let t = snd thresh
+
+                let result = (state.factory[Ore] < t[Ore]
+                                ||  state.factory[Clay] < t[Clay]
+                                ||  state.factory[Obsidian] < t[Obsidian]
+                                ||  state.factory[Geode] < t[Geode])
+                if (result)
+                then
+                    ()
+                result
+        | None -> false
 
 let makeRobotSpec (m:Match) (robotType:Material) (matchBase:int) : RobotSpec =
     let q1 = int m.Groups[matchBase].Value
@@ -70,6 +98,7 @@ let makeRobotSpec (m:Match) (robotType:Material) (matchBase:int) : RobotSpec =
 let optimizeBlueprint (bluePrint:BluePrint) : int =
 
     let initialState = {
+            stateId = 0
             inventory = Array.create 4 0
             factory = Array.init 4 (fun m -> if m = Ore then 1 else 0)
             pendingRobot = None
@@ -82,8 +111,10 @@ let optimizeBlueprint (bluePrint:BluePrint) : int =
 
     let minuteCounter = Dictionary<int,int>()
 
+    let mutable skipCount = 0
+
     while (states.Count > 0) do
-        if (states.Count % 10000 = 0)
+        if (states.Count % 100000 = 0)
         then
             printfn "State count = %d" states.Count
 
@@ -92,6 +123,12 @@ let optimizeBlueprint (bluePrint:BluePrint) : int =
         if (state.minute = MinuteLimit)
         then
             finishedStates <- state :: finishedStates
+        elif (shouldSkipState state)
+        then
+            skipCount <- skipCount + 1
+            if (skipCount % 10000 = 0)
+            then
+                printfn "Skipped %d states" skipCount
         else
             // Advance to next minute
             state.minute <- state.minute + 1
@@ -125,10 +162,12 @@ let optimizeBlueprint (bluePrint:BluePrint) : int =
                         |> Array.mapi (fun i onHand -> onHand - spec.requires[i])
                 if (potentalInventory |> Seq.exists (fun v -> v < 0) |> not)
                 then
+                    stateId <- stateId + 1
                     let altState = { state with
-                                        inventory = potentalInventory
-                                        factory = state.factory
-                                        pendingRobot = None
+                                        stateId = stateId
+                                        inventory = potentalInventory |> Array.copy
+                                        factory = state.factory |> Array.copy
+                                        pendingRobot = Some m
                                    }
                     
                     states.Enqueue altState                                        
