@@ -24,10 +24,12 @@ type RobotSpec = {
 type BluePrint = {
     planNumber: int
     robotSpecs: RobotSpec[]
+    maxValues: int[]
 }
 
 type State = {
     stateId: int
+    parentStateId: int
     inventory: int[]
     factory: int[]
     mutable pendingRobot: int option
@@ -44,11 +46,11 @@ let parseMaterial (s:string) : Material =
         | "geode" -> Geode
 
 let SkipThreshholds = [|
-    (22, [| 1; 4; 2; 2 |])
-    (21, [| 1; 4; 2; 1 |])
-    (19, [| 1; 4; 1; 1 |])
-    (14, [| 1; 4; 1; 0 |])
-    (6, [| 1; 2; 0; 0 |])
+    //(22, [| 1; 4; 2; 2 |])
+    //(21, [| 1; 4; 2; 1 |])
+    //(19, [| 1; 4; 1; 1 |])
+    //(14, [| 1; 4; 1; 0 |])
+    //(6, [| 1; 2; 0; 0 |])
 |]
 
 let shouldSkipState(state:State) : bool =
@@ -99,6 +101,7 @@ let optimizeBlueprint (bluePrint:BluePrint) : int =
 
     let initialState = {
             stateId = 0
+            parentStateId = -1
             inventory = Array.create 4 0
             factory = Array.init 4 (fun m -> if m = Ore then 1 else 0)
             pendingRobot = None
@@ -126,9 +129,9 @@ let optimizeBlueprint (bluePrint:BluePrint) : int =
         elif (shouldSkipState state)
         then
             skipCount <- skipCount + 1
-            if (skipCount % 10000 = 0)
+            if (skipCount % 1 = 0)
             then
-                printfn "Skipped %d states" skipCount
+                printfn "Skipped %d states based on hardcoded" skipCount
         else
             // Advance to next minute
             state.minute <- state.minute + 1
@@ -147,32 +150,61 @@ let optimizeBlueprint (bluePrint:BluePrint) : int =
                             | None -> ()
                 |> ignore
 
-            for m in seq { Ore .. Geode } do
-                // Collect new inventory
-                state.inventory[m] <- state.inventory[m] + state.factory[m]
+            let newInventory = state.inventory |> Array.mapi (fun i v -> v + state.factory[i])
 
-            // Enqueue state with no robot creation
-            states.Enqueue state
+            //for m in seq { Ore .. Geode } do
+            //    // Collect new inventory
+            //    state.inventory[m] <- state.inventory[m] + state.factory[m]
 
             // Create new pending robots
+            let mutable createCount = 0
+
             for m in seq { Ore .. Geode } do
-                let spec = bluePrint.robotSpecs[m]
-                let potentalInventory = 
-                    state.inventory
-                        |> Array.mapi (fun i onHand -> onHand - spec.requires[i])
-                if (potentalInventory |> Seq.exists (fun v -> v < 0) |> not)
+
+                //Note that we can do a bit better: For any resource R that's not geode: if you already have X robots creating resource R, 
+                //a current stock of Y for that resource, T minutes left, and no robot requires more than Z of resource R 
+                //to build, and X * T+Y >= T * Z, then you never need to build another robot mining R anymore.
+                let x = state.factory[m]
+                let y = state.inventory[m]
+                let t = MinuteLimit - state.minute + 1
+                let z = bluePrint.maxValues[m]
+                let v1 = x * t + y
+                let v2 = t * z
+                if ((m <> Geode) && (v1 > v2))
                 then
-                    stateId <- stateId + 1
-                    let altState = { state with
-                                        stateId = stateId
-                                        inventory = potentalInventory |> Array.copy
-                                        factory = state.factory |> Array.copy
-                                        pendingRobot = Some m
-                                   }
+                    skipCount <- skipCount + 1
+                    if (skipCount % 100000 = 0)
+                    then
+                        printfn "Skipped %d states based on max values" skipCount
+                else
+                    let spec = bluePrint.robotSpecs[m]
+                    let potentalInventory = 
+                        state.inventory
+                            |> Array.mapi (fun i onHand -> onHand - spec.requires[i])
+                    if (potentalInventory |> Seq.exists (fun v -> v < 0) |> not)
+                    then
+                        stateId <- stateId + 1
+                        let adjustedInventory = newInventory
+                                                    |> Array.mapi (fun i onHand -> onHand - spec.requires[i])
+                        let altState = { state with
+                                            stateId = stateId
+                                            parentStateId = state.stateId
+                                            inventory = adjustedInventory
+                                            factory = state.factory |> Array.copy
+                                            pendingRobot = Some m
+
+                                        }
                     
-                    states.Enqueue altState                                        
+                        states.Enqueue altState
+                        createCount <- createCount + 1
+
+            // Enqueue state with no robot creation
+            //if (createCount = 0)
+            //then
+            states.Enqueue { state with inventory = newInventory }
 
     let bestState = finishedStates |> List.maxBy (fun s -> s.inventory[Geode])
+    let bestStates = finishedStates |> List.filter (fun s -> s.inventory[Geode] = bestState.inventory[Geode])
     bestState.inventory[Geode]
 
 let parseLine (line:string) : BluePrint =
@@ -188,10 +220,34 @@ let parseLine (line:string) : BluePrint =
     let clayRobot = makeRobotSpec m Clay 7
     let obsidianRobot = makeRobotSpec m Obsidian 12
     let geodeRobot = makeRobotSpec m Geode 17
+    let robotSpecs = [| oreRobot ; clayRobot; obsidianRobot; geodeRobot |]
+    let maxValues = robotSpecs |> Array.fold (fun maxValues spec -> 
+                                                                [|  max spec.requires[Ore] maxValues[Ore];
+                                                                    max spec.requires[Clay] maxValues[Clay];
+                                                                    max spec.requires[Obsidian] maxValues[Obsidian];
+                                                                    max spec.requires[Geode] maxValues[Geode];
+                                                                |]
+                                                ) [| 0; 0; 0; 0 |]
+                    
+    let aggMaterials = [|0; 0; 0; 0|]
+    let robotMultiplier = [|1; 1; 1; 1|]
+
+
+    //let agg = robotSpecs
+    //            |> Array.rev
+    //            |> Array.fold (fun multiplier spec ->
+    //                            multiplier |> Array.mapi (fun i m -> 
+    //                                                                if spec.requires[i] > 0
+    //                                                                then
+    //                                                                    spec.requires[i] * m
+    //                                                                else
+    //                                                                    m)
+    //                            ) robotMultiplier
 
     let bluePrint = {
         planNumber = int m.Groups[1].Value
-        robotSpecs = [| oreRobot ; clayRobot; obsidianRobot; geodeRobot |]
+        robotSpecs = robotSpecs
+        maxValues = maxValues
     }
 
     bluePrint
