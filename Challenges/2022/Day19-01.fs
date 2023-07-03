@@ -166,7 +166,7 @@ let optimizeBlueprint (bluePrint:BluePrint) : int =
                 //to build, and X * T+Y >= T * Z, then you never need to build another robot mining R anymore.
                 let x = state.factory[m]
                 let y = state.inventory[m]
-                let t = MinuteLimit - state.minute + 1
+                let t = MinuteLimit - state.minute
                 let z = bluePrint.maxValues[m]
                 let v1 = x * t + y
                 let v2 = t * z
@@ -192,7 +192,6 @@ let optimizeBlueprint (bluePrint:BluePrint) : int =
                                             inventory = adjustedInventory
                                             factory = state.factory |> Array.copy
                                             pendingRobot = Some m
-
                                         }
                     
                         states.Enqueue altState
@@ -229,21 +228,6 @@ let parseLine (line:string) : BluePrint =
                                                                 |]
                                                 ) [| 0; 0; 0; 0 |]
                     
-    let aggMaterials = [|0; 0; 0; 0|]
-    let robotMultiplier = [|1; 1; 1; 1|]
-
-
-    //let agg = robotSpecs
-    //            |> Array.rev
-    //            |> Array.fold (fun multiplier spec ->
-    //                            multiplier |> Array.mapi (fun i m -> 
-    //                                                                if spec.requires[i] > 0
-    //                                                                then
-    //                                                                    spec.requires[i] * m
-    //                                                                else
-    //                                                                    m)
-    //                            ) robotMultiplier
-
     let bluePrint = {
         planNumber = int m.Groups[1].Value
         robotSpecs = robotSpecs
@@ -253,11 +237,12 @@ let parseLine (line:string) : BluePrint =
     bluePrint
     
 let solve =
+    printfn "Solve has been called"
     let lines = Common.getSampleDataAsArray 2022 19
     // let lines = Common.getChallengeDataAsArray 2022 19
     //printAllLines lines
     let plans = lines |> Array.map parseLine
-    let bluePrint = plans[0]
+    let bluePrint = plans[1]
     let result = optimizeBlueprint bluePrint
     printfn "Result: %A" result
     ()
