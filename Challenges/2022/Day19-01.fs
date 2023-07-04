@@ -120,7 +120,7 @@ let optimizeBlueprint (bluePrint:BluePrint) : int =
     let mutable skipCount = 0
 
     while (states.Count > 0) do
-        if (states.Count % 100000 = 0)
+        if (states.Count % 1000000 = 0)
         then
             printfn "State count = %d" states.Count
 
@@ -141,7 +141,7 @@ let optimizeBlueprint (bluePrint:BluePrint) : int =
             if (geodeRobots < maxGeodeRobots)
             then
                 skipCount <- skipCount + 1
-                if (skipCount % 100000 = 0)
+                if (skipCount % 10000000 = 0)
                 then
                     printfn "Skipped %d states based on GEODE MAX" skipCount
             else
@@ -219,7 +219,7 @@ let optimizeBlueprint (bluePrint:BluePrint) : int =
                 states.Enqueue { state with inventory = newInventory }
 
     let bestState = finishedStates |> List.maxBy (fun s -> s.inventory[Geode])
-    let bestStates = finishedStates |> List.filter (fun s -> s.inventory[Geode] = bestState.inventory[Geode])
+    //let bestStates = finishedStates |> List.filter (fun s -> s.inventory[Geode] = bestState.inventory[Geode])
     bestState.inventory[Geode]
 
 let parseLine (line:string) : BluePrint =
@@ -254,11 +254,21 @@ let parseLine (line:string) : BluePrint =
     
 let solve =
     printfn "Solve has been called"
-    let lines = Common.getSampleDataAsArray 2022 19
-    // let lines = Common.getChallengeDataAsArray 2022 19
+    //let lines = Common.getSampleDataAsArray 2022 19
+    let lines = Common.getChallengeDataAsArray 2022 19
     //printAllLines lines
     let plans = lines |> Array.map parseLine
-    let bluePrint = plans[0]
-    let result = optimizeBlueprint bluePrint
-    printfn "Result: %A" result
+    //let bluePrint = plans[0]
+    //let result = optimizeBlueprint bluePrint
+    //printfn "Result: %A" result
+
+    let totalScore = plans
+                        |> Array.fold (fun s p -> 
+                                           printfn "Starting plan %d" p.planNumber
+                                           let geodes = optimizeBlueprint p
+                                           let planScore = p.planNumber * geodes
+                                           s + planScore
+                                    ) 0
+    
+    printfn "The total score is %d" totalScore
     ()
