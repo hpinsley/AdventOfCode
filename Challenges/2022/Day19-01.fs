@@ -219,7 +219,7 @@ let optimizeBlueprint (bluePrint:BluePrint) : int =
                 states.Enqueue { state with inventory = newInventory }
 
     let bestState = finishedStates |> List.maxBy (fun s -> s.inventory[Geode])
-    //let bestStates = finishedStates |> List.filter (fun s -> s.inventory[Geode] = bestState.inventory[Geode])
+    let bestStates = finishedStates |> List.filter (fun s -> s.inventory[Geode] = bestState.inventory[Geode])
     bestState.inventory[Geode]
 
 let parseLine (line:string) : BluePrint =
@@ -254,21 +254,22 @@ let parseLine (line:string) : BluePrint =
     
 let solve =
     printfn "Solve has been called"
-    //let lines = Common.getSampleDataAsArray 2022 19
-    let lines = Common.getChallengeDataAsArray 2022 19
+    let lines = Common.getSampleDataAsArray 2022 19
+    // let lines = Common.getChallengeDataAsArray 2022 19
     //printAllLines lines
     let plans = lines |> Array.map parseLine
-    //let bluePrint = plans[0]
-    //let result = optimizeBlueprint bluePrint
-    //printfn "Result: %A" result
 
-    let totalScore = plans
-                        |> Array.fold (fun s p -> 
-                                           printfn "Starting plan %d" p.planNumber
-                                           let geodes = optimizeBlueprint p
-                                           let planScore = p.planNumber * geodes
-                                           s + planScore
-                                    ) 0
+    let bluePrint = plans[0]
+    let result = optimizeBlueprint bluePrint
+    printfn "Result: %A" result
+
+    //let totalScore = plans
+    //                    |> Array.fold (fun s p -> 
+    //                                       printfn "Starting plan %d" p.planNumber
+    //                                       let geodes = optimizeBlueprint p
+    //                                       let planScore = p.planNumber * geodes
+    //                                       s + planScore
+    //                                ) 0
     
-    printfn "The total score is %d" totalScore
+    //printfn "The total score is %d" totalScore
     ()
