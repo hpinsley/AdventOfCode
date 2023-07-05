@@ -30,6 +30,15 @@ type Cell (value:int) =
             and
                 set(newSucc:Cell) = succ <- Some newSucc
 
+(*
+    Construct 2 things.  A doubly linked list of cells that also
+    connects the first and last.
+
+    In addition, an array of pointers to the Cells that we can use
+    to keep track of the original order so we can iterate, find
+    each cell that needs moving, and do the actual moving in the ring
+    to avoid all kinds of array shifting.
+*)
 let parseValuesIntoRing (values:int[]) : Tuple<Cell,Cell[]> =
     let valueList = List.ofArray values
     let mutable firstCell = None
