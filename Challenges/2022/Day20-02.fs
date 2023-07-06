@@ -7,11 +7,11 @@ open System.Text.RegularExpressions
 open Microsoft.FSharp.Core.Operators.Checked
 open System.Collections.Generic
 
-let getInputArray (lines:string[]) : int64[] =
+let getInputArray (lines:string[]) : int[] =
     lines
-        |> Array.map (parseInt >> int64)
+        |> Array.map parseInt
 
-type Cell (value:int64) =
+type Cell (value:int) =
     let mutable pred = None
     let mutable succ = None
     let v = value
@@ -39,13 +39,13 @@ type Cell (value:int64) =
     each cell that needs moving, and do the actual moving in the ring
     to avoid all kinds of array shifting.
 *)
-let parseValuesIntoRing (values:int64[]) : Tuple<Cell,Cell[]> =
+let parseValuesIntoRing (values:int[]) : Tuple<Cell,Cell[]> =
     let valueList = List.ofArray values
     let mutable firstCell = None
     let mutable lastCell = None
     let mutable pointers = []
 
-    let rec addToList (parent:Cell option) (v:int64 list) =
+    let rec addToList (parent:Cell option) (v:int list) =
         match v with
             | head :: tail ->
                 let newCell = Cell(head)
@@ -89,20 +89,6 @@ let unlink (cell:Cell) : unit =
     pred.Succ <- succ
     succ.Pred <- pred
 
-let rec findNthSuccessor (cell:Cell) (n:int64) : Cell =
-    if (n <= 0)
-    then
-        cell
-    else
-        findNthSuccessor cell.Succ (n - 1L)
-
-let rec findNthPredecessor (cell:Cell) (n:int64) : Cell =
-    if (n <= 0)
-    then
-        cell
-    else
-        findNthPredecessor cell.Pred (n - 1L)
-
 let performShifts (cellFinder:Cell[]) : unit =
     let ringSize = cellFinder.Length
     for i in seq { 0 .. ringSize - 1} do
@@ -113,9 +99,11 @@ let performShifts (cellFinder:Cell[]) : unit =
 
         if (cell.V > 0)
         then
-            successor <- findNthSuccessor cell (abs cell.V)
+            for _ in seq { 1 .. cell.V } do
+                successor <- successor.Succ
         else
-            successor <- findNthPredecessor cell (abs cell.V)
+            for _ in seq { 1 .. -1 * cell.V } do
+                successor <- successor.Pred
 
         // The cell should go right before its new successor
         cell.Pred <- successor.Pred
@@ -123,29 +111,32 @@ let performShifts (cellFinder:Cell[]) : unit =
         successor.Pred.Succ <- cell
         successor.Pred <- cell
 
-let rec findCellByValue (cell:Cell) (v:int64) : Cell =
+let rec findCellByValue (cell:Cell) (v:int) : Cell =
     if (cell.V = v)
     then
         cell
     else
         findCellByValue cell.Succ v
 
+let rec findNthSuccessor (cell:Cell) (n:int) : Cell =
+    if (n <= 0)
+    then
+        cell
+    else
+        findNthSuccessor cell.Succ (n - 1)
+
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 20
-    //let lines = Common.getChallengeDataAsArray 2022 20
+    // let lines = Common.getSampleDataAsArray 2022 20
+    let lines = Common.getChallengeDataAsArray 2022 20
     // printAllLines lines
     printfn "There are %d coordinates" lines.Length
-
-    // let key = 811589153L
-    let key = 1L
     let values = getInputArray lines
-                        |> Array.map (fun v -> v * key)
     let (ring,pointers) = parseValuesIntoRing values
-    printRing ring (values.Length + 1)
+    //printRing ring values.Length
 
     printfn "Shifting..."
     performShifts pointers
-    printRing ring values.Length    
+    //printRing ring values.Length
     printfn "Finding anchor..."
     let anchor = findCellByValue ring 0
     printfn "Computing result..."
