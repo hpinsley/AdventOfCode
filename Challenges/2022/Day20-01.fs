@@ -82,13 +82,67 @@ let printRing (c:Cell) (ringSize:int) =
     for _ in seq { 1 .. ringSize } do
         printfn "Cell %d" current.V
         current <- current.Succ
-                
+
+let unlink (cell:Cell) : unit =
+    let pred = cell.Pred
+    let succ = cell.Succ
+    pred.Succ <- succ
+    succ.Pred <- pred
+
+let performShifts (cellFinder:Cell[]) : unit =
+    let ringSize = cellFinder.Length
+    for i in seq { 0 .. ringSize - 1} do
+        let cell = cellFinder[i]
+        let mutable successor = cell.Succ
+        unlink cell
+        // Find the new spot for this cell
+
+        if (cell.V > 0)
+        then
+            for _ in seq { 1 .. abs cell.V } do
+                successor <- successor.Succ
+        else
+            for _ in seq { 1 .. abs cell.V } do
+                successor <- successor.Pred
+
+        // The cell should go right before its new successor
+        cell.Pred <- successor.Pred
+        cell.Succ <- successor
+        successor.Pred.Succ <- cell
+        successor.Pred <- cell
+
+let rec findCellByValue (cell:Cell) (v:int) : Cell =
+    if (cell.V = v)
+    then
+        cell
+    else
+        findCellByValue cell.Succ v
+
+let rec findNthSuccessor (cell:Cell) (n:int) : Cell =
+    if (n <= 0)
+    then
+        cell
+    else
+        findNthSuccessor cell.Succ (n - 1)
+
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 20
-    // let lines = Common.getChallengeDataAsArray 2022 20
+    // let lines = Common.getSampleDataAsArray 2022 20
+    let lines = Common.getChallengeDataAsArray 2022 20
     // printAllLines lines
     printfn "There are %d coordinates" lines.Length
     let values = getInputArray lines
     let (ring,pointers) = parseValuesIntoRing values
-    printRing ring values.Length
+    //printRing ring values.Length
+
+    printfn "Shifting..."
+    performShifts pointers
+    //printRing ring values.Length
+    printfn "Finding anchor..."
+    let anchor = findCellByValue ring 0
+    printfn "Computing result..."
+    let c1 = findNthSuccessor anchor 1000
+    let c2 = findNthSuccessor anchor 2000
+    let c3 = findNthSuccessor anchor 3000
+    let s = c1.V + c2.V + c3.V
+    printfn "The sum is %d" s
     ()
