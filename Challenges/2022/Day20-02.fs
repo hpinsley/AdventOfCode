@@ -7,6 +7,10 @@ open System.Text.RegularExpressions
 open Microsoft.FSharp.Core.Operators.Checked
 open System.Collections.Generic
 
+//let DECRYPTION_KEY = 811589153L
+let DECRYPTION_KEY = 1L
+let MIX_COUNT = 1
+
 let getInputArray (lines:string[]) : int[] =
     lines
         |> Array.map parseInt
@@ -48,7 +52,7 @@ let parseValuesIntoRing (values:int[]) : Tuple<Cell,Cell[]> =
     let rec addToList (parent:Cell option) (v:int list) =
         match v with
             | head :: tail ->
-                let newCell = Cell(head)
+                let newCell = Cell((int64 head) * DECRYPTION_KEY)
                 pointers <- newCell :: pointers
                 match parent with
                     | Some p ->
