@@ -94,17 +94,24 @@ let performShifts (cellFinder:Cell[]) : unit =
     for i in seq { 0 .. ringSize - 1} do
         let cell = cellFinder[i]
         let mutable successor = cell.Succ
+        
         unlink cell
-        // Find the new spot for this cell
 
-        if (cell.V > 0)
+        // Find the new spot for this cell
+        // No need to shift more than the ring size
+        // Note that since we unlinked our cell, the ring size
+        // is n - 1        
+
+        let shiftAmount = cell.V % (ringSize - 1)
+
+        if (shiftAmount >= 0)
         then
-            for _ in seq { 1 .. cell.V } do
+            for _ in seq { 1 .. shiftAmount } do
                 successor <- successor.Succ
         else
-            for _ in seq { 1 .. -1 * cell.V } do
+            for _ in seq { 1 .. -1 * shiftAmount } do
                 successor <- successor.Pred
-
+        
         // The cell should go right before its new successor
         cell.Pred <- successor.Pred
         cell.Succ <- successor
