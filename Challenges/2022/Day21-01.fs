@@ -30,6 +30,40 @@ type Monkey =
         action: MonkeyAction
     }
 
+let monkeyDict = new Dictionary<string, unit -> int>()
+
+
+let buildLookups (monkeys:Monkey[]) : unit =
+    let lookupMonkeyResolver name =
+        monkeyDict[name]
+
+    let monkeysAndResolvers =
+        monkeys
+            |> Array.map (fun m -> 
+                            match m.action with
+                                | Number n -> (m.name, fun () -> n)
+                                | Operation opDef ->
+
+                                    let op =
+                                        match opDef.opCode with
+                                        | Opcode.ADD -> fun () -> 
+                                                (lookupMonkeyResolver opDef.m1)() 
+                                              + (lookupMonkeyResolver opDef.m2)()
+                                        | Opcode.SUB -> fun () -> 
+                                                (lookupMonkeyResolver opDef.m1)() 
+                                              - (lookupMonkeyResolver opDef.m2)()
+                                        | Opcode.MUL -> fun () -> 
+                                                (lookupMonkeyResolver opDef.m1)() 
+                                              * (lookupMonkeyResolver opDef.m2)()
+                                        | Opcode.DIV -> fun () -> 
+                                                (lookupMonkeyResolver opDef.m1)() 
+                                              / (lookupMonkeyResolver opDef.m2)()
+                                    
+                                    (m.name, op)
+                          )
+    for (name, resolver) in monkeysAndResolvers do
+        monkeyDict.Add(name, resolver)
+
 let parseLine (line:string) : Monkey =
     let pattern1 = "(....): (....) ([+\-*/]) (....)"
     let pattern2 = "(....): ([0-9]+)"
@@ -45,22 +79,59 @@ let parseLine (line:string) : Monkey =
     then
         failwith "Both match?"
 
-    let m = {
-        name = "hi"
-        action = Number 1
-    }
-    
-    m
+    if (match1.Success)
+    then
+        let name = match1.Groups.[1].Value
+        let m1 = match1.Groups.[2].Value
+        let opCode = match1.Groups.[3].Value
+        let m2 = match1.Groups.[4].Value
+
+        let opCode =
+            match opCode with
+            | "+" -> Opcode.ADD
+            | "-" -> Opcode.SUB
+            | "*" -> Opcode.MUL
+            | "/" -> Opcode.DIV
+            | _ -> failwith "unknown opcode"
+
+        let opDef =
+            {
+                opCode = opCode
+                m1 = m1
+                m2 = m2
+            }
+
+        let action = Operation opDef
+
+        {
+            name = name
+            action = action
+        }
+    else
+        let name = match2.Groups.[1].Value
+        let number = match2.Groups.[2].Value |> int
+
+        let action = Number number
+
+        {
+            name = name
+            action = action
+        }
 
 let parseLines (lines:string[]) : Monkey[] =
     lines
         |> Array.map parseLine
 
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 21
-    // let lines = Common.getChallengeDataAsArray 2022 21
-    printAllLines lines
+    // let lines = Common.getSampleDataAsArray 2022 21
+    let lines = Common.getChallengeDataAsArray 2022 21
+    //printAllLines lines
 
     let parsed = parseLines lines
-    printfn "%A" parsed
+    //printfn "%A" parsed
+    buildLookups parsed
+
+    let root = monkeyDict["root"]
+    let result = root()
+    printfn "%A" result
     ()
