@@ -11,7 +11,7 @@ let getInputArray (lines:string[]) : int[] =
     lines
         |> Array.map parseInt
 
-type Cell (value:int) =
+type Cell (value:int64) =
     let mutable pred = None
     let mutable succ = None
     let v = value
@@ -93,6 +93,7 @@ let performShifts (cellFinder:Cell[]) : unit =
     let ringSize = cellFinder.Length
     for i in seq { 0 .. ringSize - 1} do
         let cell = cellFinder[i]
+        
         let mutable successor = cell.Succ
         
         unlink cell
@@ -102,14 +103,14 @@ let performShifts (cellFinder:Cell[]) : unit =
         // Note that since we unlinked our cell, the ring size
         // is n - 1        
 
-        let shiftAmount = cell.V % (ringSize - 1)
+        let shiftAmount = cell.V % (int64 ringSize - 1L)
 
         if (shiftAmount >= 0)
         then
-            for _ in seq { 1 .. shiftAmount } do
+            for _ in seq { 1L .. shiftAmount } do
                 successor <- successor.Succ
         else
-            for _ in seq { 1 .. -1 * shiftAmount } do
+            for _ in seq { 1L .. -1L * shiftAmount } do
                 successor <- successor.Pred
         
         // The cell should go right before its new successor
@@ -118,19 +119,19 @@ let performShifts (cellFinder:Cell[]) : unit =
         successor.Pred.Succ <- cell
         successor.Pred <- cell
 
-let rec findCellByValue (cell:Cell) (v:int) : Cell =
+let rec findCellByValue (cell:Cell) (v:int64) : Cell =
     if (cell.V = v)
     then
         cell
     else
         findCellByValue cell.Succ v
 
-let rec findNthSuccessor (cell:Cell) (n:int) : Cell =
+let rec findNthSuccessor (cell:Cell) (n:int64) : Cell =
     if (n <= 0)
     then
         cell
     else
-        findNthSuccessor cell.Succ (n - 1)
+        findNthSuccessor cell.Succ (n - 1L)
 
 let solve =
     // let lines = Common.getSampleDataAsArray 2022 20
