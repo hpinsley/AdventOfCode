@@ -7,9 +7,9 @@ open System.Text.RegularExpressions
 open Microsoft.FSharp.Core.Operators.Checked
 open System.Collections.Generic
 
-//let DECRYPTION_KEY = 811589153L
-let DECRYPTION_KEY = 1L
-let MIX_COUNT = 1
+let DECRYPTION_KEY = 811589153L
+// let DECRYPTION_KEY = 1L
+let MIX_COUNT = 10
 
 let getInputArray (lines:string[]) : int[] =
     lines
@@ -147,7 +147,11 @@ let solve =
     //printRing ring values.Length
 
     printfn "Shifting..."
-    performShifts pointers
+
+    for i in seq { 1 .. MIX_COUNT } do
+        printfn "Shift operation %d" i
+        performShifts pointers
+
     //printRing ring values.Length
     printfn "Finding anchor..."
     let anchor = findCellByValue ring 0
