@@ -21,7 +21,7 @@ type OpMonkeyDef =
     }
 
 type MonkeyAction =
-    | Number of int
+    | Number of int64
     | Operation of OpMonkeyDef
 
 type Monkey =
@@ -30,7 +30,7 @@ type Monkey =
         action: MonkeyAction
     }
 
-let monkeyDict = new Dictionary<string, unit -> int>()
+let monkeyDict = new Dictionary<string, unit -> int64>()
 
 
 let buildLookups (monkeys:Monkey[]) : unit =
