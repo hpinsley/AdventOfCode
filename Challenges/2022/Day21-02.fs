@@ -21,7 +21,7 @@ type OpMonkeyDef =
     }
 
 type MonkeyAction =
-    | Number of int64
+    | Number of decimal
     | Operation of OpMonkeyDef
 
 type Monkey =
@@ -30,7 +30,7 @@ type Monkey =
         action: MonkeyAction
     }
 
-let monkeyDict = new Dictionary<string, unit -> int64>()
+let monkeyDict = new Dictionary<string, unit -> decimal>()
 
 
 let buildLookups (monkeys:Monkey[]) : unit =
@@ -126,24 +126,66 @@ let parseLines (lines:string[]) : Monkey[] =
     lines
         |> Array.map parseLine
 
-let getHumanDrivenResult (root:unit -> int64) (humanValue:int64) : int64 =
+let getHumanDrivenResult (root:unit -> decimal) (humanValue:decimal) : decimal =
     monkeyDict["humn"] <- fun () -> humanValue
     let result = root()
     result
 
 let solvePart2() =
-    let result = getHumanDrivenResult monkeyDict["root"] 301
+    let root = monkeyDict["root"]
+    let left =  -4000000000000.0M
+    let right =  4000000000000.0M
+    let mid = 0M
+
+    let rec bisect (left:decimal) (right:decimal) (mid:decimal) : decimal =
+        let result = getHumanDrivenResult root mid
+        printfn "(%A - %A) %A\t%A" left right mid result
+        if (result = 0M)
+        then
+            mid
+        elif (result < 0M)  // You don't know how changes to the humn value will affect the result.
+        // It appears the sample affects the result in one direction but the challenge data does not.
+        then
+            bisect left mid ((left + mid) / 2.0M)
+        else
+            bisect mid right ((mid + right) / 2.0M)
+    
+    let result = bisect left right mid        
     result
 
+    //while true do
+    //    printf "Enter human value: "
+    //    let input = Console.ReadLine()
+    //    let v = decimal.Parse input
+    //    let result = getHumanDrivenResult root v
+    //    printfn "%A" result
+
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 21
-    // let lines = Common.getChallengeDataAsArray 2022 21
+    // let lines = Common.getSampleDataAsArray 2022 21
+    let lines = Common.getChallengeDataAsArray 2022 21
     //printAllLines lines
 
     let parsed = parseLines lines
-    printfn "%A" parsed
+    //printfn "%A" parsed
     buildLookups parsed
 
     let result = solvePart2()
+
+    //let root = monkeyDict["root"]
+    //let node1 = monkeyDict["pvgq"]
+    //let node2 = monkeyDict["ngpl"]
+
+    //// Got this with the bisect method.  It yielded 3441198826074L, but there must be an integer
+    //// division that gives multiple correct answers.  I tried 3441198826073L and it worked too but
+    //// the accepted answer is 3441198826073L
+    //let humanValue = 3441198826073L
+    //monkeyDict["humn"] <- fun () -> humanValue
+    //let v1 = node1()
+    //let v2 = node2()
+    //printfn "%d:\t%d\t%d" humanValue v1 v2
+
+    //monkeyDict["humn"] <- fun () -> humanValue
+    //let result = getHumanDrivenResult root 3441198826074L
+    
     printfn "%A" result
     ()
