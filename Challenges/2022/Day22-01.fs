@@ -97,6 +97,15 @@ let parseIntoModel (lines:string[]) : unit =
 
     let actions = parseActions bottom
     printfn "Actions:\n%A" actions
+
+    // Get the boundaries of each row and column
+    let rowBoundaries =
+        seq { 0 .. (Array2D.base1 grid) - 1}
+            |> Seq.map (fun row ->
+                            
+                            )
+        
+
     ()
 
 let solve =
