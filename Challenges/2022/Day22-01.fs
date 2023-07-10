@@ -146,6 +146,84 @@ let getColBoundariesOfGrid (grid:GridCellType[,]) : (int * int)[] =
     
     colBoundaries
 
+let moveStateTurn (state:State) (direction:TurnDirection) : State =
+    let newFacing =
+        match state.currentFacing with
+            | Left ->
+                match direction with
+                    | Clockwise -> Up
+                    | CounterClockwise -> Down
+            | Right ->
+                match direction with
+                    | Clockwise -> Down
+                    | CounterClockwise -> Up
+            | Up ->
+                match direction with
+                    | Clockwise -> Right
+                    | CounterClockwise -> Left
+            | Down ->
+                match direction with
+                    | Clockwise -> Left
+                    | CounterClockwise -> Right
+
+    { state with currentFacing = newFacing }
+
+
+// We recurse so we can move one cell at a time so we can check for walls
+let rec moveStateForward (state:State) (distance:int) : State =
+    if (distance = 0)
+    then
+        state
+    else
+        let (row, col) = state.currentCell
+        let mutable newRow = row
+        let mutable newCol = col
+
+        match state.currentFacing with
+            | Left ->
+                newCol <- col - 1
+                if (newCol < fst state.rowBoundaries[row])
+                then
+                    newCol <- snd state.rowBoundaries[row]
+
+            | Right ->
+                newCol <- col + 1
+                if (newCol > snd state.rowBoundaries[row])
+                then
+                    newCol <- fst state.rowBoundaries[row]
+
+            | Up -> 
+                newRow <- row - 1
+                if (newRow < fst state.colBoundaries[col])
+                then
+                    newRow <- snd state.colBoundaries[col]
+            | Down ->
+                newRow <- row + 1
+                if (newRow > snd state.colBoundaries[col])
+                then
+                    newRow <- fst state.colBoundaries[col]
+
+        let newState =
+            if (state.grid.[newRow, newCol] = Wall)
+            then
+                state    
+            else
+                { state with currentCell = (newRow, newCol) }
+
+        moveStateForward newState (distance - 1)
+
+let rec moveState (state:State) : State =
+    match state.remainingActions with
+        | [] -> state
+        | head :: tail ->
+            match head with
+                | Move distance ->
+                    let newState = moveStateForward state distance
+                    moveState { newState with remainingActions = tail }
+                | Turn direction ->
+                    let newState = moveStateTurn state direction
+                    moveState { newState with remainingActions = tail }
+
 let parseIntoModel (lines:string[]) : unit =
     let l = lines.Length
     let top = lines[0..(l - 3)]
@@ -156,20 +234,42 @@ let parseIntoModel (lines:string[]) : unit =
     //displayGrid grid
 
     let actions = parseActions bottom
-    printfn "Actions:\n%A" actions
+    //printfn "Actions:\n%A" actions
 
     printfn "Grid is %d rows x %d cols" (Array2D.length1 grid) (Array2D.length2 grid)
 
     let rowBoundaries = getRowBoundariesOfGrid grid
     let colBoundaries = getColBoundariesOfGrid grid
-    printfn "%A" rowBoundaries
-    printfn ""
-    printfn "%A" colBoundaries
+    //printfn "%A" rowBoundaries
+    //printfn ""
+    //printfn "%A" colBoundaries
+
+    let state = {
+        grid = grid
+        rowBoundaries = rowBoundaries
+        colBoundaries = colBoundaries
+        remainingActions = List.ofSeq actions
+        currentFacing = Right
+        currentCell = (0, 0)
+    }
+
+    let finalState = moveState state
+
+    let row = 1 + fst finalState.currentCell
+    let col = 1 + snd finalState.currentCell
+    let facing = match finalState.currentFacing with
+                    | Right -> 0
+                    | Down -> 1
+                    | Left -> 2
+                    | Up -> 3
+
+    let score = 1000 * row + 4 * col + facing
+    printfn "Final score: %d" score
     ()
 
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 22
-    // let lines = Common.getChallengeDataAsArray 2022 22
-    printAllLines lines
+    // let lines = Common.getSampleDataAsArray 2022 22
+    let lines = Common.getChallengeDataAsArray 2022 22
+    //printAllLines lines
     parseIntoModel lines
     ()
