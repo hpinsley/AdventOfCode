@@ -15,6 +15,11 @@ type Action =
     | Move of int
     | Turn of TurnDirection
 
+type GridCellType =
+    | Tile
+    | Wall
+    | OutOfBounds
+
 let parseActions (line:string) : Action[] =
     let pattern = "((\d+)|(L|R)*)+"
     let m = Regex.Match(line, pattern)
@@ -33,10 +38,44 @@ let parseActions (line:string) : Action[] =
     else
         failwith "No match"
 
+let parseGrid (lines:string[]) : GridCellType[,] =
+    let rowCount = lines.Length
+    let maxLineLength = lines 
+                            |> Array.maxBy (fun line -> line.Length)
+                            |> String.length
+
+    let grid = Array2D.init 
+                rowCount maxLineLength
+                (fun row col ->
+                    let line = lines[row]
+                    if (col >= line.Length)
+                    then
+                        OutOfBounds
+                    else
+                        match line[col] with
+                            | ' ' -> OutOfBounds
+                            | '.' -> Tile
+                            | '#' -> Wall
+                            | _ -> failwith "Unknown char"
+                )
+    grid
+
+let displayGrid (grid:GridCellType[,]) : unit =
+    printGrid grid (fun c -> match c with
+                        | OutOfBounds -> ' '
+                        | Tile -> '.'
+                        | Wall -> '#'
+                    )
+
 let parseIntoModel (lines:string[]) : unit =
     let l = lines.Length
     let top = lines[0..(l - 3)]
     let bottom = lines[l - 1]
+
+    printfn "Parsed"
+    let grid = parseGrid top
+    displayGrid grid
+
     let actions = parseActions bottom
     printfn "Actions:\n%A" actions
     ()
@@ -44,6 +83,6 @@ let parseIntoModel (lines:string[]) : unit =
 let solve =
     let lines = Common.getSampleDataAsArray 2022 22
     // let lines = Common.getChallengeDataAsArray 2022 22
-    //printAllLines lines
+    printAllLines lines
     parseIntoModel lines
     ()
