@@ -20,6 +20,25 @@ type GridCellType =
     | Wall
     | OutOfBounds
 
+type Facing =
+    | Left
+    | Right
+    | Up
+    | Down
+
+type Row = int
+type Col = int
+
+type State =
+    {
+        grid: GridCellType[,]
+        rowBoundaries: (int * int)[]
+        colBoundaries: (int * int)[]
+        remainingActions: Action list
+        currentFacing: Facing
+        currentCell: Row * Col
+    }
+
 let parseActions (line:string) : Action[] =
     let pattern = "((\d+)|(L|R)*)+"
     let m = Regex.Match(line, pattern)
@@ -74,7 +93,7 @@ let parseIntoModel (lines:string[]) : unit =
 
     printfn "Parsed"
     let grid = parseGrid top
-    displayGrid grid
+    //displayGrid grid
 
     let actions = parseActions bottom
     printfn "Actions:\n%A" actions
