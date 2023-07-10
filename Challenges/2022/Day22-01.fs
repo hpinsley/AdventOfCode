@@ -86,6 +86,66 @@ let displayGrid (grid:GridCellType[,]) : unit =
                         | Wall -> '#'
                     )
 
+let getRowBoundariesOfGrid (grid:GridCellType[,]) : (int * int)[] =
+    // Get the boundaries of each row and column
+    let rowBoundaries =
+        let rowLimit = (Array2D.length1 grid) - 1
+        let colLimit = (Array2D.length2 grid) - 1
+
+        seq { 0 .. rowLimit }
+            |> Seq.map (fun row ->
+                    
+                            let cols = seq { 0 .. colLimit }
+                                        |> Seq.map (fun col -> (col, grid.[row, col]))
+                                        |> List.ofSeq
+                            
+                            let firstCol = 
+                                cols 
+                                    |> List.tryFind (fun (_, c) -> c <> OutOfBounds)
+                                    |> Option.defaultValue cols[0]
+
+                            let lastCol =
+                                cols
+                                    |> List.rev
+                                    |> List.tryFind (fun (_, c) -> c <> OutOfBounds)
+                                    |> Option.defaultValue cols.[colLimit]
+                            
+                            (fst firstCol, fst lastCol)
+                        )
+            |> Array.ofSeq        
+    
+    rowBoundaries
+
+let getColBoundariesOfGrid (grid:GridCellType[,]) : (int * int)[] =
+    // Get the boundaries of each row and column
+    let colBoundaries =
+        let rowLimit = (Array2D.length1 grid) - 1
+        let colLimit = (Array2D.length2 grid) - 1
+
+        seq { 0 .. colLimit }
+            |> Seq.map (fun col ->
+                    
+                            let rows = seq { 0 .. rowLimit }
+                                        |> Seq.map (fun row -> (row, grid.[row, col]))
+                                        |> List.ofSeq
+                            
+                            let firstRow = 
+                                rows
+                                    |> List.tryFind (fun (_, c) -> c <> OutOfBounds)
+                                    |> Option.defaultValue rows[0]
+
+                            let lastRow =
+                                rows
+                                    |> List.rev
+                                    |> List.tryFind (fun (_, c) -> c <> OutOfBounds)
+                                    |> Option.defaultValue rows.[rowLimit]
+                            
+                            (fst firstRow, fst lastRow)
+                        )
+            |> Array.ofSeq        
+    
+    colBoundaries
+
 let parseIntoModel (lines:string[]) : unit =
     let l = lines.Length
     let top = lines[0..(l - 3)]
@@ -98,14 +158,13 @@ let parseIntoModel (lines:string[]) : unit =
     let actions = parseActions bottom
     printfn "Actions:\n%A" actions
 
-    // Get the boundaries of each row and column
-    let rowBoundaries =
-        seq { 0 .. (Array2D.base1 grid) - 1}
-            |> Seq.map (fun row ->
-                            
-                            )
-        
+    printfn "Grid is %d rows x %d cols" (Array2D.length1 grid) (Array2D.length2 grid)
 
+    let rowBoundaries = getRowBoundariesOfGrid grid
+    let colBoundaries = getColBoundariesOfGrid grid
+    printfn "%A" rowBoundaries
+    printfn ""
+    printfn "%A" colBoundaries
     ()
 
 let solve =
