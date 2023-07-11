@@ -244,13 +244,19 @@ let parseIntoModel (lines:string[]) : unit =
     //printfn ""
     //printfn "%A" colBoundaries
 
+    let startingRow = 0
+    let startingCol =
+        seq { 0 .. Array2D.length2 grid}
+            |> Seq.tryFind (fun col -> grid.[startingRow, col] = Tile)
+            |> Option.defaultValue 0
+
     let state = {
         grid = grid
         rowBoundaries = rowBoundaries
         colBoundaries = colBoundaries
         remainingActions = List.ofSeq actions
         currentFacing = Right
-        currentCell = (0, 0)
+        currentCell = (startingRow, startingCol)
     }
 
     let finalState = moveState state
