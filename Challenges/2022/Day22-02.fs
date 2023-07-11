@@ -26,8 +26,30 @@ type Facing =
     | Up
     | Down
 
+type Side =
+    | Top
+    | Bottom
+    | Left
+    | Right
+    | Front
+    | Back
+
 type Row = int
 type Col = int
+
+
+let rules =
+    [|
+        ( Side.Top, Facing.Left, Side.Left, Facing.Down )
+        ( Side.Top, Facing.Right, Side.Right, Facing.Down)
+        ( Side.Top, Facing.Up, Side.Back, Facing.Down)
+        ( Side.Top, Facing.Down, Side.Front, Facing.Down)
+
+        ( Side.Top, Facing.Left, Side.Left, Facing.Down )
+        ( Side.Top, Facing.Right, Side.Right, Facing.Down)
+        ( Side.Top, Facing.Up, Side.Back, Facing.Down)
+        ( Side.Top, Facing.Down, Side.Front, Facing.Down)
+    |]
 
 type State =
     {
@@ -149,22 +171,22 @@ let getColBoundariesOfGrid (grid:GridCellType[,]) : (int * int)[] =
 let moveStateTurn (state:State) (direction:TurnDirection) : State =
     let newFacing =
         match state.currentFacing with
-            | Left ->
+            | Facing.Left ->
                 match direction with
                     | Clockwise -> Up
                     | CounterClockwise -> Down
-            | Right ->
+            | Facing.Right ->
                 match direction with
                     | Clockwise -> Down
                     | CounterClockwise -> Up
             | Up ->
                 match direction with
-                    | Clockwise -> Right
-                    | CounterClockwise -> Left
+                    | Clockwise -> Facing.Right
+                    | CounterClockwise -> Facing.Left
             | Down ->
                 match direction with
-                    | Clockwise -> Left
-                    | CounterClockwise -> Right
+                    | Clockwise -> Facing.Left
+                    | CounterClockwise -> Facing.Right
 
     { state with currentFacing = newFacing }
 
@@ -180,13 +202,13 @@ let rec moveStateForward (state:State) (distance:int) : State =
         let mutable newCol = col
 
         match state.currentFacing with
-            | Left ->
+            | Facing.Left ->
                 newCol <- col - 1
                 if (newCol < fst state.rowBoundaries[row])
                 then
                     newCol <- snd state.rowBoundaries[row]
 
-            | Right ->
+            | Facing.Right ->
                 newCol <- col + 1
                 if (newCol > snd state.rowBoundaries[row])
                 then
@@ -255,7 +277,7 @@ let parseIntoModel (lines:string[]) : unit =
         rowBoundaries = rowBoundaries
         colBoundaries = colBoundaries
         remainingActions = List.ofSeq actions
-        currentFacing = Right
+        currentFacing = Facing.Right
         currentCell = (startingRow, startingCol)
     }
 
@@ -264,9 +286,9 @@ let parseIntoModel (lines:string[]) : unit =
     let row = 1 + fst finalState.currentCell
     let col = 1 + snd finalState.currentCell
     let facing = match finalState.currentFacing with
-                    | Right -> 0
+                    | Facing.Right -> 0
                     | Down -> 1
-                    | Left -> 2
+                    | Facing.Left -> 2
                     | Up -> 3
 
     let score = 1000 * row + 4 * col + facing
@@ -274,8 +296,8 @@ let parseIntoModel (lines:string[]) : unit =
     ()
 
 let solve =
-    // let lines = Common.getSampleDataAsArray 2022 22
-    let lines = Common.getChallengeDataAsArray 2022 22
+    let lines = Common.getSampleDataAsArray 2022 22
+    // let lines = Common.getChallengeDataAsArray 2022 22
     //printAllLines lines
     parseIntoModel lines
     ()
