@@ -54,8 +54,6 @@ let rules =
 type State =
     {
         grid: GridCellType[,]
-        rowBoundaries: (int * int)[]
-        colBoundaries: (int * int)[]
         remainingActions: Action list
         currentFacing: Facing
         currentCell: Row * Col
@@ -108,65 +106,6 @@ let displayGrid (grid:GridCellType[,]) : unit =
                         | Wall -> '#'
                     )
 
-let getRowBoundariesOfGrid (grid:GridCellType[,]) : (int * int)[] =
-    // Get the boundaries of each row and column
-    let rowBoundaries =
-        let rowLimit = (Array2D.length1 grid) - 1
-        let colLimit = (Array2D.length2 grid) - 1
-
-        seq { 0 .. rowLimit }
-            |> Seq.map (fun row ->
-                    
-                            let cols = seq { 0 .. colLimit }
-                                        |> Seq.map (fun col -> (col, grid.[row, col]))
-                                        |> List.ofSeq
-                            
-                            let firstCol = 
-                                cols 
-                                    |> List.tryFind (fun (_, c) -> c <> OutOfBounds)
-                                    |> Option.defaultValue cols[0]
-
-                            let lastCol =
-                                cols
-                                    |> List.rev
-                                    |> List.tryFind (fun (_, c) -> c <> OutOfBounds)
-                                    |> Option.defaultValue cols.[colLimit]
-                            
-                            (fst firstCol, fst lastCol)
-                        )
-            |> Array.ofSeq        
-    
-    rowBoundaries
-
-let getColBoundariesOfGrid (grid:GridCellType[,]) : (int * int)[] =
-    // Get the boundaries of each row and column
-    let colBoundaries =
-        let rowLimit = (Array2D.length1 grid) - 1
-        let colLimit = (Array2D.length2 grid) - 1
-
-        seq { 0 .. colLimit }
-            |> Seq.map (fun col ->
-                    
-                            let rows = seq { 0 .. rowLimit }
-                                        |> Seq.map (fun row -> (row, grid.[row, col]))
-                                        |> List.ofSeq
-                            
-                            let firstRow = 
-                                rows
-                                    |> List.tryFind (fun (_, c) -> c <> OutOfBounds)
-                                    |> Option.defaultValue rows[0]
-
-                            let lastRow =
-                                rows
-                                    |> List.rev
-                                    |> List.tryFind (fun (_, c) -> c <> OutOfBounds)
-                                    |> Option.defaultValue rows.[rowLimit]
-                            
-                            (fst firstRow, fst lastRow)
-                        )
-            |> Array.ofSeq        
-    
-    colBoundaries
 
 let moveStateTurn (state:State) (direction:TurnDirection) : State =
     let newFacing =
@@ -191,62 +130,7 @@ let moveStateTurn (state:State) (direction:TurnDirection) : State =
     { state with currentFacing = newFacing }
 
 
-// We recurse so we can move one cell at a time so we can check for walls
-let rec moveStateForward (state:State) (distance:int) : State =
-    if (distance = 0)
-    then
-        state
-    else
-        let (row, col) = state.currentCell
-        let mutable newRow = row
-        let mutable newCol = col
-
-        match state.currentFacing with
-            | Facing.Left ->
-                newCol <- col - 1
-                if (newCol < fst state.rowBoundaries[row])
-                then
-                    newCol <- snd state.rowBoundaries[row]
-
-            | Facing.Right ->
-                newCol <- col + 1
-                if (newCol > snd state.rowBoundaries[row])
-                then
-                    newCol <- fst state.rowBoundaries[row]
-
-            | Up -> 
-                newRow <- row - 1
-                if (newRow < fst state.colBoundaries[col])
-                then
-                    newRow <- snd state.colBoundaries[col]
-            | Down ->
-                newRow <- row + 1
-                if (newRow > snd state.colBoundaries[col])
-                then
-                    newRow <- fst state.colBoundaries[col]
-
-        let newState =
-            if (state.grid.[newRow, newCol] = Wall)
-            then
-                state    
-            else
-                { state with currentCell = (newRow, newCol) }
-
-        moveStateForward newState (distance - 1)
-
-let rec moveState (state:State) : State =
-    match state.remainingActions with
-        | [] -> state
-        | head :: tail ->
-            match head with
-                | Move distance ->
-                    let newState = moveStateForward state distance
-                    moveState { newState with remainingActions = tail }
-                | Turn direction ->
-                    let newState = moveStateTurn state direction
-                    moveState { newState with remainingActions = tail }
-
-let parseIntoModel (lines:string[]) : unit =
+let parseIntoModel (lines:string[]) (sideLength:int) (sectorMap:Side option list): unit =
     let l = lines.Length
     let top = lines[0..(l - 3)]
     let bottom = lines[l - 1]
@@ -258,13 +142,22 @@ let parseIntoModel (lines:string[]) : unit =
     let actions = parseActions bottom
     //printfn "Actions:\n%A" actions
 
-    printfn "Grid is %d rows x %d cols" (Array2D.length1 grid) (Array2D.length2 grid)
+    let rows = Array2D.length1 grid
+    let cols = Array2D.length2 grid
 
-    let rowBoundaries = getRowBoundariesOfGrid grid
-    let colBoundaries = getColBoundariesOfGrid grid
-    //printfn "%A" rowBoundaries
-    //printfn ""
-    //printfn "%A" colBoundaries
+    printfn "Grid is %d rows x %d cols" rows cols
+
+    let rowSectors = rows / sideLength
+    let colSectors = cols / sideLength
+
+    printfn "Given the side length of %d, that means %d row sectors and %d col sectors" sideLength rowSectors colSectors
+
+    let sectorCount = rowSectors * colSectors
+    printfn "There are %d sectors" sectorCount
+
+    if (sectorMap.Length <> sectorCount)
+    then
+        failwith "Sector map does not match sector count"
 
     let startingRow = 0
     let startingCol =
@@ -274,30 +167,47 @@ let parseIntoModel (lines:string[]) : unit =
 
     let state = {
         grid = grid
-        rowBoundaries = rowBoundaries
-        colBoundaries = colBoundaries
         remainingActions = List.ofSeq actions
         currentFacing = Facing.Right
         currentCell = (startingRow, startingCol)
     }
 
-    let finalState = moveState state
+    //let finalState = moveState state
 
-    let row = 1 + fst finalState.currentCell
-    let col = 1 + snd finalState.currentCell
-    let facing = match finalState.currentFacing with
-                    | Facing.Right -> 0
-                    | Down -> 1
-                    | Facing.Left -> 2
-                    | Up -> 3
+    //let row = 1 + fst finalState.currentCell
+    //let col = 1 + snd finalState.currentCell
+    //let facing = match finalState.currentFacing with
+    //                | Facing.Right -> 0
+    //                | Down -> 1
+    //                | Facing.Left -> 2
+    //                | Up -> 3
 
-    let score = 1000 * row + 4 * col + facing
+    //let score = 1000 * row + 4 * col + facing
+
+    let score = 0
     printfn "Final score: %d" score
     ()
 
 let solve =
     let lines = Common.getSampleDataAsArray 2022 22
-    // let lines = Common.getChallengeDataAsArray 2022 22
+    // These have to change depending on which data set you are solving
+    let sideLength = 4
+    let sectorMap = [
+        None; None; Some Side.Top; None;
+        Some Side.Back; Some Side.Left ; None; None;
+        None; None; Some Side.Bottom; Some Side.Right
+    ]
+    
+    let lines = Common.getChallengeDataAsArray 2022 22
+    // These have to change depending on which data set you are solving
+    let sideLength = 50
+    let sectorMap = [
+        None; Some Side.Back; Some Side.Right; 
+        None; Some Side.Top; None; 
+        Some Side.Left; Some Side.Front; None; 
+        Some Side.Bottom; None; None 
+    ]
+
     //printAllLines lines
-    parseIntoModel lines
+    parseIntoModel lines sideLength sectorMap
     ()
