@@ -159,6 +159,27 @@ let parseIntoModel (lines:string[]) (sideLength:int) (sectorMap:Side option list
     then
         failwith "Sector map does not match sector count"
 
+    let sideToSectorMap =
+        sectorMap
+            |> List.mapi (fun sectorNumber sideOption -> (sectorNumber, sideOption))
+            |> List.choose (fun (sectorNumber, sideOption) ->
+                                match sideOption with
+                                    | None -> None
+                                    | Some side -> Some (side, sectorNumber)
+                            )
+            |> Map.ofList
+
+    printfn "%A" sideToSectorMap
+
+    let sectorToSide (sectorNumber:int) : Side =
+        match sectorMap[sectorNumber] with
+            | Some side -> side
+            | None -> failwith "No side for sector"
+            
+    let sideToSector (side:Side) : int =
+        sideToSectorMap[side]
+
+
     let startingRow = 0
     let startingCol =
         seq { 0 .. Array2D.length2 grid}
@@ -194,19 +215,19 @@ let solve =
     let sideLength = 4
     let sectorMap = [
         None; None; Some Side.Top; None;
-        Some Side.Back; Some Side.Left ; None; None;
+        Some Side.Back; Some Side.Left ; Some Side.Front; None;
         None; None; Some Side.Bottom; Some Side.Right
     ]
     
-    let lines = Common.getChallengeDataAsArray 2022 22
-    // These have to change depending on which data set you are solving
-    let sideLength = 50
-    let sectorMap = [
-        None; Some Side.Back; Some Side.Right; 
-        None; Some Side.Top; None; 
-        Some Side.Left; Some Side.Front; None; 
-        Some Side.Bottom; None; None 
-    ]
+    //let lines = Common.getChallengeDataAsArray 2022 22
+    //// These have to change depending on which data set you are solving
+    //let sideLength = 50
+    //let sectorMap = [
+    //    None; Some Side.Back; Some Side.Right; 
+    //    None; Some Side.Top; None; 
+    //    Some Side.Left; Some Side.Front; None; 
+    //    Some Side.Bottom; None; None 
+    //]
 
     //printAllLines lines
     parseIntoModel lines sideLength sectorMap
