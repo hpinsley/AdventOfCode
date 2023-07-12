@@ -50,6 +50,7 @@ type Helpers =
         sectorToSide: int ->Side
         sideToSector: Side -> int
         getCubeLocation: int -> int -> CubeLocation
+        getGridLocation: Side -> int -> int -> int * int
     }
 
 let rules =
@@ -182,6 +183,12 @@ let buildHelpers (grid:GridCellType[,]) (sideLength:int) (sectorMap:Side option 
     let sideToSector (side:Side) : int =
         sideToSectorMap[side]
 
+    let getGridLocation (side:Side) (sideRow:int) (sideCol:int) : (Row * Col) =
+        let sector = sideToSector side
+        let row = (sector / colSectors) * sideLength + sideRow
+        let col = (sector % colSectors) * sideLength + sideCol
+        (row, col)
+
     let getCubeLocation (row:int) (col:int) : CubeLocation =
         let sector = (row / sideLength) * colSectors + col / sideLength
         let side = sectorToSide sector
@@ -193,6 +200,7 @@ let buildHelpers (grid:GridCellType[,]) (sideLength:int) (sectorMap:Side option 
         sectorToSide = sectorToSide
         sideToSector = sideToSector
         getCubeLocation = getCubeLocation
+        getGridLocation = getGridLocation
     }
     
     helpers
@@ -261,6 +269,9 @@ let solve =
             let c = v[1]
             let cubeLocation = state.helpers.getCubeLocation r c
             printfn "(%d,%d) = \n%A" r c cubeLocation
+
+            let gr,gc = state.helpers.getGridLocation cubeLocation.side cubeLocation.sideRow cubeLocation.sideCol
+            printfn "Reversed: (%d,%d)" gr gc
         with ex ->
             printfn "Error %s" ex.Message
     ()
