@@ -53,18 +53,22 @@ type Helpers =
         getGridLocation: Side -> int -> int -> int * int
     }
 
+// This is a map of where you are and the direction you are moving
+// and where you end up (assuming a single cell movement)
+
 let rules =
     [|
-        ( Side.Top, Facing.Left, Side.Left, Facing.Down )
-        ( Side.Top, Facing.Right, Side.Right, Facing.Down)
-        ( Side.Top, Facing.Up, Side.Back, Facing.Down)
-        ( Side.Top, Facing.Down, Side.Front, Facing.Down)
+        ( Side.Top, Facing.Left), (Side.Left, Facing.Down )
+        ( Side.Top, Facing.Right), (Side.Right, Facing.Down)
+        ( Side.Top, Facing.Up), (Side.Back, Facing.Down)
+        ( Side.Top, Facing.Down), (Side.Front, Facing.Down)
 
-        ( Side.Top, Facing.Left, Side.Left, Facing.Down )
-        ( Side.Top, Facing.Right, Side.Right, Facing.Down)
-        ( Side.Top, Facing.Up, Side.Back, Facing.Down)
-        ( Side.Top, Facing.Down, Side.Front, Facing.Down)
+        ( Side.Top, Facing.Left), (Side.Left, Facing.Down )
+        ( Side.Top, Facing.Right), (Side.Right, Facing.Down)
+        ( Side.Top, Facing.Up), (Side.Back, Facing.Down)
+        ( Side.Top, Facing.Down), (Side.Front, Facing.Down)
     |]
+        |> Map.ofArray
 
 type State =
     {
@@ -72,8 +76,7 @@ type State =
         grid: GridCellType[,]
         remainingActions: Action list
         currentFacing: Facing
-        currentCell: Row * Col
-        currentSide: Side
+        currentLocation: CubeLocation
         helpers: Helpers
     }
 
@@ -123,29 +126,6 @@ let displayGrid (grid:GridCellType[,]) : unit =
                         | Tile -> '.'
                         | Wall -> '#'
                     )
-
-
-let moveStateTurn (state:State) (direction:TurnDirection) : State =
-    let newFacing =
-        match state.currentFacing with
-            | Facing.Left ->
-                match direction with
-                    | Clockwise -> Up
-                    | CounterClockwise -> Down
-            | Facing.Right ->
-                match direction with
-                    | Clockwise -> Down
-                    | CounterClockwise -> Up
-            | Up ->
-                match direction with
-                    | Clockwise -> Facing.Right
-                    | CounterClockwise -> Facing.Left
-            | Down ->
-                match direction with
-                    | Clockwise -> Facing.Left
-                    | CounterClockwise -> Facing.Right
-
-    { state with currentFacing = newFacing }
 
 let buildHelpers (grid:GridCellType[,]) (sideLength:int) (sectorMap:Side option list) : Helpers =
     let rows = Array2D.length1 grid
@@ -235,9 +215,8 @@ let parseIntoModel (lines:string[]) (sideLength:int) (sectorMap:Side option list
         grid = grid
         remainingActions = List.ofSeq actions
         currentFacing = Facing.Right
-        currentCell = (startingRow, startingCol)
         helpers = helpers
-        currentSide = startingLocation.side
+        currentLocation = startingLocation
     }
 
     state
@@ -288,42 +267,65 @@ let rec moveStateForward (state:State) (distance:int) : State =
     then
         state
     else
-        let (row, col) = state.currentCell
+        let currentLocation = state.currentLocation
+
+        let (row, col) = currentLocation.sideRow, currentLocation.sideCol
+
         let mutable newRow = row
         let mutable newCol = col
-
-        let cubeLocation = state.helpers.getCubeLocation row col
+        let mutable newSide = currentLocation.side
+        let mutable newFacing = state.currentFacing
 
         match state.currentFacing with
             | Facing.Left ->
                 newCol <- col - 1
-                if (newCol < fst state.rowBoundaries[row])
+                if (newCol < 0)
                 then
-                    newCol <- snd state.rowBoundaries[row]
+                    newCol <- state.sideLength - 1
+                    let (s,f) = rules[(newSide, newFacing)]
+                    newSide <- s
+                    newFacing <- f
 
             | Facing.Right ->
                 newCol <- col + 1
-                if (newCol > snd state.rowBoundaries[row])
+                if (newCol = state.sideLength)
                 then
-                    newCol <- fst state.rowBoundaries[row]
+                    newCol <- 0
+                    let (s,f) = rules[(newSide, newFacing)]
+                    newSide <- s
+                    newFacing <- f
 
             | Facing.Up -> 
                 newRow <- row - 1
-                if (newRow < fst state.colBoundaries[col])
+                if (newRow < 0)
                 then
-                    newRow <- snd state.colBoundaries[col]
+                    newRow <- state.sideLength - 1
+                    let (s,f) = rules[(newSide, newFacing)]
+                    newSide <- s
+                    newFacing <- f
+
             | Facing.Down ->
                 newRow <- row + 1
-                if (newRow > snd state.colBoundaries[col])
+                if (newRow = state.sideLength)
                 then
-                    newRow <- fst state.colBoundaries[col]
+                    newRow <- 0
+                    let (s,f) = rules[(newSide, newFacing)]
+                    newSide <- s
+                    newFacing <- f
+
+        let (gridRow, gridCol) = state.helpers.getGridLocation newSide newRow newCol
 
         let newState =
-            if (state.grid.[newRow, newCol] = Wall)
+            if (state.grid.[gridRow, gridCol] = Wall)
             then
                 state    
             else
-                { state with currentCell = (newRow, newCol) }
+                let newLocation = state.helpers.getCubeLocation gridRow gridCol
+
+                { state with 
+                        currentFacing = newFacing
+                        currentLocation = newLocation
+                }
 
         moveStateForward newState (distance - 1)
 
