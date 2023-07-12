@@ -72,6 +72,7 @@ type State =
         remainingActions: Action list
         currentFacing: Facing
         currentCell: Row * Col
+        currentSide: Side
         helpers: Helpers
     }
 
@@ -226,15 +227,35 @@ let parseIntoModel (lines:string[]) (sideLength:int) (sectorMap:Side option list
 
     let helpers = buildHelpers grid sideLength sectorMap
 
+    let startingLocation = helpers.getCubeLocation startingRow startingCol 
+
     let state = {
         grid = grid
         remainingActions = List.ofSeq actions
         currentFacing = Facing.Right
         currentCell = (startingRow, startingCol)
         helpers = helpers
+        currentSide = startingLocation.side
     }
 
     state
+
+let testHelpers (state:State) : unit =
+    while true do
+        try
+            printf "Enter a grid coord pair: "
+            let s = Console.ReadLine()
+            let parts = s.Split(' ')
+            let v = parts |> Array.map parseInt
+            let r = v[0]
+            let c = v[1]
+            let cubeLocation = state.helpers.getCubeLocation r c
+            printfn "(%d,%d) = \n%A" r c cubeLocation
+
+            let gr,gc = state.helpers.getGridLocation cubeLocation.side cubeLocation.sideRow cubeLocation.sideCol
+            printfn "Reversed: (%d,%d)" gr gc
+        with ex ->
+            printfn "Error %s" ex.Message
 
 let solve =
     let lines = Common.getSampleDataAsArray 2022 22
@@ -258,20 +279,5 @@ let solve =
 
     //printAllLines lines
     let state = parseIntoModel lines sideLength sectorMap
-
-    while true do
-        try
-            printf "Enter a grid coord pair: "
-            let s = Console.ReadLine()
-            let parts = s.Split(' ')
-            let v = parts |> Array.map parseInt
-            let r = v[0]
-            let c = v[1]
-            let cubeLocation = state.helpers.getCubeLocation r c
-            printfn "(%d,%d) = \n%A" r c cubeLocation
-
-            let gr,gc = state.helpers.getGridLocation cubeLocation.side cubeLocation.sideRow cubeLocation.sideCol
-            printfn "Reversed: (%d,%d)" gr gc
-        with ex ->
-            printfn "Error %s" ex.Message
+    printfn "%A" state
     ()
