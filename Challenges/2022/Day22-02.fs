@@ -68,6 +68,7 @@ let rules =
 
 type State =
     {
+        sideLength: int
         grid: GridCellType[,]
         remainingActions: Action list
         currentFacing: Facing
@@ -230,6 +231,7 @@ let parseIntoModel (lines:string[]) (sideLength:int) (sectorMap:Side option list
     let startingLocation = helpers.getCubeLocation startingRow startingCol 
 
     let state = {
+        sideLength = sideLength
         grid = grid
         remainingActions = List.ofSeq actions
         currentFacing = Facing.Right
@@ -256,6 +258,87 @@ let testHelpers (state:State) : unit =
             printfn "Reversed: (%d,%d)" gr gc
         with ex ->
             printfn "Error %s" ex.Message
+
+let moveStateTurn (state:State) (direction:TurnDirection) : State =
+    let newFacing =
+        match state.currentFacing with
+            | Facing.Left ->
+                match direction with
+                    | Clockwise -> Up
+                    | CounterClockwise -> Facing.Down
+            | Facing.Right ->
+                match direction with
+                    | Clockwise -> Facing.Down
+                    | CounterClockwise -> Facing.Up
+            | Facing.Up ->
+                match direction with
+                    | Clockwise -> Facing.Right
+                    | CounterClockwise -> Facing.Left
+            | Facing.Down ->
+                match direction with
+                    | Clockwise -> Facing.Left
+                    | CounterClockwise -> Facing.Right
+
+    { state with currentFacing = newFacing }
+
+
+// We recurse so we can move one cell at a time so we can check for walls
+let rec moveStateForward (state:State) (distance:int) : State =
+    if (distance = 0)
+    then
+        state
+    else
+        let (row, col) = state.currentCell
+        let mutable newRow = row
+        let mutable newCol = col
+
+        let cubeLocation = state.helpers.getCubeLocation row col
+
+        match state.currentFacing with
+            | Facing.Left ->
+                newCol <- col - 1
+                if (newCol < fst state.rowBoundaries[row])
+                then
+                    newCol <- snd state.rowBoundaries[row]
+
+            | Facing.Right ->
+                newCol <- col + 1
+                if (newCol > snd state.rowBoundaries[row])
+                then
+                    newCol <- fst state.rowBoundaries[row]
+
+            | Facing.Up -> 
+                newRow <- row - 1
+                if (newRow < fst state.colBoundaries[col])
+                then
+                    newRow <- snd state.colBoundaries[col]
+            | Facing.Down ->
+                newRow <- row + 1
+                if (newRow > snd state.colBoundaries[col])
+                then
+                    newRow <- fst state.colBoundaries[col]
+
+        let newState =
+            if (state.grid.[newRow, newCol] = Wall)
+            then
+                state    
+            else
+                { state with currentCell = (newRow, newCol) }
+
+        moveStateForward newState (distance - 1)
+
+let rec moveState (state:State) : State =
+    match state.remainingActions with
+        | [] -> state
+        | head :: tail ->
+            match head with
+                | Move distance ->
+                    let newState = moveStateForward state distance
+                    moveState { newState with remainingActions = tail }
+                | Turn direction ->
+                    let newState = moveStateTurn state direction
+                    moveState { newState with remainingActions = tail }
+
 
 let solve =
     let lines = Common.getSampleDataAsArray 2022 22
