@@ -37,6 +37,20 @@ type Side =
 type Row = int
 type Col = int
 
+type CubeLocation =
+    {
+        sector: int
+        side: Side
+        sideRow: int
+        sideCol: int
+    }
+
+type Helpers =
+    {
+        sectorToSide: int ->Side
+        sideToSector: Side -> int
+        getCubeLocation: int -> int -> CubeLocation
+    }
 
 let rules =
     [|
@@ -57,6 +71,7 @@ type State =
         remainingActions: Action list
         currentFacing: Facing
         currentCell: Row * Col
+        helpers: Helpers
     }
 
 let parseActions (line:string) : Action[] =
@@ -129,19 +144,7 @@ let moveStateTurn (state:State) (direction:TurnDirection) : State =
 
     { state with currentFacing = newFacing }
 
-
-let parseIntoModel (lines:string[]) (sideLength:int) (sectorMap:Side option list): unit =
-    let l = lines.Length
-    let top = lines[0..(l - 3)]
-    let bottom = lines[l - 1]
-
-    printfn "Parsed"
-    let grid = parseGrid top
-    //displayGrid grid
-
-    let actions = parseActions bottom
-    //printfn "Actions:\n%A" actions
-
+let buildHelpers (grid:GridCellType[,]) (sideLength:int) (sectorMap:Side option list) : Helpers =
     let rows = Array2D.length1 grid
     let cols = Array2D.length2 grid
 
@@ -179,6 +182,33 @@ let parseIntoModel (lines:string[]) (sideLength:int) (sectorMap:Side option list
     let sideToSector (side:Side) : int =
         sideToSectorMap[side]
 
+    let getCubeLocation (row:int) (col:int) : CubeLocation =
+        let sector = (row / sideLength) * colSectors + col / sideLength
+        let side = sectorToSide sector
+        let sideRow = row % sideLength
+        let sideCol = col % sideLength
+        { sector = sector; side = side; sideRow = sideRow; sideCol = sideCol }
+
+    let helpers = {
+        sectorToSide = sectorToSide
+        sideToSector = sideToSector
+        getCubeLocation = getCubeLocation
+    }
+    
+    helpers
+
+let parseIntoModel (lines:string[]) (sideLength:int) (sectorMap:Side option list): State =
+    let l = lines.Length
+    let top = lines[0..(l - 3)]
+    let bottom = lines[l - 1]
+
+    printfn "Parsed"
+    let grid = parseGrid top
+    //displayGrid grid
+
+    let actions = parseActions bottom
+    //printfn "Actions:\n%A" actions
+
 
     let startingRow = 0
     let startingCol =
@@ -186,28 +216,17 @@ let parseIntoModel (lines:string[]) (sideLength:int) (sectorMap:Side option list
             |> Seq.tryFind (fun col -> grid.[startingRow, col] = Tile)
             |> Option.defaultValue 0
 
+    let helpers = buildHelpers grid sideLength sectorMap
+
     let state = {
         grid = grid
         remainingActions = List.ofSeq actions
         currentFacing = Facing.Right
         currentCell = (startingRow, startingCol)
+        helpers = helpers
     }
 
-    //let finalState = moveState state
-
-    //let row = 1 + fst finalState.currentCell
-    //let col = 1 + snd finalState.currentCell
-    //let facing = match finalState.currentFacing with
-    //                | Facing.Right -> 0
-    //                | Down -> 1
-    //                | Facing.Left -> 2
-    //                | Up -> 3
-
-    //let score = 1000 * row + 4 * col + facing
-
-    let score = 0
-    printfn "Final score: %d" score
-    ()
+    state
 
 let solve =
     let lines = Common.getSampleDataAsArray 2022 22
@@ -230,5 +249,18 @@ let solve =
     //]
 
     //printAllLines lines
-    parseIntoModel lines sideLength sectorMap
+    let state = parseIntoModel lines sideLength sectorMap
+
+    while true do
+        try
+            printf "Enter a grid coord pair: "
+            let s = Console.ReadLine()
+            let parts = s.Split(' ')
+            let v = parts |> Array.map parseInt
+            let r = v[0]
+            let c = v[1]
+            let cubeLocation = state.helpers.getCubeLocation r c
+            printfn "(%d,%d) = \n%A" r c cubeLocation
+        with ex ->
+            printfn "Error %s" ex.Message
     ()
