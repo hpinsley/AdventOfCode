@@ -58,31 +58,36 @@ type Helpers =
 
 let rules =
     [|
-        // SANITY CHECK THESE
-        ((Side.Top, Facing.Left), (Side.Left, Facing.down or Up??))
+        ((Side.Top, Facing.Left), (Side.Left, Facing.Down))
         ((Side.Top, Facing.Right), (Side.Right, Facing.Down))
         ((Side.Top, Facing.Up), (Side.Back, Facing.Down))
         ((Side.Top, Facing.Down), (Side.Front, Facing.Down))
-        ((Side.Left, Facing.Left), (Side.Front, Facing.Left))
-        ((Side.Left, Facing.Right), (Side.Back, Facing.Right))
-        ((Side.Left, Facing.Up), (Side.Top, Facing.Left))
-        ((Side.Left, Facing.Down), (Side.Bottom, Facing.Left))
-        ((Side.Right, Facing.Left), (Side.Back, Facing.Left))
-        ((Side.Right, Facing.Right), (Side.Front, Facing.Right))
-        ((Side.Right, Facing.Up), (Side.Top, Facing.Right))
-        ((Side.Right, Facing.Down), (Side.Bottom, Facing.Right))
-        ((Side.Front, Facing.Left), (Side.Left, Facing.Left))
-        ((Side.Front, Facing.Right), (Side.Right, Facing.Right))
-        ((Side.Front, Facing.Up), (Side.Top, Facing.Forward))
-        ((Side.Front, Facing.Down), (Side.Bottom, Facing.Backward))
-        ((Side.Back, Facing.Left), (Side.Right, Facing.Left))
-        ((Side.Back, Facing.Right), (Side.Left, Facing.Right))
-        ((Side.Back, Facing.Up), (Side.Top, Facing.Backward))
-        ((Side.Back, Facing.Down), (Side.Bottom, Facing.Forward))
+
         ((Side.Bottom, Facing.Left), (Side.Left, Facing.Up))
         ((Side.Bottom, Facing.Right), (Side.Right, Facing.Up))
-        ((Side.Bottom, Facing.Up), (Side.Front, Facing.Down))
+        ((Side.Bottom, Facing.Up), (Side.Front, Facing.Up))
         ((Side.Bottom, Facing.Down), (Side.Back, Facing.Up))
+    
+        ((Side.Left, Facing.Left), (Side.Back, Facing.Right))
+        ((Side.Left, Facing.Right), (Side.Front, Facing.Right))
+        ((Side.Left, Facing.Up), (Side.Top, Facing.Right))
+        ((Side.Left, Facing.Down), (Side.Bottom, Facing.Right))
+        
+        ((Side.Right, Facing.Left), (Side.Front, Facing.Left))
+        ((Side.Right, Facing.Right), (Side.Back, Facing.Left))
+        ((Side.Right, Facing.Up), (Side.Top, Facing.Left))
+        ((Side.Right, Facing.Down), (Side.Bottom, Facing.Left))
+    
+        ((Side.Front, Facing.Left), (Side.Left, Facing.Left))
+        ((Side.Front, Facing.Right), (Side.Right, Facing.Right))
+        ((Side.Front, Facing.Up), (Side.Top, Facing.Up))
+        ((Side.Front, Facing.Down), (Side.Bottom, Facing.Down))
+    
+        ((Side.Back, Facing.Left), (Side.Right, Facing.Left))
+        ((Side.Back, Facing.Right), (Side.Left, Facing.Right))
+        ((Side.Back, Facing.Up), (Side.Top, Facing.Up))
+        ((Side.Back, Facing.Down), (Side.Bottom, Facing.Down))
+
     |]
         |> Map.ofArray
 
