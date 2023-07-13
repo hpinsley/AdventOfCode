@@ -363,7 +363,18 @@ let rec moveState (state:State) : State =
                     moveState { newState with remainingActions = tail }
 
 
+let buildTestState (state:State) (gridRow:int) (gridCol:int) (facing:Facing) : State =
+    let cubeLocation = state.helpers.getCubeLocation gridRow gridCol
+    { state 
+        with currentFacing = facing; 
+             currentLocation = cubeLocation;
+             remainingActions = [Move 1]}
+
 let solve =
+
+    TODO: Try the rotated map so you can follow the two test examples
+    in the problem description
+
     let lines = Common.getSampleDataAsArray 2022 22
     // These have to change depending on which data set you are solving
     let sideLength = 4
@@ -385,8 +396,23 @@ let solve =
 
     //printAllLines lines
     let state = parseIntoModel lines sideLength sectorMap
-    printfn "%A" state
+    // printfn "%A" state
 
-    let finalState = moveState state
-    printfn "Final state: %A" finalState
+    let testState = buildTestState state 5 11 Facing.Right
+    let finalState = moveState testState
+    
+    // printfn "Final state: %A" finalState
+    let gridRow, gridCol = finalState.helpers.getGridLocation finalState.currentLocation.side finalState.currentLocation.sideRow finalState.currentLocation.sideCol
+
+    let row = 1 + gridRow
+    let col = 1 + gridCol
+
+    let facing = match finalState.currentFacing with
+                    | Facing.Right -> 0
+                    | Facing.Down -> 1
+                    | Facing.Left -> 2
+                    | Facing.Up -> 3
+
+    let score = 1000 * row + 4 * col + facing
+    printfn "Final score: %d" score
     ()
