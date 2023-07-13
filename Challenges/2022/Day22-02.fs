@@ -289,51 +289,52 @@ let rec moveStateForward (state:State) (distance:int) : State =
         state
     else
         let currentLocation = state.currentLocation
-
+        let (newSide, newFacing) = rules[(currentLocation.side, state.currentFacing)]
         let (row, col) = currentLocation.sideRow, currentLocation.sideCol
+        let newSideOpt =
+            match state.currentFacing with
+                    | Facing.Left ->
+                        if (col = 0) then Some (newSide, newFacing) else None
+                    | Facing.Right ->
+                        if (col = (state.sideLength - 1)) then Some (newSide, newFacing) else None
+                    | Facing.Up -> 
+                        if (row = 0) then Some (newSide, newFacing) else None
+                    | Facing.Down ->
+                        if (row = (state.sideLength - 1)) then Some (newSide, newFacing) else None
 
-        let mutable newRow = row
-        let mutable newCol = col
-        let mutable newSide = currentLocation.side
-        let mutable newFacing = state.currentFacing
+        (*
+            Compute the new side position.  If we are moving to a new
+            side, it gets tricky ;-)
 
-        match state.currentFacing with
-            | Facing.Left ->
-                newCol <- col - 1
-                if (newCol < 0)
-                then
-                    newCol <- state.sideLength - 1
-                    let (s,f) = rules[(newSide, newFacing)]
-                    newSide <- s
-                    newFacing <- f
+            For example, if we are on the top in at (1,3) -- which is 
+            the right edge, and move right, we end up on the right side
+            at (0, 2).  We also know we are pointing down.  So I think
+            that's why the row would be 0.  But I think the new column
+            is derived from the original side.  I think it would
+            be sideLength - 1 - row.
 
-            | Facing.Right ->
-                newCol <- col + 1
-                if (newCol = state.sideLength)
-                then
-                    newCol <- 0
-                    let (s,f) = rules[(newSide, newFacing)]
-                    newSide <- s
-                    newFacing <- f
+            Another example.  If we are front at (3,2) -- which is
+            the bottom edge, and move down, we end up on the bottom
+            at (3,1).  We also know we are pointing up.  So I think
+            that's why the row would be 3 (since more up movement decreases
+            the row).  But I think the new column
+            is derived from the the original side.  It think it would
+            be ??
 
-            | Facing.Up -> 
-                newRow <- row - 1
-                if (newRow < 0)
-                then
-                    newRow <- state.sideLength - 1
-                    let (s,f) = rules[(newSide, newFacing)]
-                    newSide <- s
-                    newFacing <- f
+            Actually, now I'm thinking its worse than this.  If we want
+            to maintain the integrity of the original map, I think we
+            have to deal with the fact that folding the map -- the rows
+            become columns and the columns become rows.  Look at (in the
+            rotated sample how 5 Left folds next to 6 Top.  The rows
+            and columns flip.
 
-            | Facing.Down ->
-                newRow <- row + 1
-                if (newRow = state.sideLength)
-                then
-                    newRow <- 0
-                    let (s,f) = rules[(newSide, newFacing)]
-                    newSide <- s
-                    newFacing <- f
-
+        *)
+        
+        let (r, c, s, f) =
+            match newSideOpt with
+                | Some (side, facing) -> 
+                
+                
         let (gridRow, gridCol) = state.helpers.getGridLocation newSide newRow newCol
 
         let newState =
