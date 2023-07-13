@@ -372,18 +372,24 @@ let buildTestState (state:State) (gridRow:int) (gridCol:int) (facing:Facing) : S
 
 let solve =
 
-    TODO: Try the rotated map so you can follow the two test examples
-    in the problem description
-
     let lines = Common.getSampleDataAsArray 2022 22
     // These have to change depending on which data set you are solving
     let sideLength = 4
-    let sectorMap = [
-        None; None; Some Side.Top; None;
-        Some Side.Back; Some Side.Left ; Some Side.Front; None;
-        None; None; Some Side.Bottom; Some Side.Right
-    ]
+
+    // Original
+    //let sectorMap = [
+    //    None; None; Some Side.Top; None;
+    //    Some Side.Back; Some Side.Left ; Some Side.Front; None;
+    //    None; None; Some Side.Bottom; Some Side.Right
+    //]
     
+    // Rotated to match the sample (I think)
+    let sectorMap = [
+        None; None; Some Side.Back; None;
+        Some Side.Bottom; Some Side.Left ; Some Side.Top; None;
+        None; None; Some Side.Front; Some Side.Right
+    ]
+
     //let lines = Common.getChallengeDataAsArray 2022 22
     //// These have to change depending on which data set you are solving
     //let sideLength = 50
