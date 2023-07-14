@@ -15,6 +15,21 @@ type ElfInfo = {
     proposedLocation: (int * int)
 }
 
+(* 
+    If there is no Elf in the N, NE, or NW adjacent positions, the Elf proposes moving north one step.
+    If there is no Elf in the S, SE, or SW adjacent positions, the Elf proposes moving south one step.
+    If there is no Elf in the W, NW, or SW adjacent positions, the Elf proposes moving west one step.
+    If there is no Elf in the E, NE, or SE adjacent positions, the Elf proposes moving east one step.
+*)
+
+let LookStategies =
+    [|
+        ([|(-1, 0); (-1, -1); (-1, 1)|], (-1, 0))
+        ([|(1, 0); (1, -1); (1, 1)|], (1, 0))
+        ([|(0, -1); (-1, -1); (1, -1)|], (0, -1))
+        ([|(0, 1); (-1, 1); (1, 1)|], (0, 1))
+    |]
+
 type State = 
     {
         elfCount: int
