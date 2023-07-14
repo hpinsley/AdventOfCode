@@ -284,23 +284,23 @@ let moveStateTurn (state:State) (direction:TurnDirection) : State =
 
 // We recurse so we can move one cell at a time so we can check for walls
 let rec moveStateForward (state:State) (distance:int) : State =
-    if (distance = 0)
-    then
-        state
-    else
-        let currentLocation = state.currentLocation
-        let (newSide, newFacing) = rules[(currentLocation.side, state.currentFacing)]
-        let (row, col) = currentLocation.sideRow, currentLocation.sideCol
-        let newSideOpt =
-            match state.currentFacing with
-                    | Facing.Left ->
-                        if (col = 0) then Some (newSide, newFacing) else None
-                    | Facing.Right ->
-                        if (col = (state.sideLength - 1)) then Some (newSide, newFacing) else None
-                    | Facing.Up -> 
-                        if (row = 0) then Some (newSide, newFacing) else None
-                    | Facing.Down ->
-                        if (row = (state.sideLength - 1)) then Some (newSide, newFacing) else None
+    //if (distance = 0)
+    //then
+    //    state
+    //else
+    //    let currentLocation = state.currentLocation
+    //    let (newSide, newFacing) = rules[(currentLocation.side, state.currentFacing)]
+    //    let (row, col) = currentLocation.sideRow, currentLocation.sideCol
+    //    let newSideOpt =
+    //        match state.currentFacing with
+    //                | Facing.Left ->
+    //                    if (col = 0) then Some (newSide, newFacing) else None
+    //                | Facing.Right ->
+    //                    if (col = (state.sideLength - 1)) then Some (newSide, newFacing) else None
+    //                | Facing.Up -> 
+    //                    if (row = 0) then Some (newSide, newFacing) else None
+    //                | Facing.Down ->
+    //                    if (row = (state.sideLength - 1)) then Some (newSide, newFacing) else None
 
         (*
             Compute the new side position.  If we are moving to a new
@@ -328,28 +328,32 @@ let rec moveStateForward (state:State) (distance:int) : State =
             rotated sample how 5 Left folds next to 6 Top.  The rows
             and columns flip.
 
+            Update: I read the comments in /r/adventofcode and coming
+            up with a general solution is pretty hard.  Most people
+            just special cased it.  I don't think I will do that but will
+            move on to day 23
+
         *)
         
-        let (r, c, s, f) =
-            match newSideOpt with
-                | Some (side, facing) -> 
                 
                 
-        let (gridRow, gridCol) = state.helpers.getGridLocation newSide newRow newCol
+        //let (gridRow, gridCol) = state.helpers.getGridLocation newSide newRow newCol
 
-        let newState =
-            if (state.grid.[gridRow, gridCol] = Wall)
-            then
-                state    
-            else
-                let newLocation = state.helpers.getCubeLocation gridRow gridCol
+        //let newState =
+        //    if (state.grid.[gridRow, gridCol] = Wall)
+        //    then
+        //        state    
+        //    else
+        //        let newLocation = state.helpers.getCubeLocation gridRow gridCol
 
-                { state with 
-                        currentFacing = newFacing
-                        currentLocation = newLocation
-                }
+        //        { state with 
+        //                currentFacing = newFacing
+        //                currentLocation = newLocation
+        //        }
 
-        moveStateForward newState (distance - 1)
+        //moveStateForward newState (distance - 1)
+    
+    state   // This is obviously wrong; just keeping the compiler happy
 
 let rec moveState (state:State) : State =
     match state.remainingActions with
