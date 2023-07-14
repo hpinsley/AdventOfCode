@@ -9,59 +9,34 @@ open System.Collections.Generic
 
 let MinuteLimit = 24
 
-type Material =
-    | Ore
-    | Clay
-    | Obsidian
-    | Geode
+type Material = int
 
-let MinRobots = [
-                    //(6, [(Ore, 1); (Clay, 2); (Obsidian, 0); (Geode, 0)])
-                    //(19, [(Ore, 0); (Clay, 0); (Obsidian, 0); (Geode, 1)])
-                    //(22, [(Ore, 0); (Clay, 0); (Obsidian, 1); (Geode, 1)])
-                ]
-
-let getSuccessorMaterial (fromMaterial:Material) : Material option =
-    match fromMaterial with
-        | Ore -> Some Clay
-        | Clay -> Some Obsidian
-        | Obsidian -> Some Geode
-        | Geode -> None
-
-let getSuccessorMaterials (fromMaterial:Material) : Material list =
-    match fromMaterial with
-        | Ore -> [Clay; Obsidian; Geode]
-        | Clay -> [Obsidian; Geode]
-        | Obsidian -> [Geode]
-        | Geode -> []
-
-let getPredecessorMaterial (fromMaterial:Material) : Material option =
-    match fromMaterial with
-        | Ore -> None
-        | Clay -> Some Ore
-        | Obsidian -> Some Clay
-        | Geode -> Some Obsidian
+let Ore = 0
+let Clay = 1
+let Obsidian = 2
+let Geode = 3
 
 type RobotSpec = {
     manufactures: Material
-    requires: Map<Material, int>
-}
-
-type Robot = {
-    spec: RobotSpec;
-    creationMinute: int;
+    requires: int[]
 }
 
 type BluePrint = {
     planNumber: int
-    robotSpecs: Map<Material, RobotSpec>
+    robotSpecs: RobotSpec[]
+    maxValues: int[]
 }
 
 type State = {
-    inventory: Map<Material, int>
-    robots: Robot list
-    minute: int
+    stateId: int
+    parentStateId: int
+    inventory: int[]
+    factory: int[]
+    mutable pendingRobot: int option
+    mutable minute: int
 }
+
+let mutable stateId = 0
 
 let parseMaterial (s:string) : Material =
     match s with
@@ -69,6 +44,31 @@ let parseMaterial (s:string) : Material =
         | "clay" -> Clay
         | "obsidian" -> Obsidian
         | "geode" -> Geode
+
+let SkipThreshholds = [|
+    //(22, [| 1; 4; 2; 2 |])
+    //(21, [| 1; 4; 2; 1 |])
+    //(19, [| 1; 4; 1; 1 |])
+    //(14, [| 1; 4; 1; 0 |])
+    //(6, [| 1; 2; 0; 0 |])
+|]
+
+let shouldSkipState(state:State) : bool =
+    let threshhold = SkipThreshholds
+                        |> Array.tryFind (fun (minute, _) -> state.minute = minute)
+    match threshhold with
+        | Some thresh ->
+                let t = snd thresh
+
+                let result = (state.factory[Ore] < t[Ore]
+                                ||  state.factory[Clay] < t[Clay]
+                                ||  state.factory[Obsidian] < t[Obsidian]
+                                ||  state.factory[Geode] < t[Geode])
+                if (result)
+                then
+                    ()
+                result
+        | None -> false
 
 let makeRobotSpec (m:Match) (robotType:Material) (matchBase:int) : RobotSpec =
     let q1 = int m.Groups[matchBase].Value
@@ -85,120 +85,26 @@ let makeRobotSpec (m:Match) (robotType:Material) (matchBase:int) : RobotSpec =
         
     let robotSpec = {
         manufactures = robotType
-        requires = Map.ofList materials
+        requires = Array.create 4 0
     }
     
+    for requirement in materials do
+        robotSpec.requires[fst requirement] <- snd requirement
+
     robotSpec
 
-let makeRobot (bluePrint:BluePrint) (creationMinute: int) (material:Material) =
-    let spec = bluePrint.robotSpecs[material]
-    let robot = {
-        spec = spec
-        creationMinute = creationMinute
-    }
-    robot
-
-let mutable skipCount = 0
 
 // Create states with all possible robot spawning
-let rec createAltStates (bluePrint: BluePrint) (rootState:State) (siblings:State list) (materialOption:Material option) (robotCount:int): State list =
-    match materialOption with
-        | None -> siblings
-        | Some material ->
 
-            // Skip this robot if we have enough of it to create all successor's
-            // Sum up how much of this material we would need to create one of each
-            // of it's successor robot types.  If we have enough, then skip this robot
-
-            let robotsTypes = getSuccessorMaterials material
-            let maxRequired = if material = Geode
-                              then
-                                1000 // We require as many Geode robots as possible
-                               else
-                                robotsTypes
-                                    |> List.map (fun rt -> bluePrint.robotSpecs[rt].requires
-                                                                    |> Map.tryFind material
-                                                                    |> Option.defaultValue 0)
-                                    |> List.max
-
-            let robotsWeHave = rootState.robots
-                                |> Seq.filter (fun r -> r.spec.manufactures = material)
-                                |> Seq.length
-
-            if (maxRequired > 0 && robotsWeHave >= maxRequired)
-            then
-                // Skip it
-                skipCount <- skipCount + 1
-                printfn "Skipped %d states" skipCount
-                siblings
-            else
-                let requirements = bluePrint.robotSpecs[material].requires
-                let creationMinute = rootState.minute
-
-                let newInventory =
-                
-                    rootState.inventory 
-                        |> Seq.map (fun kvp ->
-                                        let requiredAmount =
-                                            (Map.tryFind kvp.Key requirements)
-                                                |> Option.defaultValue 0
-                                                |> (*) robotCount
-
-                                        (kvp.Key, kvp.Value - requiredAmount)
-                                    )
-                                    |> Map.ofSeq
-
-                let canCreateRobots = newInventory
-                                        |> Map.values
-                                        |> Seq.exists (fun v -> v < 0)
-                                        |> not
-
-                let newStates =
-                    if (canCreateRobots)
-                    then
-                        let newRobots =
-                            seq { 1 .. robotCount}
-                                |> Seq.map (fun _ -> makeRobot bluePrint creationMinute material)
-                                |> List.ofSeq
-
-                        let newState = { rootState with
-                                            robots = rootState.robots |> List.append newRobots
-                                            inventory = newInventory
-                                        }
-                    
-                        createAltStates bluePrint newState (newState :: siblings) materialOption (robotCount + 1)                
-                    else
-                        createAltStates bluePrint rootState (rootState :: siblings) (getPredecessorMaterial material) 0
-            
-                let allStates = List.append siblings newStates
-                let uniqueNewStates = allStates |> List.distinct
-                uniqueNewStates
-
-let shouldBeTrimmed (state:State) : bool =
-    let robotsByMaterial = state.robots 
-                            |> List.groupBy (fun r -> r.spec.manufactures)
-                            |> List.map (fun (m, l) -> (m, l.Length))
-                            |> Map.ofList
-
-    let trimIt = (MinRobots |>
-                    List.exists (fun (t, minRobots) ->
-                                        state.minute >= t &&
-                                        (minRobots |>
-                                            List.exists (fun (m, required) ->
-                                                            let has = Map.tryFind m robotsByMaterial
-                                                                        |> Option.defaultValue 0
-                                                            has < required)
-                                        )))
-    trimIt
 
 let optimizeBlueprint (bluePrint:BluePrint) : int =
-    let robot = makeRobot bluePrint 0 Ore
-    let robots = [ robot ]
 
     let initialState = {
-            inventory = [(Ore, 0); (Clay, 0); (Obsidian, 0); (Geode, 0)]
-                            |> Map.ofSeq
-            robots = robots
+            stateId = 0
+            parentStateId = -1
+            inventory = Array.create 4 0
+            factory = Array.init 4 (fun m -> if m = Ore then 1 else 0)
+            pendingRobot = None
             minute = 0
     }
 
@@ -207,52 +113,113 @@ let optimizeBlueprint (bluePrint:BluePrint) : int =
     let mutable finishedStates = []
 
     let minuteCounter = Dictionary<int,int>()
+    let mostGeodeRobotsPerMinute = seq { 0 .. MinuteLimit }
+                                    |> Seq.map (fun m -> KeyValuePair(m, 0))
+                                    |> fun s -> new Dictionary<int, int>(s)
+
+    let mutable skipCount = 0
 
     while (states.Count > 0) do
-        if (states.Count % 10000 = 0)
+        if (states.Count % 1000000 = 0)
         then
             printfn "State count = %d" states.Count
 
-
-        let dequeuedState = states.Dequeue()
-        if (dequeuedState.minute = MinuteLimit)
+        let state = states.Dequeue()
+        if (state.minute = MinuteLimit)
         then
-            finishedStates <- dequeuedState :: finishedStates
-        elif (shouldBeTrimmed dequeuedState)
+            finishedStates <- state :: finishedStates
+        elif (shouldSkipState state)
         then
-            ()
-        else
-            let state = { dequeuedState with minute = dequeuedState.minute + 1}
-            if (minuteCounter.ContainsKey(state.minute))
+            skipCount <- skipCount + 1
+            if (skipCount % 1 = 0)
             then
-                minuteCounter[state.minute] <- minuteCounter[state.minute] + 1
+                printfn "Skipped %d states based on hardcoded" skipCount
+        else
+            // See if there are state with more geode robots for the same minute
+            let geodeRobots = state.inventory[Geode]
+            let maxGeodeRobots = mostGeodeRobotsPerMinute[state.minute]
+            if (geodeRobots < maxGeodeRobots)
+            then
+                skipCount <- skipCount + 1
+                if (skipCount % 10000000 = 0)
+                then
+                    printfn "Skipped %d states based on GEODE MAX" skipCount
             else
-                printfn "Starting minute %d" state.minute
-                minuteCounter[state.minute] <- 1
+                if (geodeRobots > maxGeodeRobots)
+                then
+                    mostGeodeRobotsPerMinute[state.minute] <- geodeRobots
 
-            let altStates = createAltStates bluePrint state [state] (Some Geode) 0
-            //printfn "altStates: %A" altStates
-            for altState in altStates do
-                let newStuff = altState.robots
-                                |> List.filter (fun r -> state.minute > r.creationMinute)
-                                |> List.countBy (fun r -> r.spec.manufactures)
-                                |> Map.ofList
-                let newInventory = altState.inventory
-                                    |> Map.toList
-                                    |> List.map (fun (m, v) -> 
-                                                        let toAdd = newStuff 
-                                                                        |> Map.tryFind m
-                                                                        |> Option.defaultValue 0     
-                                                        (m, v + toAdd)
-                                                )
-                                    |> Map.ofList
-                let advancedState = { altState with
-                                        minute = state.minute
-                                        inventory = newInventory
-                                    }
-                states.Enqueue(advancedState)
+                // Advance to next minute
+                state.minute <- state.minute + 1
+
+                if (minuteCounter.ContainsKey(state.minute))
+                then
+                    minuteCounter[state.minute] <- minuteCounter[state.minute] + 1
+                else
+                    printfn "Starting minute %d" state.minute
+                    minuteCounter[state.minute] <- 1
+
+                // If we have a pending robot, put it into service in our factory
+                match state.pendingRobot with
+                                | Some m -> state.factory[m] <- state.factory[m] + 1
+                                            state.pendingRobot <- None
+                                | None -> ()
+                    |> ignore
+
+                let newInventory = state.inventory |> Array.mapi (fun i v -> v + state.factory[i])
+
+                //for m in seq { Ore .. Geode } do
+                //    // Collect new inventory
+                //    state.inventory[m] <- state.inventory[m] + state.factory[m]
+
+                // Create new pending robots
+                let mutable createCount = 0
+
+                for m in seq { Ore .. Geode } do
+
+                    //Note that we can do a bit better: For any resource R that's not geode: if you already have X robots creating resource R, 
+                    //a current stock of Y for that resource, T minutes left, and no robot requires more than Z of resource R 
+                    //to build, and X * T+Y >= T * Z, then you never need to build another robot mining R anymore.
+                    let x = state.factory[m]
+                    let y = state.inventory[m]
+                    let t = MinuteLimit - state.minute
+                    let z = bluePrint.maxValues[m]
+                    let v1 = x * t + y
+                    let v2 = t * z
+                    if ((m <> Geode) && (v1 > v2))
+                    then
+                        skipCount <- skipCount + 1
+                        if (skipCount % 100000 = 0)
+                        then
+                            printfn "Skipped %d states based on max values" skipCount
+                    else
+                        let spec = bluePrint.robotSpecs[m]
+                        let potentalInventory = 
+                            state.inventory
+                                |> Array.mapi (fun i onHand -> onHand - spec.requires[i])
+                        if (potentalInventory |> Seq.exists (fun v -> v < 0) |> not)
+                        then
+                            stateId <- stateId + 1
+                            let adjustedInventory = newInventory
+                                                        |> Array.mapi (fun i onHand -> onHand - spec.requires[i])
+                            let altState = { state with
+                                                stateId = stateId
+                                                parentStateId = state.stateId
+                                                inventory = adjustedInventory
+                                                factory = state.factory |> Array.copy
+                                                pendingRobot = Some m
+                                            }
+                    
+                            states.Enqueue altState
+                            createCount <- createCount + 1
+
+                // Enqueue state with no robot creation
+                //if (createCount = 0)
+                //then
+                states.Enqueue { state with inventory = newInventory }
 
     let bestState = finishedStates |> List.maxBy (fun s -> s.inventory[Geode])
+    let bestStates = finishedStates |> List.filter (fun s -> s.inventory[Geode] = bestState.inventory[Geode])
     bestState.inventory[Geode]
 
 let parseLine (line:string) : BluePrint =
@@ -268,25 +235,41 @@ let parseLine (line:string) : BluePrint =
     let clayRobot = makeRobotSpec m Clay 7
     let obsidianRobot = makeRobotSpec m Obsidian 12
     let geodeRobot = makeRobotSpec m Geode 17
-
+    let robotSpecs = [| oreRobot ; clayRobot; obsidianRobot; geodeRobot |]
+    let maxValues = robotSpecs |> Array.fold (fun maxValues spec -> 
+                                                                [|  max spec.requires[Ore] maxValues[Ore];
+                                                                    max spec.requires[Clay] maxValues[Clay];
+                                                                    max spec.requires[Obsidian] maxValues[Obsidian];
+                                                                    max spec.requires[Geode] maxValues[Geode];
+                                                                |]
+                                                ) [| 0; 0; 0; 0 |]
+                    
     let bluePrint = {
         planNumber = int m.Groups[1].Value
-        robotSpecs = [
-                        (Ore, oreRobot)
-                        (Clay, clayRobot)
-                        (Obsidian, obsidianRobot)
-                        (Geode, geodeRobot)
-                     ] |> Map.ofList
+        robotSpecs = robotSpecs
+        maxValues = maxValues
     }
 
     bluePrint
     
 let solve =
+    printfn "Solve has been called"
     let lines = Common.getSampleDataAsArray 2022 19
     // let lines = Common.getChallengeDataAsArray 2022 19
     //printAllLines lines
     let plans = lines |> Array.map parseLine
+
     let bluePrint = plans[0]
     let result = optimizeBlueprint bluePrint
     printfn "Result: %A" result
+
+    //let totalScore = plans
+    //                    |> Array.fold (fun s p -> 
+    //                                       printfn "Starting plan %d" p.planNumber
+    //                                       let geodes = optimizeBlueprint p
+    //                                       let planScore = p.planNumber * geodes
+    //                                       s + planScore
+    //                                ) 0
+    
+    //printfn "The total score is %d" totalScore
     ()
