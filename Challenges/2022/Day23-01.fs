@@ -30,8 +30,14 @@ let LookStategies =
         ([|(0, 1); (-1, 1); (1, 1)|], (0, 1))
     |]
 
+type LookStrategy = {
+    offsetsToCheck: (int * int)[]
+    offsetToMove: (int * int)
+}
+
 type State = 
     {
+        lookStrategies: LookStrategy[]
         elfCount: int
         currentRound: int
         roundsToPlay: int
@@ -61,13 +67,42 @@ let buildState (occupied:(int * int) list) : State =
                     |> Seq.mapi (fun id (row, col) -> { id = id; location = (row, col); proposedLocation = (-1, -1) })
                     |> Seq.toArray
     
+    let lookStrategies =
+        LookStategies
+            |> Array.map (fun (offsets, offsetToMove) -> { offsetsToCheck = offsets; offsetToMove = offsetToMove })
+
     {
+        lookStrategies = lookStrategies
         elfCount = elves.Length
         currentRound = 0
         roundsToPlay = ROUNDS_TO_PLAY
         elves = elves
         occupiedLocations = Dictionary<(int * int), ElfInfo>(elves |> Seq.map (fun elf -> KeyValuePair(elf.location, elf)))
     }
+
+let rec playRounds (state:State) =
+    if (state.currentRound = state.roundsToPlay) then
+        state
+    else
+        printfn "Starting round %d" state.currentRound
+
+        (* First half of round; decide were qeach elf wants to move *)
+        let strategyCount = state.lookStrategies.Length
+
+        let orderedStrategies =
+            seq { 0 .. strategyCount - 1 }
+                |> Seq.map (fun i -> state.lookStrategies[(i + state.currentRound) % strategyCount])
+                |> Array.ofSeq
+     
+        let planningState =
+            seq { 0 .. state.elfCount - 1}
+                |> Seq.fold (fun s i ->
+                                let elf = s.elves.[i]   
+                                state
+                            ) state
+
+        playRounds { state with currentRound = state.currentRound + 1}
+
 
 let solve =
     let lines = Common.getSampleDataAsArray 2022 23
@@ -78,5 +113,7 @@ let solve =
     let occupied = parseLines lines
     printfn "%A" occupied
     let state = buildState occupied
-    printfn "\nState:\n %A" state
+    // printfn "\nState:\n %A" state
+    let finalState = state
+                        |> playRounds
     ()
