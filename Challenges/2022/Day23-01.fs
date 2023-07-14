@@ -11,8 +11,8 @@ let ROUNDS_TO_PLAY = 10
 
 type ElfInfo = {
     id: int
-    location: (int * int)
-    proposedLocation: (int * int)
+    mutable location: (int * int)
+    mutable proposedLocation: (int * int) option
 }
 
 (* 
@@ -64,7 +64,7 @@ let parseLines (lines:string[]) : (int * int) list =
 
 let buildState (occupied:(int * int) list) : State =
     let elves = occupied
-                    |> Seq.mapi (fun id (row, col) -> { id = id; location = (row, col); proposedLocation = (-1, -1) })
+                    |> Seq.mapi (fun id (row, col) -> { id = id; location = (row, col); proposedLocation = None })
                     |> Seq.toArray
     
     let lookStrategies =
@@ -79,6 +79,35 @@ let buildState (occupied:(int * int) list) : State =
         elves = elves
         occupiedLocations = Dictionary<(int * int), ElfInfo>(elves |> Seq.map (fun elf -> KeyValuePair(elf.location, elf)))
     }
+
+let makePlanForElf (strategies:LookStrategy[]) (state:State) (elfIndex:int) : State =
+    let elf = state.elves.[elfIndex]
+    let elfLocation = elf.location
+    let possibleMoves = strategies
+                            |> Array.choose (fun strategy ->
+                                                if (strategy.offsetsToCheck |> Array.exists (fun (rowOffset, colOffset) -> 
+                                                                                            let row = fst elfLocation + rowOffset
+                                                                                            let col = snd elfLocation + colOffset
+                                                                                            state.occupiedLocations.ContainsKey((row, col))
+                                                                                        )
+                                                    ) then
+                                                    None
+                                                else
+                                                    Some strategy.offsetToMove
+                                            )
+    if (possibleMoves.Length > 0)
+    then
+        let (dr, dc) = possibleMoves[0]
+        let (r, c) = elf.location
+        let (row, col) = (r + dr, c + dc)
+        elf.proposedLocation <- Some (row, col)
+    else
+        elf.proposedLocation <- None
+    
+    state
+
+let moveElves (state:State) : State =
+    state
 
 let rec playRounds (state:State) =
     if (state.currentRound = state.roundsToPlay) then
@@ -97,11 +126,15 @@ let rec playRounds (state:State) =
         let planningState =
             seq { 0 .. state.elfCount - 1}
                 |> Seq.fold (fun s i ->
-                                let elf = s.elves.[i]   
+                                let state = makePlanForElf orderedStrategies s i   
                                 state
                             ) state
 
-        playRounds { state with currentRound = state.currentRound + 1}
+        (* Second half, the elves move if they are the only one with that plan *)
+
+        let moveState = moveElves planningState
+
+        playRounds { moveState with currentRound = moveState.currentRound + 1}
 
 
 let solve =
