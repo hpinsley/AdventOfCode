@@ -229,5 +229,6 @@ let solve =
     //printfn "Final state:\n%A\n" finalState
     //showTheGrid finalState
 
+    showTheGrid finalState
     printfn "Final round is %d" finalState.currentRound
     ()
