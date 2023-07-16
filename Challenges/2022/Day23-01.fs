@@ -30,6 +30,12 @@ let LookStategies =
         ([|(0, 1); (-1, 1); (1, 1)|], (0, 1))
     |]
 
+let Neighbors = [|
+                    (-1, -1);   (-1, 0);    (-1, 1)
+                    (0, -1);                (0, 1)
+                    (1, -1);    (1, 0);     (1, 1)
+                |]
+
 type LookStrategy = {
     offsetsToCheck: (int * int)[]
     offsetToMove: (int * int)
@@ -83,37 +89,110 @@ let buildState (occupied:(int * int) list) : State =
 let makePlanForElf (strategies:LookStrategy[]) (state:State) (elfIndex:int) : State =
     let elf = state.elves.[elfIndex]
     let elfLocation = elf.location
-    let possibleMoves = strategies
-                            |> Array.choose (fun strategy ->
-                                                if (strategy.offsetsToCheck |> Array.exists (fun (rowOffset, colOffset) -> 
-                                                                                            let row = fst elfLocation + rowOffset
-                                                                                            let col = snd elfLocation + colOffset
-                                                                                            state.occupiedLocations.ContainsKey((row, col))
-                                                                                        )
-                                                    ) then
-                                                    None
-                                                else
-                                                    Some strategy.offsetToMove
-                                            )
-    if (possibleMoves.Length > 0)
+    let neighbors = Neighbors
+                        |> Array.map (fun (dr, dc) -> (fst elfLocation + dr, snd elfLocation + dc))
+    if (neighbors |> Array.exists (fun (r,c) -> state.occupiedLocations.ContainsKey (r,c)) |> not)
     then
-        let (dr, dc) = possibleMoves[0]
-        let (r, c) = elf.location
-        let (row, col) = (r + dr, c + dc)
-        elf.proposedLocation <- Some (row, col)
+        elf.proposedLocation <- None    // Stay put if you have no neighbors
     else
-        elf.proposedLocation <- None
+        let possibleMoves = strategies
+                                |> Array.choose (fun strategy ->
+                                                    if (strategy.offsetsToCheck |> Array.exists (fun (rowOffset, colOffset) -> 
+                                                                                                let row = fst elfLocation + rowOffset
+                                                                                                let col = snd elfLocation + colOffset
+                                                                                                state.occupiedLocations.ContainsKey((row, col))
+                                                                                            )
+                                                        ) then
+                                                        None
+                                                    else
+                                                        Some strategy.offsetToMove
+                                                )
+        if (possibleMoves.Length > 0)
+        then
+            let (dr, dc) = possibleMoves[0]
+            let (r, c) = elf.location
+            let (row, col) = (r + dr, c + dc)
+            elf.proposedLocation <- Some (row, col)
+        else
+            elf.proposedLocation <- None
     
     state
 
 let moveElves (state:State) : State =
+    (*
+        Move the elves to their proposed locations if they are the only one who is looking to move their
+    *)
+    let movesToMake =
+        state.elves |> Array.choose (fun e -> match e.proposedLocation with 
+                                                | None -> None
+                                                | Some location -> Some (location, e)
+                                    )
+                    |> Array.groupBy (fun tpl -> fst tpl)
+                    |> Array.filter (fun (loc, elves) -> elves.Length = 1)
+                    |> Array.map (fun (loc, elves) -> (loc, snd elves[0]))
+
+    for move in movesToMake do
+        let (loc, elf) = move
+        if (state.occupiedLocations.ContainsKey loc)
+        then
+            failwith "Attempt to move to occupied location"
+
+        state.occupiedLocations.Remove elf.location |> ignore
+        elf.location <- loc
+        state.occupiedLocations[loc] <- elf
+
     state
+        
+type MinMax =
+    {
+        minRow: int
+        minCol: int
+        maxRow: int
+        maxCol: int
+    }
+
+let computeGridExtents (state:State) : MinMax =
+    let extents = state.occupiedLocations.Keys
+                    |> Seq.fold (fun ext loc -> 
+                                    { 
+                                        minRow = min ext.minRow (fst loc)
+                                        minCol = min ext.minCol (snd loc)
+                                        maxRow = max ext.maxRow (fst loc)
+                                        maxCol = max ext.maxCol (snd loc)
+                                    }
+                                 )
+                                                { minRow = Int32.MaxValue; 
+                                                  minCol = Int32.MaxValue;
+                                                  maxRow = Int32.MinValue;
+                                                  maxCol = Int32.MinValue 
+                                                }
+    extents
+
+let showTheGrid (state:State) : unit =
+    let extents = computeGridExtents state
+    let rows = extents.maxRow - extents.minRow + 1
+    let cols = extents.maxCol - extents.minCol + 1
+    let grid = Array2D.initBased extents.minRow extents.minCol rows cols (fun r c ->
+                                                                            state.occupiedLocations.ContainsKey(r,c)
+                                                                          )
+    printfn "\nGrid with extents %A; rows %d cols %d" extents rows cols
+    printGrid grid (fun b -> if b then '#' else '.') 
+
+let computeFinalScore (state:State) : int =
+    let extents = computeGridExtents state
+    let rows = extents.maxRow - extents.minRow + 1
+    let cols = extents.maxCol - extents.minCol + 1
+    let totalCells = rows * cols
+    let occupiedCells = state.occupiedLocations.Count
+    let freeCells = totalCells - occupiedCells
+    freeCells
 
 let rec playRounds (state:State) =
     if (state.currentRound = state.roundsToPlay) then
         state
     else
         printfn "Starting round %d" state.currentRound
+        //showTheGrid state
 
         (* First half of round; decide were qeach elf wants to move *)
         let strategyCount = state.lookStrategies.Length
@@ -136,10 +215,9 @@ let rec playRounds (state:State) =
 
         playRounds { moveState with currentRound = moveState.currentRound + 1}
 
-
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 23
-    // let lines = Common.getChallengeDataAsArray 2022 23
+    // let lines = Common.getSampleDataAsArray 2022 23
+    let lines = Common.getChallengeDataAsArray 2022 23
     printAllLines lines
     printfn ""
 
@@ -149,4 +227,10 @@ let solve =
     // printfn "\nState:\n %A" state
     let finalState = state
                         |> playRounds
+
+    //printfn "Final state:\n%A\n" finalState
+    //showTheGrid finalState
+
+    let finalScore = computeFinalScore finalState
+    printfn "Final score is %d" finalScore
     ()
