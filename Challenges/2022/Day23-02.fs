@@ -7,8 +7,6 @@ open System.Text.RegularExpressions
 open Microsoft.FSharp.Core.Operators.Checked
 open System.Collections.Generic
 
-let ROUNDS_TO_PLAY = 10
-
 type ElfInfo = {
     id: int
     mutable location: (int * int)
@@ -46,9 +44,9 @@ type State =
         lookStrategies: LookStrategy[]
         elfCount: int
         currentRound: int
-        roundsToPlay: int
         elves: ElfInfo[]
         occupiedLocations: Dictionary<(int * int), ElfInfo>
+        moveCount: int
     }
 
 let parseLines (lines:string[]) : (int * int) list =
@@ -81,7 +79,7 @@ let buildState (occupied:(int * int) list) : State =
         lookStrategies = lookStrategies
         elfCount = elves.Length
         currentRound = 0
-        roundsToPlay = ROUNDS_TO_PLAY
+        moveCount = 0
         elves = elves
         occupiedLocations = Dictionary<(int * int), ElfInfo>(elves |> Seq.map (fun elf -> KeyValuePair(elf.location, elf)))
     }
@@ -141,7 +139,7 @@ let moveElves (state:State) : State =
         elf.location <- loc
         state.occupiedLocations[loc] <- elf
 
-    state
+    { state with moveCount = movesToMake.Length }
         
 type MinMax =
     {
@@ -188,7 +186,7 @@ let computeFinalScore (state:State) : int =
     freeCells
 
 let rec playRounds (state:State) =
-    if (state.currentRound = state.roundsToPlay) then
+    if (state.currentRound > 0 && state.moveCount = 0) then
         state
     else
         printfn "Starting round %d" state.currentRound
@@ -216,8 +214,8 @@ let rec playRounds (state:State) =
         playRounds { moveState with currentRound = moveState.currentRound + 1}
 
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 23
-    // let lines = Common.getChallengeDataAsArray 2022 23
+    // let lines = Common.getSampleDataAsArray 2022 23
+    let lines = Common.getChallengeDataAsArray 2022 23
     printAllLines lines
     printfn ""
 
@@ -231,6 +229,5 @@ let solve =
     //printfn "Final state:\n%A\n" finalState
     //showTheGrid finalState
 
-    let finalScore = computeFinalScore finalState
-    printfn "Final score is %d" finalScore
+    printfn "Final round is %d" finalState.currentRound
     ()
