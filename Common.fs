@@ -152,12 +152,20 @@ let findCycle (str: string) : (int * int) =
 
     (int(cycleStartPoint)), cycleLength
 
+(*
+    A-Star path finding algorithm.
+    Not tested yet
+    See https://en.wikipedia.org/wiki/A*_search_algorithm
+    See comment, below, about question about skipping adding neighbor to the
+    openset if it is there already.
+*)
 let aStar 
     (start:'T)                      // The starting node 
     (isGoal:'T -> bool)             // Made this a function in case the goal moves
     (getNeighbers:'T -> 'T list)
-    (h:'T -> int)                   // Heuristic function
-                    : unit =
+    (dist: 'T -> 'T -> int)         // The actual distance/cost between neighbors
+    (h:'T -> int)                   // Heuristic function.  See https://en.wikipedia.org/wiki/A*_search_algorithm
+                    : 'T list =
     
     let gscore = new Dictionary<'T, int>()
     
@@ -172,20 +180,41 @@ let aStar
         if found then valFound else Int32.MaxValue
 
     let cameFrom = new Dictionary<'T,'T>()
+    
     let reconstruct_path (current:'T) : 'T list =
-        HERE
-
-    total_path := {current}
-    while current in cameFrom.Keys:
-        current := cameFrom[current]
-        total_path.prepend(current)
-    return total_path
+        let rec buildPath (current:'T) (descendents:'T list) : 'T list =
+            let p = current :: descendents
+            if (cameFrom.ContainsKey(current))
+            then
+                let parent = cameFrom[current]
+                buildPath parent p
+            else
+                p
+        buildPath current []
 
     let openSet = new PriorityQueue<'T, int>()
     openSet.Enqueue (start, Int32.MaxValue)
+    let mutable current = start
+    while (openSet.Count > 0 && (not (isGoal current))) do
+        current <- openSet.Dequeue()
+        let ourGScore = getGscore current
+        let neighbors = getNeighbers current
+        for n in neighbors do
+            let d = dist current n
+            let tentativeGScore = ourGScore + d
+            let neighborGScore = getGscore n
+            if (tentativeGScore < neighborGScore)
+            then
+                cameFrom[n] <- current
+                gscore[n] <- tentativeGScore
+                let h = getHscore n
+                let fscore = tentativeGScore + h
+                // Technically we should not add n to the openSet if it is already there
+                openSet.Enqueue (n, fscore)
 
-    while (openSet.Count > 0) do
-        let current = openSet.Dequeue()
-
-
-    ()
+    if (isGoal current)
+    then
+        let path = reconstruct_path current
+        path
+    else
+        failwith "openset is empty but goal not reached"
