@@ -10,7 +10,7 @@ open System.Collections.Generic
 type Blizzard =
     {
         id: int
-        position: (int * int)
+        mutable position: (int * int)
         motionDelta: (int * int)
     }
 
@@ -90,5 +90,6 @@ let solve =
     let grid = parseLinesIntoGrid lines
     showTheGrid grid
     let state = parseGridIntoState grid
+    //printfn "State: %A" state
     printfn "Start at: %A and finish at %A" state.start state.finish
     ()

@@ -1,7 +1,9 @@
 module Common
 
+open System
 open System.IO
 open System.Text.RegularExpressions
+open System.Collections.Generic
 
 let bold = fun text -> $"\x1b[1m{text}\x1b[0m"
 let bold_red = fun text -> $"\x1b[1;31m{text}\x1b[0m"
@@ -149,3 +151,41 @@ let findCycle (str: string) : (int * int) =
     let cycleLength = findCycleLength cycleStartPoint 1 cycleStartPoint
 
     (int(cycleStartPoint)), cycleLength
+
+let aStar 
+    (start:'T)                      // The starting node 
+    (isGoal:'T -> bool)             // Made this a function in case the goal moves
+    (getNeighbers:'T -> 'T list)
+    (h:'T -> int)                   // Heuristic function
+                    : unit =
+    
+    let gscore = new Dictionary<'T, int>()
+    
+    let getGscore (node:'T) : int =
+        let (found, valFound) = gscore.TryGetValue(node)
+        if found then valFound else Int32.MaxValue
+
+    let hscore = new Dictionary<'T, int>()
+    
+    let getHscore (node:'T) : int =
+        let (found, valFound) = hscore.TryGetValue(node)
+        if found then valFound else Int32.MaxValue
+
+    let cameFrom = new Dictionary<'T,'T>()
+    let reconstruct_path (current:'T) : 'T list =
+        HERE
+
+    total_path := {current}
+    while current in cameFrom.Keys:
+        current := cameFrom[current]
+        total_path.prepend(current)
+    return total_path
+
+    let openSet = new PriorityQueue<'T, int>()
+    openSet.Enqueue (start, Int32.MaxValue)
+
+    while (openSet.Count > 0) do
+        let current = openSet.Dequeue()
+
+
+    ()
