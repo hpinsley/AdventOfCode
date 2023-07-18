@@ -22,6 +22,8 @@ type Cell =
 type State =
     {
         grid: Cell[,]
+        rows: int
+        cols: int
         start: int * int
         finish: int * int
     }
@@ -63,9 +65,11 @@ let findEmptyColumnInRow (grid:Cell[,]) (row:int) : int * int =
 
 let parseGridIntoState (grid:Cell[,]) : State =
     let rowCount = Array2D.length1 grid
-    
+    let colCount = Array2D.length2 grid
     {
         grid = grid
+        rows = rowCount
+        cols = colCount
         start = findEmptyColumnInRow grid 0
         finish = findEmptyColumnInRow grid (rowCount - 1)
     }
@@ -83,6 +87,31 @@ let showTheGrid (grid:Cell[,]) : unit =
                                             | _ -> failwith "Bad motion delta"
                    )
 
+let solveStateSimple (state:State) =
+    
+    let h (node:int * int) : int =
+        manhattan node state.finish
+    
+    let dist (n1:int * int) (n2:int * int) : int =
+        1
+
+    let isGoal (n:int * int) : bool =
+        n = state.finish
+
+    let getNeighbors (n:int * int) : (int * int) list =
+        let (r,c) = n
+
+        let neighbors = [(-1,0); (1,0); (0,-1); (0,1)]
+                            |> List.map (fun (dr,dc) -> (r + dr, c + dc))
+                            |> List.filter (fun (r,c) -> 
+                                                (r >= 0 && r < state.rows &&
+                                                c >= 0 && c < state.cols)
+                                           )
+        neighbors
+
+    let path = aStar state.start isGoal getNeighbors dist h
+    path
+
 let solve =
     let lines = Common.getSampleDataAsArray 2022 24
     // let lines = Common.getChallengeDataAsArray 2022 24
@@ -92,4 +121,7 @@ let solve =
     let state = parseGridIntoState grid
     //printfn "State: %A" state
     printfn "Start at: %A and finish at %A" state.start state.finish
+
+    let path = solveStateSimple state
+    printfn "Path:\n%A" path
     ()

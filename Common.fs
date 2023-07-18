@@ -152,6 +152,12 @@ let findCycle (str: string) : (int * int) =
 
     (int(cycleStartPoint)), cycleLength
 
+(* Taxicab distance *)
+let manhattan (n1:int * int) (n2:int * int) : int =
+    let (r1,c1) = n1
+    let (r2,c2) = n2
+    (abs r2-r1) + (abs c2-c1)    
+
 (*
     A-Star path finding algorithm.
     Not tested yet
@@ -168,7 +174,8 @@ let aStar
                     : 'T list =
     
     let gscore = new Dictionary<'T, int>()
-    
+    gscore[start] <- 0
+
     let getGscore (node:'T) : int =
         let (found, valFound) = gscore.TryGetValue(node)
         if found then valFound else Int32.MaxValue
