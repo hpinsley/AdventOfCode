@@ -246,31 +246,14 @@ let solveState (state:State) =
                                     )
         available
 
-    let path = aStar start isGoal getNeighbors dist h
-    path
-
-let solveStateSimple (state:State) =
-    let h (node:int * int) : int =
-        manhattan node state.finish
-    
-    let dist (n1:int * int) (n2:int * int) : int =
-        1
-
-    let isGoal (n:int * int) : bool =
-        n = state.finish
-
-    let getNeighbors (n:int * int) : (int * int) list =
-        let (r,c) = n
-
-        let neighbors = [(-1,0); (1,0); (0,-1); (0,1)]
-                            |> List.map (fun (dr,dc) -> (r + dr, c + dc))
-                            |> List.filter (fun (r,c) -> 
-                                                (r >= 0 && r < state.rows &&
-                                                c >= 0 && c < state.cols)
-                                           )
-        neighbors
-
-    let path = aStar state.start isGoal getNeighbors dist h
+    (* TODO:
+        We want to not return neighbors if the t on the neighbor MOD the GCM of the two cycle
+        lengths has been seen before for this (r,c,?).  In order to know this, we have to keep track
+        of everything that hit the queue.  Use that new callback to keep a dictionary -- keyed 
+        only by r,c which contains the set of MOD GCM return values.  If we already encountered
+        it, then we don't want to enque a node with the same location and storm cycle.
+    *)
+    let path = aStar start isGoal getNeighbors dist h None None
     path
 
 let testBlizzards (state:State) =

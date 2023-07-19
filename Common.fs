@@ -171,7 +171,14 @@ let aStar
     (getNeighbers:'T -> 'T list)
     (dist: 'T -> 'T -> int)         // The actual distance/cost between neighbors
     (h:'T -> int)                   // Heuristic function.  See https://en.wikipedia.org/wiki/A*_search_algorithm
-                    : 'T list =
+    
+    // Callbacks
+
+    // This callback will return the node being queued and it's queued h-score
+    (enqueCallback: Option<'T -> int -> unit>)
+    (dequeCallback: Option<'T -> unit>)
+    
+        : 'T list =
     
     let gscore = new Dictionary<'T, int>()
     gscore[start] <- 0
@@ -180,8 +187,16 @@ let aStar
         let (found, valFound) = gscore.TryGetValue(node)
         if found then valFound else Int32.MaxValue
 
-    let hscore = new Dictionary<'T, int>()
-    
+    let notifyEnqueue (node:'T) (hScore:int) : unit =
+        match enqueCallback with
+            | Some f -> f node hScore
+            | None -> ()
+
+    let notifyDequeue (node:'T) : unit =
+        match dequeCallback with
+            | Some f -> f node
+            | None -> ()
+
     let cameFrom = new Dictionary<'T,'T>()
     
     let reconstruct_path (current:'T) : 'T list =
@@ -197,11 +212,18 @@ let aStar
 
     let openSet = new PriorityQueue<'T, int>()
     openSet.Enqueue (start, Int32.MaxValue)
+    notifyEnqueue start Int32.MaxValue
+
     let mutable current = start
     while (openSet.Count > 0 && (not (isGoal current))) do
         current <- openSet.Dequeue()
+        notifyDequeue current
+
         let ourGScore = getGscore current
         let neighbors = getNeighbers current
+        //printfn "Dequeued %A with gScore = %d which has %d neighbors"
+        //        current ourGScore neighbors.Length
+
         for n in neighbors do
             let d = dist current n
             let tentativeGScore = ourGScore + d
@@ -214,6 +236,7 @@ let aStar
                 let fscore = tentativeGScore + hVal
                 // Technically we should not add n to the openSet if it is already there
                 openSet.Enqueue (n, fscore)
+                notifyEnqueue n fscore
 
     if (isGoal current)
     then
