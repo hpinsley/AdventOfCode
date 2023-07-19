@@ -33,6 +33,7 @@ type State =
         horizontalSnowCycleLength: int
         verticalSnowCycleLength: int
         blizzards: Blizzard[]
+        moveableBlizzards: MoveableBlizzard[]
         start: int * int
         finish: int * int
     }
@@ -137,11 +138,11 @@ let parseGridIntoState (grid:Cell[,]) : State =
 
     let colFunc (dc:int) (loc:int * int) (t:int) : (int * int)=
         let (row, col) = loc
-        (row, ((col - 1) + dc) % horizontalSnowCycleLength + 1)
+        (row, ((col - 1) + (t * dc) + horizontalSnowCycleLength) % horizontalSnowCycleLength + 1)
 
     let rowFunc (dr:int) (loc:int * int) (t:int) : (int * int) =
         let (row, col) = loc
-        (((row - 1) + dr) % verticalSnowCycleLength + 1, col)
+        (((row - 1) + (t * dr) + verticalSnowCycleLength) % verticalSnowCycleLength + 1, col)
 
 
         
@@ -157,6 +158,7 @@ let parseGridIntoState (grid:Cell[,]) : State =
         horizontalSnowCycleLength = horizontalSnowCycleLength
         verticalSnowCycleLength = verticalSnowCycleLength
         blizzards = vBlizzards
+        moveableBlizzards = moveableBlizzards
         start = findEmptyColumnInRow grid 0
         finish = findEmptyColumnInRow grid (rowCount - 1)
     }
@@ -199,6 +201,13 @@ let solveStateSimple (state:State) =
     let path = aStar state.start isGoal getNeighbors dist h
     path
 
+let testBlizzards (state:State) =
+    let t = 2
+    for b in state.moveableBlizzards do
+        let loc = b.getFutureLocation t
+        printfn "\nMoving %A to t=%d -> %A" b t loc
+    ()
+
 let solve =
     let lines = Common.getSampleDataAsArray 2022 24
     // let lines = Common.getChallengeDataAsArray 2022 24
@@ -208,6 +217,8 @@ let solve =
     let state = parseGridIntoState grid
     printfn "State: %A" state
     printfn "Start at: %A and finish at %A" state.start state.finish
+
+    testBlizzards state
 
     //let path = solveStateSimple state
     //printfn "Path:\n%A" path
