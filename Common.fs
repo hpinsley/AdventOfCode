@@ -182,10 +182,6 @@ let aStar
 
     let hscore = new Dictionary<'T, int>()
     
-    let getHscore (node:'T) : int =
-        let (found, valFound) = hscore.TryGetValue(node)
-        if found then valFound else Int32.MaxValue
-
     let cameFrom = new Dictionary<'T,'T>()
     
     let reconstruct_path (current:'T) : 'T list =
@@ -214,8 +210,8 @@ let aStar
             then
                 cameFrom[n] <- current
                 gscore[n] <- tentativeGScore
-                let h = getHscore n
-                let fscore = tentativeGScore + h
+                let hVal = h n
+                let fscore = tentativeGScore + hVal
                 // Technically we should not add n to the openSet if it is already there
                 openSet.Enqueue (n, fscore)
 

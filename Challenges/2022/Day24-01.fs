@@ -200,7 +200,7 @@ let solveState (state:State) =
     let (start:Node) = {
         row = fst state.start
         col = snd state.start
-        t = 1
+        t = 0
     }
 
     let h (node:Node) : int =
@@ -220,7 +220,8 @@ let solveState (state:State) =
         let c = n.col
         let t = n.t
 
-        let occupied = getBlizzardLocs t
+        // See where the blizzards are going at t+1
+        let occupied = getBlizzardLocs (t + 1)
 
         let neighbors = [(0,0)
                          (-1,0); (1,0); 
