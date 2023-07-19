@@ -20,6 +20,12 @@ type MoveableBlizzard =
         getFutureLocation: int -> (int * int)
     }
 
+type Node = {
+    row: int
+    col: int
+    t: int
+}
+
 type Cell =
     | Wall
     | Empty
@@ -176,8 +182,73 @@ let showTheGrid (grid:Cell[,]) : unit =
                                             | _ -> failwith "Bad motion delta"
                    )
 
-let solveStateSimple (state:State) =
+let solveState (state:State) =
     
+    let timeCache = new Dictionary<int, (int * int)[]>()
+
+    let getBlizzardLocs (t:int) : (int * int)[] =
+        let (found, locs) = timeCache.TryGetValue(t)
+        if (found)
+        then
+            locs
+        else
+            let moved =
+                state.moveableBlizzards |> Array.map (fun b -> b.getFutureLocation t)
+            timeCache[t] <- moved
+            moved
+
+    let (start:Node) = {
+        row = fst state.start
+        col = snd state.start
+        t = 1
+    }
+
+    let h (node:Node) : int =
+        manhattan (node.row, node.col) state.finish
+    
+    let dist (n1:Node) (n2:Node) : int =
+        1
+
+    let isGoal (n:Node) : bool =
+        (n.row, n.col) = state.finish
+
+    // Our neighbors will include us (but, like all
+    // the normal neighbors, t will be incremented by 1
+    // to make a unique node
+    let getNeighbors (n:Node) : Node list =
+        let r = n.row
+        let c = n.col
+        let t = n.t
+
+        let occupied = getBlizzardLocs t
+
+        let neighbors = [(0,0)
+                         (-1,0); (1,0); 
+                         (0,-1); (0,1)]
+                            |> List.map (fun (dr,dc) -> (r + dr, c + dc))
+                            |> List.filter (fun (r,c) -> 
+                                                (r > 0 && r < state.rows - 1 &&
+                                                c > 0 && c < state.cols - 1)
+                                           )
+                            |> List.filter (fun (r,c) ->
+                                                occupied 
+                                                    |> Array.exists (fun taken -> r = fst taken && c = snd taken)
+                                                    |> not
+                                           )
+        let available = neighbors 
+                        |> List.map (fun (r,c) -> 
+                                        {
+                                            row = r
+                                            col = c
+                                            t = t + 1
+                                         }
+                                    )
+        available
+
+    let path = aStar start isGoal getNeighbors dist h
+    path
+
+let solveStateSimple (state:State) =
     let h (node:int * int) : int =
         manhattan node state.finish
     
@@ -218,8 +289,8 @@ let solve =
     printfn "State: %A" state
     printfn "Start at: %A and finish at %A" state.start state.finish
 
-    testBlizzards state
+    //testBlizzards state
 
-    //let path = solveStateSimple state
-    //printfn "Path:\n%A" path
+    let path = solveState state
+    printfn "Path:\n%A" path
     ()
