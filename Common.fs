@@ -156,7 +156,15 @@ let findCycle (str: string) : (int * int) =
 let manhattan (n1:int * int) (n2:int * int) : int =
     let (r1,c1) = n1
     let (r2,c2) = n2
-    (abs r2-r1) + (abs c2-c1)    
+    (abs r2-r1) + (abs c2-c1)
+    
+let rec gcd (n1:int) (n2:int) =
+    if n2 = 0 then n1
+    else gcd n2 (n1 % n2)
+
+let lcm (n1:int) (n2:int) =
+    let g = gcd n1 n2
+    ((abs n1) / g) * (abs n2)
 
 (*
     A-Star path finding algorithm.

@@ -270,11 +270,16 @@ let solve =
     let grid = parseLinesIntoGrid lines
     showTheGrid grid
     let state = parseGridIntoState grid
-    printfn "State: %A" state
-    printfn "Start at: %A and finish at %A" state.start state.finish
+    //printfn "State: %A" state
+    //printfn "Start at: %A and finish at %A" state.start state.finish
 
-    //testBlizzards state
+    //let path = solveState state
+    //printfn "Path:\n%A" path
 
-    let path = solveState state
-    printfn "Path:\n%A" path
+    let n1 = 12
+    let n2 = 18
+    let lcm = Common.lcm n1 n2
+    let gcd = Common.gcd n1 n2
+    printfn "LCM of %d and %d is %d and the gcd is %d" n1 n2 lcm gcd
+
     ()
