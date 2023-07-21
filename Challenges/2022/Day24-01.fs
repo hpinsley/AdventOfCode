@@ -38,6 +38,7 @@ type State =
         cols: int
         horizontalSnowCycleLength: int
         verticalSnowCycleLength: int
+        leastCommonCycleMultiple: int
         blizzards: Blizzard[]
         moveableBlizzards: MoveableBlizzard[]
         start: int * int
@@ -131,6 +132,8 @@ let parseGridIntoState (grid:Cell[,]) : State =
 
     let horizontalSnowCycleLength = colCount - 2
     let verticalSnowCycleLength = rowCount - 2
+    let leastCommonCycleMultiple = lcm horizontalSnowCycleLength verticalSnowCycleLength
+
     let mutable blizzards = []
 
     grid |> Array2D.iter (fun cell ->
@@ -163,6 +166,7 @@ let parseGridIntoState (grid:Cell[,]) : State =
         cols = colCount
         horizontalSnowCycleLength = horizontalSnowCycleLength
         verticalSnowCycleLength = verticalSnowCycleLength
+        leastCommonCycleMultiple = leastCommonCycleMultiple
         blizzards = vBlizzards
         moveableBlizzards = moveableBlizzards
         start = findEmptyColumnInRow grid 0
@@ -264,22 +268,16 @@ let testBlizzards (state:State) =
     ()
 
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 24
-    // let lines = Common.getChallengeDataAsArray 2022 24
+    // let lines = Common.getSampleDataAsArray 2022 24
+    let lines = Common.getChallengeDataAsArray 2022 24
     // printAllLines lines
     let grid = parseLinesIntoGrid lines
     showTheGrid grid
     let state = parseGridIntoState grid
-    //printfn "State: %A" state
+    printfn "State: %A" state
     //printfn "Start at: %A and finish at %A" state.start state.finish
 
     //let path = solveState state
     //printfn "Path:\n%A" path
-
-    let n1 = 12
-    let n2 = 18
-    let lcm = Common.lcm n1 n2
-    let gcd = Common.gcd n1 n2
-    printfn "LCM of %d and %d is %d and the gcd is %d" n1 n2 lcm gcd
 
     ()
