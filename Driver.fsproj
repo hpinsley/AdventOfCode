@@ -43,6 +43,7 @@
       <Compile Include="Challenges\2022\Day23-02.fs" />
       <Compile Include="Challenges\2022\Day24-01.fs" />
       <Compile Include="Challenges\2022\Day24-02.fs" />
+      <Compile Include="Challenges\2022\Day25-01.fs" />
       <Compile Include="Challenges\2018\Day01.fs" />
       <Compile Include="Challenges\2018\Day02.fs" />
       <Compile Include="Challenges\2018\Day03.fs" />
