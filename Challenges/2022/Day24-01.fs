@@ -240,7 +240,8 @@ let solveState (state:State) =
                                 |> List.map (fun (dr,dc) -> (r + dr, c + dc))
                                 |> List.filter (fun (r,c) -> 
                                                     (
-                                                      ((r,c) = state.finish)
+                                                         ((r,c) = state.finish)
+                                                      || ((r,c) = state.start)
                                                       || ((r > 0 && r < state.rows - 1) &&
                                                          (c > 0 && c < state.cols - 1)))
                                                )
@@ -284,13 +285,13 @@ let testBlizzards (state:State) =
     ()
 
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 24
-    // let lines = Common.getChallengeDataAsArray 2022 24
+    // let lines = Common.getSampleDataAsArray 2022 24
+    let lines = Common.getChallengeDataAsArray 2022 24
     // printAllLines lines
     let grid = parseLinesIntoGrid lines
     showTheGrid grid
     let state = parseGridIntoState grid
-    printfn "State: %A" state
+    // printfn "State: %A" state
     //printfn "Start at: %A and finish at %A" state.start state.finish
 
     let path = solveState state
