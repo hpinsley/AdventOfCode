@@ -279,6 +279,10 @@ let testBlizzards (state:State) =
         printfn "\nMoving %A to t=%d -> %A" b t loc
     ()
 
+let printPath (path:Node list) : unit =
+    for p in path do
+        printfn "Time: %d -> (%d,%d)" p.t p.row p.col
+
 let solve =
     // let lines = Common.getSampleDataAsArray 2022 24
     let lines = Common.getChallengeDataAsArray 2022 24
@@ -291,12 +295,22 @@ let solve =
     // printfn "State: %A" state
     //printfn "Start at: %A and finish at %A" state.start state.finish
 
-    let path = solveState state
-    let trip1Final = List.last path
-    printfn "Trip 1 ends at %A" trip1Final
+    let trip1Path = solveState state
+    printfn "\nTrip1 path:\n"
+    printPath trip1Path
+    let trip1Final = List.last trip1Path
 
-    printfn "Final path:\n"
-    for p in path do
-        printfn "Time: %d -> (%d,%d)" p.t p.row p.col
+    let trip2State = { state with start = trip1Final; finish = (state.start.row, state.start.col) }
+    let trip2Path = solveState trip2State
+
+    printfn "\nTrip2 path:\n"
+    printPath trip2Path
+    let trip2Final = List.last trip2Path
+
+    let trip3State = { state with start = trip2Final; finish = state.finish }
+    let trip3Path = solveState trip3State
+    
+    printfn "\nTrip3 path:\n"
+    printPath trip3Path
 
     ()
