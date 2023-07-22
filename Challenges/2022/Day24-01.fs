@@ -147,11 +147,11 @@ let parseGridIntoState (grid:Cell[,]) : State =
 
     let colFunc (dc:int) (loc:int * int) (t:int) : (int * int)=
         let (row, col) = loc
-        (row, ((col - 1) + (t * dc) + horizontalSnowCycleLength) % horizontalSnowCycleLength + 1)
+        (row, ((col - 1) + (t * dc) + t * horizontalSnowCycleLength) % horizontalSnowCycleLength + 1)
 
     let rowFunc (dr:int) (loc:int * int) (t:int) : (int * int) =
         let (row, col) = loc
-        (((row - 1) + (t * dr) + verticalSnowCycleLength) % verticalSnowCycleLength + 1, col)
+        (((row - 1) + (t * dr) + t * verticalSnowCycleLength) % verticalSnowCycleLength + 1, col)
         
     let factory = createMoveableBlizzard colFunc rowFunc
 
@@ -255,7 +255,7 @@ let solveState (state:State) =
                                             {
                                                 row = r
                                                 col = c
-                                                t = (t + 1) % state.leastCommonCycleMultiple
+                                                t = (t + 1)
                                              }
                                         )
             
@@ -294,6 +294,8 @@ let solve =
     //printfn "Start at: %A and finish at %A" state.start state.finish
 
     let path = solveState state
-    printfn "Path:\n%A" path
+    printfn "Final path:\n"
+    for p in path do
+        printfn "Time: %d -> (%d,%d)" p.t p.row p.col
 
     ()
