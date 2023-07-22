@@ -152,9 +152,6 @@ let parseGridIntoState (grid:Cell[,]) : State =
     let rowFunc (dr:int) (loc:int * int) (t:int) : (int * int) =
         let (row, col) = loc
         (((row - 1) + (t * dr) + verticalSnowCycleLength) % verticalSnowCycleLength + 1, col)
-
-
-        
         
     let factory = createMoveableBlizzard colFunc rowFunc
 
@@ -186,20 +183,16 @@ let showTheGrid (grid:Cell[,]) : unit =
                                             | _ -> failwith "Bad motion delta"
                    )
 
+let x = 1
+
 let solveState (state:State) =
     
-    let timeCache = new Dictionary<int, (int * int)[]>()
+    let neighborCache = new Dictionary<Node,Node list>()
 
     let getBlizzardLocs (t:int) : (int * int)[] =
-        let (found, locs) = timeCache.TryGetValue(t)
-        if (found)
-        then
-            locs
-        else
-            let moved =
-                state.moveableBlizzards |> Array.map (fun b -> b.getFutureLocation t)
-            timeCache[t] <- moved
-            moved
+        let moved =
+            state.moveableBlizzards |> Array.map (fun b -> b.getFutureLocation t)
+        moved
 
     let (start:Node) = {
         row = fst state.start
@@ -216,39 +209,62 @@ let solveState (state:State) =
     let isGoal (n:Node) : bool =
         (n.row, n.col) = state.finish
 
+    let notifyEnqueue (node:'T) (fScore:int) : unit =
+        printfn "Enqueing %A with F-Score %d" node fScore
+
+    let notifyDequeue (node:'T) : unit =
+        printfn "Dequeueing %A" node
+
     // Our neighbors will include us (but, like all
     // the normal neighbors, t will be incremented by 1
     // to make a unique node
-    let getNeighbors (n:Node) : Node list =
-        let r = n.row
-        let c = n.col
-        let t = n.t
+    let getNeighbors (node:Node) : Node list =
+        let r = node.row
+        let c = node.col
+        let t =  node.t
+        
+        let equivalentNode = {
+            row = r; col = c; t = t % state.leastCommonCycleMultiple
+        }
 
-        // See where the blizzards are going at t+1
-        let occupied = getBlizzardLocs (t + 1)
+        if (neighborCache.ContainsKey equivalentNode)
+        then
+            neighborCache[equivalentNode]
+        else
+            // See where the blizzards are going at t+1
+            let occupied = getBlizzardLocs ((t + 1) % state.leastCommonCycleMultiple)
 
-        let neighbors = [(0,0)
-                         (-1,0); (1,0); 
-                         (0,-1); (0,1)]
-                            |> List.map (fun (dr,dc) -> (r + dr, c + dc))
-                            |> List.filter (fun (r,c) -> 
-                                                (r > 0 && r < state.rows - 1 &&
-                                                c > 0 && c < state.cols - 1)
-                                           )
-                            |> List.filter (fun (r,c) ->
-                                                occupied 
-                                                    |> Array.exists (fun taken -> r = fst taken && c = snd taken)
-                                                    |> not
-                                           )
-        let available = neighbors 
-                        |> List.map (fun (r,c) -> 
-                                        {
-                                            row = r
-                                            col = c
-                                            t = t + 1
-                                         }
-                                    )
-        available
+            let neighbors = [(0,0)
+                             (-1,0); (1,0); 
+                             (0,-1); (0,1)]
+                                |> List.map (fun (dr,dc) -> (r + dr, c + dc))
+                                |> List.filter (fun (r,c) -> 
+                                                    (
+                                                      ((r,c) = state.finish)
+                                                      || ((r > 0 && r < state.rows - 1) &&
+                                                         (c > 0 && c < state.cols - 1)))
+                                               )
+            let notBlocked = neighbors
+                                |> List.filter (fun (r,c) ->
+                                                    occupied 
+                                                        |> Array.exists (fun taken -> r = fst taken && c = snd taken)
+                                                        |> not
+                                               )
+            let available = notBlocked 
+                            |> List.map (fun (r,c) -> 
+                                            {
+                                                row = r
+                                                col = c
+                                                t = (t + 1) % state.leastCommonCycleMultiple
+                                             }
+                                        )
+            
+            neighborCache[equivalentNode] <- available
+            if (available.Length = 0)
+            then
+                printfn "There are no moves for %A" node
+
+            available
 
     (* TODO:
         We want to not return neighbors if the t on the neighbor MOD the GCM of the two cycle
@@ -257,7 +273,7 @@ let solveState (state:State) =
         only by r,c which contains the set of MOD GCM return values.  If we already encountered
         it, then we don't want to enque a node with the same location and storm cycle.
     *)
-    let path = aStar start isGoal getNeighbors dist h None None
+    let path = aStar start isGoal getNeighbors dist h (Some notifyEnqueue) (Some notifyDequeue)
     path
 
 let testBlizzards (state:State) =
@@ -268,8 +284,8 @@ let testBlizzards (state:State) =
     ()
 
 let solve =
-    // let lines = Common.getSampleDataAsArray 2022 24
-    let lines = Common.getChallengeDataAsArray 2022 24
+    let lines = Common.getSampleDataAsArray 2022 24
+    // let lines = Common.getChallengeDataAsArray 2022 24
     // printAllLines lines
     let grid = parseLinesIntoGrid lines
     showTheGrid grid
@@ -277,7 +293,7 @@ let solve =
     printfn "State: %A" state
     //printfn "Start at: %A and finish at %A" state.start state.finish
 
-    //let path = solveState state
-    //printfn "Path:\n%A" path
+    let path = solveState state
+    printfn "Path:\n%A" path
 
     ()

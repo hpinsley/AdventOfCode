@@ -195,9 +195,9 @@ let aStar
         let (found, valFound) = gscore.TryGetValue(node)
         if found then valFound else Int32.MaxValue
 
-    let notifyEnqueue (node:'T) (hScore:int) : unit =
+    let notifyEnqueue (node:'T) (fScore:int) : unit =
         match enqueCallback with
-            | Some f -> f node hScore
+            | Some f -> f node fScore
             | None -> ()
 
     let notifyDequeue (node:'T) : unit =
