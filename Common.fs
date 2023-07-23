@@ -252,3 +252,30 @@ let aStar
         path
     else
         failwith "openset is empty but goal not reached"
+
+let convertBase10ToBaseN (n:int64) (numericBase:int64) : int64 =
+    let rec convert (n:int64) (prior:int64 list) : int64 list =
+        if n = 0
+        then
+            prior
+        else
+            let q = n / numericBase
+            let r = n % numericBase
+            convert q (r :: prior)
+    let digits = convert n []
+    if (digits.Length = 0)
+    then
+        0
+    else
+        digits |> List.fold (fun (acc:int64) (d:int64) -> acc * 10L + d) 0
+
+let convertBaseNToBase10 (n:int64) (numericBase:int64) : int64 =
+    let digits = n.ToString() |> Seq.map (fun c -> int64(c) - int64('0')) |> List.ofSeq |> List.rev
+    let (total, _) = digits 
+                        |> List.fold (fun (total, place) (d:int64) -> 
+                                        let newTotal = total + (pown numericBase place) * d
+                                        (newTotal, place + 1)
+                                     )
+                                     (0L, 0)
+
+    total
