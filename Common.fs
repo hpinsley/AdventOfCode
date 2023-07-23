@@ -4,6 +4,7 @@ open System
 open System.IO
 open System.Text.RegularExpressions
 open System.Collections.Generic
+open Microsoft.FSharp.Core.Operators.Checked
 
 let bold = fun text -> $"\x1b[1m{text}\x1b[0m"
 let bold_red = fun text -> $"\x1b[1;31m{text}\x1b[0m"
@@ -253,21 +254,22 @@ let aStar
     else
         failwith "openset is empty but goal not reached"
 
-let convertBase10ToBaseN (n:int64) (numericBase:int64) : int64 =
-    let rec convert (n:int64) (prior:int64 list) : int64 list =
+let convertBase10ToBaseN (n:int64) (numericBase:int64) : string =
+    let rec convert (n:int64) (prior:string list) : string list =
         if n = 0
         then
             prior
         else
             let q = n / numericBase
             let r = n % numericBase
-            convert q (r :: prior)
+            convert q (string r :: prior)
     let digits = convert n []
     if (digits.Length = 0)
     then
-        0
+        "0"
     else
-        digits |> List.fold (fun (acc:int64) (d:int64) -> acc * 10L + d) 0
+        digits |> List.fold (fun prior digit -> prior + digit) ""
+
 
 let convertBaseNToBase10 (n:int64) (numericBase:int64) : int64 =
     let digits = n.ToString() |> Seq.map (fun c -> int64(c) - int64('0')) |> List.ofSeq |> List.rev

@@ -7,14 +7,6 @@ open System.Text.RegularExpressions
 open Microsoft.FSharp.Core.Operators.Checked
 open System.Collections.Generic
 
-let testBaseArithmetic() : unit =
-    while (true) do
-    printf("Enter a base 10 number: ")
-    let input = Console.ReadLine()
-    let number = int input
-    let converted = convertBase10ToBaseN number 5
-    printfn "%d base 10 is %d base 5" number converted
-
 let testBaseToDecimalArithmetic() : unit =
     while (true) do
         printf("Enter a base 5 number: ")
@@ -42,19 +34,49 @@ let snafuToDecimal (s:string) : int64 =
     grandTotal
 
 let decimalToSnafu (n:int64) : string =
-    let base5 = convertBase10ToBaseN n 5 |> string
-    let digits = base5 |> List.ofSeq |> List.map int64 |> List.rev
-    let acc = (0, [])
-    ""
+    let base5 = convertBase10ToBaseN n 5
+    let digits = base5 |> List.ofSeq |> List.map (string >> parseInt) |> List.map int64 |>List.rev
+    let acc = (0L, [])
+    let result = digits |>
+                    List.fold (
+                        fun (carry, prior) d ->
+                            let newTotal = carry + d
+                            let x = match newTotal with
+                                    | 0L -> (0L, '0' :: prior)
+                                    | 1L -> (0L, '1' :: prior)
+                                    | 2L -> (0L, '2' :: prior)
+                                    | 3L -> (1L, '=' :: prior)
+                                    | 4L -> (1L, '-' :: prior)
+                                    | 5L -> (1L, '0' :: prior)
+                                    | _ -> failwith "Invalid digit"
+
+                            x
+                        ) acc
+
+    let withoutFinalCarray = snd result |> List.ofSeq |> List.map string |> String.concat ""
+    let finalCarry = fst result
+    if (finalCarry = 0L)
+    then
+        withoutFinalCarray
+    else
+        string finalCarry + withoutFinalCarray
+
+let testDecimalToSnafu() : unit =
+    while (true) do
+        printf("Enter a decimal number: ")
+        let input = Console.ReadLine()
+        let number = int input
+        let converted = decimalToSnafu number
+        printfn "%d decimal is %s snafu" number converted
 
 let solve =
-    let lines = Common.getSampleDataAsArray 2022 25
-    // let lines = Common.getChallengeDataAsArray 2022 25
+    // let lines = Common.getSampleDataAsArray 2022 25
+    let lines = Common.getChallengeDataAsArray 2022 25
     printAllLines lines
     let total = lines
                 |> Array.fold (fun total line -> total + snafuToDecimal line) 0L
     printfn "Total is %d" total
 
-    testBaseToDecimalArithmetic()
-
+    let answer = decimalToSnafu total
+    printfn "Part 1: %s" answer
     ()
