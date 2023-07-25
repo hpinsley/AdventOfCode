@@ -281,3 +281,11 @@ let convertBaseNToBase10 (n:int64) (numericBase:int64) : int64 =
                                      (0L, 0)
 
     total
+
+let binaryStringToInt (s:string) : int =
+    s |> Seq.fold (fun v c ->
+                    match c with 
+                        | '0' -> 2 * v
+                        | '1' -> 2 * v + 1
+                        | _ -> failwith "Invalid binary digit"
+                    ) 0
