@@ -49,27 +49,33 @@ let computeValues (colCounts:ColCounts[]) : (int * int) =
                                     (0, 0)
     (epsilon, gamma)
 
-let getOxygenRating (lines:string[]) : int =
+let filterValuesUntilOneRemaining (lines:string[]) (bitToUse:ColCounts -> int) : int =
     let columns = lines[0].Length
 
     let remaining = seq { 0 .. columns - 1}
                     |> Seq.fold (fun (codes:string[]) c ->
                                     printfn "Checking column %d" c
                                     let colCount = getColCount codes c
+                                    let testBit = bitToUse colCount
                                     if (codes.Length = 1)
                                     then
                                         codes
                                     else
                                        codes
-                                            |> Array.filter (fun s -> s[colCount.colIndex] = char ((int '0') + colCount.mostCommonBit))
+                                            |> Array.filter (fun s -> s[colCount.colIndex] = char ((int '0') + testBit))
 
                               ) lines
-    printfn "x = %A" remaining
     binaryStringToInt remaining[0]
 
+let getOxygenRating (lines:string[])  : int =
+    filterValuesUntilOneRemaining lines (fun colCount -> colCount.mostCommonBit)
+
+let getCo2Rating (lines:string[])  : int =
+    filterValuesUntilOneRemaining lines (fun colCount -> colCount.leastCommonBit)
+
 let solve =
-    let lines = Common.getSampleDataAsArray 2021 3
-    // let lines = Common.getChallengeDataAsArray 2021 3
+    // let lines = Common.getSampleDataAsArray 2021 3
+    let lines = Common.getChallengeDataAsArray 2021 3
     // printAllLines lines
 
     let colCounts = getColumnBitCounts lines
@@ -80,5 +86,9 @@ let solve =
     
     let oxygenRating = getOxygenRating lines
     printfn "Oxygen rating is %d" oxygenRating
+    let co2Rating = getCo2Rating lines
+    printfn "The CO2 rating is %d" co2Rating
+    let lifeSupport = oxygenRating * co2Rating
+    printfn "Life support: %d" lifeSupport
 
     ()
