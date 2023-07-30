@@ -34,10 +34,10 @@ let getBingoCards (lines:string[]) : BingoCard[] =
         then
             let cardLines = lines[1..5]
             let bingoCard = makeBingoCard cardLines
-            let remaining = lines[6..]
+            let remaining = recs[6..]
             getCard remaining (bingoCard :: priors)
         else
-            []
+            priors
 
     getCard lines [] |> Array.ofList
 
