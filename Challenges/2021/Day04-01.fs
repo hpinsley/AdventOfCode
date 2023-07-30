@@ -18,9 +18,17 @@ type BingoCard =
         vCard: BingoCell[,]
     }
 
+let printCard (card:BingoCard) : unit =
+    printfn ""
+    for r in seq { 0 .. 4 } do
+        printfn ""
+        for c in seq { 0 .. 4 } do
+            printf "%s: %2d" (if (card.vCard[r,c].matched) then "M" else " ") card.vCard[r,c].bingoNumber
+
 let makeBingoCard (cardLines:string[]) : BingoCard =
-    let board = Array2D.create 5 5 { bingoNumber = 0; matched = false }
-    
+    let values = cardLines |> Array.map (fun line -> line.Split(' ') |> Array.filter (fun s -> s.Length > 0) |> Array.map int)
+    let board = Array2D.init 5 5 (fun r c -> { bingoNumber = values[r][c]; matched = false })
+        
     {
         vCard = board
     }
@@ -32,14 +40,14 @@ let getBingoCards (lines:string[]) : BingoCard[] =
     let rec getCard (recs:string[]) (priors:BingoCard list) : BingoCard list =
         if (recs.Length > 0 && recs[0].Length = 0)
         then
-            let cardLines = lines[1..5]
+            let cardLines = recs[1..5]
             let bingoCard = makeBingoCard cardLines
             let remaining = recs[6..]
             getCard remaining (bingoCard :: priors)
         else
             priors
 
-    getCard lines [] |> Array.ofList
+    getCard lines [] |> List.rev |> Array.ofList
 
 let solve =
     let lines = Common.getSampleDataAsArray 2021 4
@@ -49,6 +57,6 @@ let solve =
     let bingoCards = getBingoCards lines[1..]
 
     printfn "Bingo numbers: %A" bingoNumbers
-    printfn "Bingo cards:\n%A" bingoCards
     printfn "There are %d bingo cards" bingoCards.Length
+    bingoCards |> Array.iter printCard
     ()
