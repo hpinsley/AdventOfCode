@@ -49,14 +49,88 @@ let getBingoCards (lines:string[]) : BingoCard[] =
 
     getCard lines [] |> List.rev |> Array.ofList
 
+let markNumberOnOneCard (card:BingoCard) (n:int) : bool =
+    let mutable (matchingCell:Option<int * int>) = None
+
+    card.vCard |> Array2D.iteri (fun r c bingoCell -> 
+                                    if (bingoCell.bingoNumber = n) 
+                                    then
+                                        bingoCell.matched <- true
+                                        matchingCell <- Some (r, c)
+                                )
+
+    match matchingCell with
+        | None -> false
+        | Some (matchingRow, matchingCol) ->
+            let rowWins = seq {0 .. 4 } 
+                             |> Seq.map (fun c -> card.vCard[matchingRow, c])
+                             |> Seq.exists (fun vCard -> not vCard.matched)
+                             |> not
+            let colWins = seq {0 .. 4 } 
+                             |> Seq.map (fun r -> card.vCard[r, matchingCol])
+                             |> Seq.exists (fun vCard -> not vCard.matched)
+                             |> not
+            rowWins || colWins
+
+let markNumberOnAllCards (cards:BingoCard[]) (calledNumber:int) : BingoCard option =
+    let mutable (winningCard:BingoCard option) = None
+    cards |> Array.iter (fun card -> 
+                            let cardWins = markNumberOnOneCard card calledNumber
+                            if (cardWins)
+                            then
+                                winningCard <- Some card
+                          )
+    winningCard
+
+let playBingo (cards:BingoCard[]) (numbers:int[]) : (Option<BingoCard> * int) =
+    let mutable (winningCard:BingoCard option) = None
+    let mutable winningNumber = 0
+    numbers |> Array.iter (fun n -> 
+                                match winningCard with
+                                    | None -> 
+                                        winningCard <- markNumberOnAllCards cards n
+                                        if (winningCard |> Option.isSome)
+                                        then
+                                            winningNumber <- n
+                                        ()
+                                    | Some card ->
+                                        //Ignore the remaining numbers
+                                        ()
+                          )
+    
+    (winningCard, winningNumber)
+
+let computeScore (winningBoard:BingoCard option) (winningNumber:int) =
+    let mutable unmarkedCount = 0
+    match winningBoard with
+        | None -> 0
+        | Some card ->
+            card.vCard
+                |> Array2D.iter (fun cell -> 
+                                    if (not cell.matched) 
+                                        then
+                                            unmarkedCount <- unmarkedCount + cell.bingoNumber
+                                )
+            unmarkedCount * winningNumber
+
+
+
 let solve =
-    let lines = Common.getSampleDataAsArray 2021 4
-    // let lines = Common.getChallengeDataAsArray 2021 4
-    printAllLines lines
+    // let lines = Common.getSampleDataAsArray 2021 4
+    let lines = Common.getChallengeDataAsArray 2021 4
+    // printAllLines lines
+    
     let bingoNumbers = getBingoNumbers lines[0]
     let bingoCards = getBingoCards lines[1..]
 
     printfn "Bingo numbers: %A" bingoNumbers
     printfn "There are %d bingo cards" bingoCards.Length
-    bingoCards |> Array.iter printCard
+    //bingoCards |> Array.iter printCard
+
+    printfn "\nPlaying..."
+
+    let (winningBoard, winningNumber) = playBingo bingoCards bingoNumbers
+    let score = computeScore winningBoard winningNumber
+
+    printfn "\nScore: %d" score
     ()
