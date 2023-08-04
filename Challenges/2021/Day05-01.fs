@@ -26,11 +26,15 @@ let parseLine (line:string) : Line =
 let parseLines (lines:string[]) : Line[] =
     lines |> Array.map parseLine
 
+let part1(segments:Line[]) : unit =
+    printfn "There are %d line segments" segments.Length
+
 let solve =
     let lines = Common.getSampleDataAsArray 2021 5
     // let lines = Common.getChallengeDataAsArray 2021 5
     // printAllLines lines
 
     let segments = parseLines lines
-    printfn "%A" segments
+    let result = part1 segments
+
     ()
