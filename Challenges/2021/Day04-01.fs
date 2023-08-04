@@ -15,6 +15,9 @@ type BingoCell =
 
 type BingoCard =
     {
+        mutable hasWon: bool;
+        mutable winningNumber: int;
+        mutable callIndex: int
         vCard: BingoCell[,]
     }
 
@@ -30,6 +33,9 @@ let makeBingoCard (cardLines:string[]) : BingoCard =
     let board = Array2D.init 5 5 (fun r c -> { bingoNumber = values[r][c]; matched = false })
         
     {
+        hasWon = false
+        winningNumber = 0
+        callIndex = -1
         vCard = board
     }
 
@@ -78,11 +84,26 @@ let markNumberOnAllCards (cards:BingoCard[]) (calledNumber:int) : BingoCard opti
                             let cardWins = markNumberOnOneCard card calledNumber
                             if (cardWins)
                             then
+                                card.hasWon <- true
                                 winningCard <- Some card
                           )
     winningCard
 
-let playBingo (cards:BingoCard[]) (numbers:int[]) : (Option<BingoCard> * int) =
+let markNumberOnAllCardsPart2 (cards:BingoCard[]) (callIndex:int) (calledNumber:int) : unit =
+    
+    cards |> Array.iter (fun card -> 
+                            if (not card.hasWon)
+                            then
+                                let cardWins = markNumberOnOneCard card calledNumber
+                                if (cardWins)
+                                then
+                                    card.hasWon <- true
+                                    card.callIndex <- callIndex
+                                    card.winningNumber <- calledNumber
+                          )
+    ()
+
+let playBingoToWin (cards:BingoCard[]) (numbers:int[]) : (Option<BingoCard> * int) =
     let mutable (winningCard:BingoCard option) = None
     let mutable winningNumber = 0
     numbers |> Array.iter (fun n -> 
@@ -100,6 +121,19 @@ let playBingo (cards:BingoCard[]) (numbers:int[]) : (Option<BingoCard> * int) =
     
     (winningCard, winningNumber)
 
+let playBingoToLose (cards:BingoCard[]) (numbers:int[]) : (Option<BingoCard> * int) =
+
+    numbers |> Array.iteri (fun callIndex n -> markNumberOnAllCardsPart2 cards callIndex n)
+    
+    let winningCardCount = cards |> Array.filter (fun c -> c.hasWon) |> Array.length
+    if (winningCardCount = cards.Length)
+    then
+        // Find the last to win
+        let lastToWin = cards |> Array.maxBy (fun card -> card.callIndex)
+        (Some lastToWin, lastToWin.winningNumber)
+    else
+        (None, 0)
+
 let computeScore (winningBoard:BingoCard option) (winningNumber:int) =
     let mutable unmarkedCount = 0
     match winningBoard with
@@ -114,12 +148,7 @@ let computeScore (winningBoard:BingoCard option) (winningNumber:int) =
             unmarkedCount * winningNumber
 
 
-
-let solve =
-    // let lines = Common.getSampleDataAsArray 2021 4
-    let lines = Common.getChallengeDataAsArray 2021 4
-    // printAllLines lines
-    
+let solvePart1 (lines:string[]) =
     let bingoNumbers = getBingoNumbers lines[0]
     let bingoCards = getBingoCards lines[1..]
 
@@ -129,8 +158,32 @@ let solve =
 
     printfn "\nPlaying..."
 
-    let (winningBoard, winningNumber) = playBingo bingoCards bingoNumbers
+    let (winningBoard, winningNumber) = playBingoToWin bingoCards bingoNumbers
     let score = computeScore winningBoard winningNumber
 
-    printfn "\nScore: %d" score
+    printfn "\n(1) Score: %d" score
+    ()
+
+let solvePart2 (lines:string[]) =
+    let bingoNumbers = getBingoNumbers lines[0]
+    let bingoCards = getBingoCards lines[1..]
+
+    printfn "Bingo numbers: %A" bingoNumbers
+    printfn "There are %d bingo cards" bingoCards.Length
+    //bingoCards |> Array.iter printCard
+
+    printfn "\nPlaying..."
+
+    let (winningBoard, winningNumber) = playBingoToLose bingoCards bingoNumbers
+    let score = computeScore winningBoard winningNumber
+
+    printfn "\n(2) Score: %d" score
+    ()
+
+let solve =
+    // let lines = Common.getSampleDataAsArray 2021 4
+    let lines = Common.getChallengeDataAsArray 2021 4
+    // printAllLines lines
+    solvePart1 lines
+    solvePart2 lines
     ()
