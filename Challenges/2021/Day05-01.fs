@@ -136,7 +136,8 @@ let segmentContainsPoint (p:Point) (segment:Segment) : bool =
     match segment with
         | Horizontal ((x1,y),(x2,_)) -> (y = py && (isBetween px x1 x2))
         | Vertical ((x,y1),(_,y2)) -> (x = px && (isBetween py y1 y2))
-        | _ -> failwith "Not doing vertical yet"
+        | Diagonal (((x1,y1),(x2,y2)), { m = m; b = b; }) ->
+            (py = m * px + b) && (isBetween px x1 x2) && (isBetween py y1 y2)
 
 let part1(segments:Segment[]) : unit =
 
@@ -180,11 +181,37 @@ let part1(segments:Segment[]) : unit =
 
     ()
 
+let part2(segments:Segment[]) : unit =
+
+    printfn "There are %d line segments" segments.Length
+    let fullExtent = combineExtents segments
+    printfn "\nFull extent is %A" fullExtent
+
+    let pointInfo = 
+        getPoints fullExtent.xRange fullExtent.yRange
+            |> Seq.map (
+                    fun point ->
+                        let segmentsWithPoint = segments |> Array.filter (segmentContainsPoint point)
+                        (point, segmentsWithPoint.Length)
+                )
+            |> Seq.filter (fun (_, count) -> count >= 2)
+            |> List.ofSeq
+
+
+    printfn "There are %d matching points." pointInfo.Length
+
+    //printfn "Part 1 segments"
+    //for s in part1Segments do
+    //    printfn "%A with extent %A" s (getExtent s)
+
+    ()
+
 let solve =
     // let lines = Common.getSampleDataAsArray 2021 5
     let lines = Common.getChallengeDataAsArray 2021 5
     printAllLines lines
 
     let segments = parseLines lines
-    let result = part1 segments
+    //let result = part1 segments
+    let result = part2 segments
     ()
