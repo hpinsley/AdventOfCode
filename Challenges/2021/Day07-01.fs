@@ -22,9 +22,19 @@ let solve =
     let v2 = positions |> Array.max
     printfn "Min %d; Max %d; Range: %d" v1 v2 (v2 - v1)
 
-    let moveResults = seq { v1 .. v2 }
+    let part1MoveResults = seq { v1 .. v2 }
                         |> Seq.map (fun target ->
                                         let moves = positions |> Array.map (fun p -> abs (p - target)) |> Array.sum
                                         (target, moves)
                                     )
-    printfn "%A" (moveResults |> Seq.minBy snd)
+    printfn "Part1: %A" (part1MoveResults |> Seq.minBy snd)
+
+    let part2MoveResults = seq { v1 .. v2 }
+                        |> Seq.map (fun target ->
+                                        let moves = positions |> Array.map (fun p -> 
+                                                                                let n = abs (p - target)
+                                                                                (n * (n+1)) / 2
+                                                                           ) |> Array.sum
+                                        (target, moves)
+                                    )
+    printfn "Part2: %A" (part2MoveResults |> Seq.minBy snd)
