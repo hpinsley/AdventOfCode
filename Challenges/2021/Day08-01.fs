@@ -27,6 +27,22 @@ type Pattern =
         outputValues: Set<char>[]
     }
 
+type SignalToSegment =
+    {
+        signal: char
+        segment: char option
+    }
+
+type State =
+    {
+        digits: Digit[];
+        distinctDigits: Digit[];
+        distinctLengths: Set<int>;
+        signals: Set<char>[];
+        decodedSignals: Dictionary<char,char>;
+        outputValues: Set<char>[];
+    }
+
 let stringToCharSet (s:string) : char Set =
     s |> Set.ofSeq
 
@@ -115,5 +131,46 @@ let solve =
 
     let pattern = input[0]
     printfn "%A" pattern
+
+    printfn "Digits"
+    for d in digits do
+        printfn "%d (%d signals) %A" d.number d.letterCount d.letters
+
+    let state =
+            {
+                digits = digits;
+                distinctDigits = distinctDigits;
+                distinctLengths = distinctLengths;
+                signals = pattern.observedSignals;
+                decodedSignals = new Dictionary<char,char>();
+                outputValues = pattern.outputValues;
+            }
+
+    printfn "\nState:\n%A\n" state
+
+    printfn "Digit Set Analysis\n"
+
+    printfn "Distinct digits"
+    for dd in state.distinctDigits do
+        printfn "%A" dd
+
+    printfn ""
+
+    for i in seq { 0 .. state.digits.Length - 1 } do
+        for j in seq { i + 1 .. state.digits.Length - 1 } do
+            let d1 = state.digits[i]
+            let d2 = state.digits[j]
+            if (Set.isProperSubset d1.letters d2.letters)
+            then
+                let d2Diff = Set.difference d2.letters d1.letters
+                if (d2Diff.Count <= 1)
+                then
+                    printfn "%d (%A) is a subset of %d (%A) differing by %d segments (%A)" d1.number d1.letters d2.number d2.letters d2Diff.Count d2Diff
+            elif (Set.isProperSubset d2.letters d1.letters)
+            then
+                let d1Diff = Set.difference d1.letters d2.letters
+                if (d1Diff.Count <= 1)
+                then
+                    printfn "%d (%A) is a subset of %d (%A) differing by %d segments (%A)" d2.number d2.letters d1.number d1.letters d1Diff.Count d1Diff
 
     ()
