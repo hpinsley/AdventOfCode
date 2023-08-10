@@ -10,29 +10,32 @@ open System.Collections.Generic
 type Digit =
     {
         number: int;
-        segments: string;
-        segCount: int;
+        letters: char Set;
+        letterCount: int
     }
 
 type LengthGroup =
     {
-        segCount: int;
+        letterCount: int;
         digitCount: int;
         digits: Digit[]
     }
 
 type Pattern =
     {
-        observedSignals: string[]
-        outputValues: string[]
+        observedSignals: Set<char>[]
+        outputValues: Set<char>[]
     }
+
+let stringToCharSet (s:string) : char Set =
+    s |> Set.ofSeq
 
 let parseInputLine (line:string) : Pattern =
     let groups = line.Split('|')
                     |> Array.map (fun s -> s.Trim())
     let pattern = {
-                    observedSignals = groups[0].Split(' ');
-                    outputValues = groups[1].Split(' ')
+                    observedSignals = groups[0].Split(' ') |> Array.map stringToCharSet
+                    outputValues = groups[1].Split(' ') |> Array.map stringToCharSet
                   }
     pattern
 
@@ -58,8 +61,8 @@ let buildDigitMap() : Digit[] =
                                 fun i s -> 
                                     {
                                         number = i;
-                                        segments = s;
-                                        segCount = s.Length
+                                        letters = stringToCharSet s;
+                                        letterCount = s.Length
                                     }
                               )
 
@@ -72,9 +75,9 @@ let solve =
     //printAllLines lines
     let digits = buildDigitMap()
     let digitsByLength = digits 
-                            |> Array.groupBy (fun d -> d.segCount)
+                            |> Array.groupBy (fun d -> d.letterCount)
                             |> Array.map (fun (length,digits) -> 
-                                            { segCount = length;
+                                            { letterCount = length;
                                               digitCount = digits.Length;
                                               digits = digits;
                                             })
@@ -86,7 +89,7 @@ let solve =
                                     |> Array.map (fun dbl -> dbl.digits[0])
 
     let distinctLengths = distinctDigits 
-                            |> Array.map (fun d -> d.segCount)
+                            |> Array.map (fun d -> d.letterCount)
                             |> Set.ofArray
 
     //printfn "The following digits are distinct by length:\n"
@@ -106,7 +109,7 @@ let solve =
     let easyOutputValues = allOutputValues
                             |> Array.filter (
                                                 fun s ->
-                                                    Set.contains s.Length distinctLengths
+                                                    Set.contains s.Count distinctLengths
                                              )
     printfn "There are %d easy ones" easyOutputValues.Length
 
