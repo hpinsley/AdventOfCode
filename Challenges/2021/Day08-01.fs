@@ -110,4 +110,7 @@ let solve =
                                              )
     printfn "There are %d easy ones" easyOutputValues.Length
 
+    let pattern = input[0]
+    printfn "%A" pattern
+
     ()
