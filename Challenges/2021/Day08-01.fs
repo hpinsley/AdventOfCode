@@ -114,50 +114,14 @@ type KnownSignalPattern =
     }
 
 let buildState (digits:Digit[]) (puzzles:Puzzle[]): State =
-    let digitsByLength = digits 
-                            |> Array.groupBy (fun d -> d.letterCount)
-                            |> Array.map (fun (length,digits) -> 
-                                            { letterCount = length;
-                                              digitCount = digits.Length;
-                                              digits = digits;
-                                            })
-
-    //printfn "%A" digitsByLength
-
-    let distinctDigits = digitsByLength 
-                                    |> Array.filter (fun dbl -> dbl.digitCount = 1)
-                                    |> Array.map (fun dbl -> dbl.digits[0])
-
-    let distinctLengths = distinctDigits 
-                            |> Array.map (fun d -> d.letterCount)
-                            |> Set.ofArray
-
-    //printfn "The following digits are distinct by length:\n"
-    //printfn "%A" distinctDigits
-
-    //printfn "\nInput is:\n"
-    //printfn "%A" input
-    printfn "\nDistinct lengths are: %A" distinctLengths
-
-    let allOutputValues = puzzles 
-                            |> Array.map (fun p -> p.outputValues)
-                            |> Array.concat
-
-    printfn "There are %d output values." allOutputValues.Length
-
-    let easyOutputValues = allOutputValues
-                            |> Array.filter (
-                                                fun s ->
-                                                    Set.contains s.Count distinctLengths
-                                             )
+    let digitsByLength = digits |> Array.groupBy (fun d -> d.letterCount) |> Array.map (fun (length,digits) -> { letterCount = length; digitCount = digits.Length; digits = digits; }) 
+    let distinctDigits = digitsByLength |> Array.filter (fun dbl -> dbl.digitCount = 1) |> Array.map (fun dbl -> dbl.digits[0])
+    let distinctLengths = distinctDigits |> Array.map (fun d -> d.letterCount) |> Set.ofArray
+    let allOutputValues = puzzles |> Array.map (fun p -> p.outputValues) |> Array.concat
+    let easyOutputValues = allOutputValues |> Array.filter (fun s -> Set.contains s.Count distinctLengths )
     printfn "There are %d easy ones" easyOutputValues.Length
 
     let puzzle = puzzles[0]
-    //printfn "%A" pattern
-
-    //printfn "Digits"
-    //for d in digits do
-    //    printfn "%d (%d signals) %A" d.number d.letterCount d.letters
 
     let state =
             {
@@ -172,33 +136,33 @@ let buildState (digits:Digit[]) (puzzles:Puzzle[]): State =
     state
 
 let dumpState (state:State) : unit =
-    //printfn "\nState:\n%A\n" state
-    //printfn "Digit Set Analysis\n"
+    printfn "\nState:\n%A\n" state
+    printfn "Digit Set Analysis\n"
 
-    //printfn "Distinct digits"
-    //for dd in state.distinctDigits do
-    //    printfn "%A" dd
+    printfn "Distinct digits"
+    for dd in state.distinctDigits do
+        printfn "%A" dd
 
-    //printfn ""
+    printfn ""
 
-    //for i in seq { 0 .. state.digits.Length - 1 } do
-    //    for j in seq { i + 1 .. state.digits.Length - 1 } do
-    //        let d1 = state.digits[i]
-    //        let d2 = state.digits[j]
-    //        if (Set.isProperSubset d1.letters d2.letters)
-    //        then
-    //            let d2Diff = Set.difference d2.letters d1.letters
-    //            if (d2Diff.Count <= 1)
-    //            then
-    //                printfn "%d (%A) is a subset of %d (%A) differing by %d segments (%A)" d1.number d1.letters d2.number d2.letters d2Diff.Count d2Diff
-    //        elif (Set.isProperSubset d2.letters d1.letters)
-    //        then
-    //            let d1Diff = Set.difference d1.letters d2.letters
-    //            if (d1Diff.Count <= 1)
-    //            then
-    //                printfn "%d (%A) is a subset of %d (%A) differing by %d segments (%A)" d2.number d2.letters d1.number d1.letters d1Diff.Count d1Diff
+    for i in seq { 0 .. state.digits.Length - 1 } do
+        for j in seq { i + 1 .. state.digits.Length - 1 } do
+            let d1 = state.digits[i]
+            let d2 = state.digits[j]
+            if (Set.isProperSubset d1.letters d2.letters)
+            then
+                let d2Diff = Set.difference d2.letters d1.letters
+                if (d2Diff.Count <= 1)
+                then
+                    printfn "%d (%A) is a subset of %d (%A) differing by %d segments (%A)" d1.number d1.letters d2.number d2.letters d2Diff.Count d2Diff
+            elif (Set.isProperSubset d2.letters d1.letters)
+            then
+                let d1Diff = Set.difference d1.letters d2.letters
+                if (d1Diff.Count <= 1)
+                then
+                    printfn "%d (%A) is a subset of %d (%A) differing by %d segments (%A)" d2.number d2.letters d1.number d1.letters d1Diff.Count d1Diff
 
-    //printfn ""
+    printfn ""
 
     for dbl in state.digitsByLength do
         printfn "\n%d signals" dbl.letterCount
