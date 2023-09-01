@@ -117,9 +117,6 @@ let buildState (digits:Digit[]) (puzzles:Puzzle[]): State =
     let digitsByLength = digits |> Array.groupBy (fun d -> d.letterCount) |> Array.map (fun (length,digits) -> { letterCount = length; digitCount = digits.Length; digits = digits; }) 
     let distinctDigits = digitsByLength |> Array.filter (fun dbl -> dbl.digitCount = 1) |> Array.map (fun dbl -> dbl.digits[0])
     let distinctLengths = distinctDigits |> Array.map (fun d -> d.letterCount) |> Set.ofArray
-    let allOutputValues = puzzles |> Array.map (fun p -> p.outputValues) |> Array.concat
-    let easyOutputValues = allOutputValues |> Array.filter (fun s -> Set.contains s.Count distinctLengths )
-    printfn "There are %d easy ones" easyOutputValues.Length
 
     let puzzle = puzzles[0]
 
@@ -174,6 +171,11 @@ let dumpState (state:State) : unit =
     for sigSet in state.puzzleSignals do
         printfn "%A (%d letters) => ?" sigSet sigSet.Count 
 
+let solvePartOne (state:State) (puzzles:Puzzle[]) =
+    let allOutputValues = puzzles |> Array.map (fun p -> p.outputValues) |> Array.concat
+    let easyOutputValues = allOutputValues |> Array.filter (fun s -> Set.contains s.Count state.distinctLengths )
+    printfn "There are %d easy ones" easyOutputValues.Length
+
 let solve =
     let lines = Common.getSampleDataAsArray 2021 8
     // let lines = Common.getChallengeDataAsArray 2021 8
@@ -183,6 +185,8 @@ let solve =
     let digits = buildDigitMap()
     let state = buildState digits puzzles
 
-    dumpState state
+    solvePartOne state puzzles
+
+    //dumpState state
 
     ()
