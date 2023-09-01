@@ -21,7 +21,7 @@ type LengthGroup =
         digits: Digit[]
     }
 
-type Pattern =
+type Puzzle =
     {
         observedSignals: Set<char>[]
         outputValues: Set<char>[]
@@ -36,17 +36,18 @@ type SignalToSegment =
 type State =
     {
         digits: Digit[];
+        digitsByLength: LengthGroup[];
         distinctDigits: Digit[];
         distinctLengths: Set<int>;
-        signals: Set<char>[];
+        puzzleSignals: Set<char>[];
         decodedSignals: Dictionary<char,char>;
-        outputValues: Set<char>[];
+        puzzleOutputValues: Set<char>[];
     }
 
 let stringToCharSet (s:string) : char Set =
     s |> Set.ofSeq
 
-let parseInputLine (line:string) : Pattern =
+let parseInputLine (line:string) : Puzzle =
     let groups = line.Split('|')
                     |> Array.map (fun s -> s.Trim())
     let pattern = {
@@ -55,10 +56,10 @@ let parseInputLine (line:string) : Pattern =
                   }
     pattern
 
-let parseInput (lines:string[]) : Pattern[] =
+let parseInput (lines:string[]) : Puzzle[] =
     lines |> Array.map parseInputLine
 
-let buildDigitMap() : Digit[] =
+let buildDigitMap () : Digit[] =
     let definitions = 
         [|
             "abcefg"    //0
@@ -82,14 +83,37 @@ let buildDigitMap() : Digit[] =
                                     }
                               )
 
-    
+(*
+    What if we did this in multiple passes with a flag (changed) and iterate until there is nothing to do.
+    If the problems can be solved deterministically, then at that point, we should have all signal lines
+    decoded.
 
-let solve =
-    // let lines = Common.getSampleDataAsArray 2021 8
-    let lines = Common.getChallengeDataAsArray 2021 8
+    What things should we track in each pass?
+        - The input signal "patterns" for which we know the corresponding digit being represented.
+          Knowing that an input pattern corresponds to a digit doesn't necessarily imply that we know the mapping
+          from each and every source signal to digit "segment".
+          We will call this "knownSignalPatterns"
 
-    //printAllLines lines
-    let digits = buildDigitMap()
+        - Known mappings of any individual signal to a segment.
+          We will call this "knownSignals" -- a Dictionary<char, char>
+
+    What things can we do in each pass?
+
+        - Set changes to False
+        - For Each inputSignalPattern in the 10 inputSignalPatterns
+            Run each of these rules against the inputSignalPattern
+                - Get the length of the inputSignalPattern?
+        - Check the changes flag.
+*)
+
+type KnownSignalPattern =
+    {
+        inputSignals: char Set
+        outputSegments: char Set
+        digit: int
+    }
+
+let buildState (digits:Digit[]) (puzzles:Puzzle[]): State =
     let digitsByLength = digits 
                             |> Array.groupBy (fun d -> d.letterCount)
                             |> Array.map (fun (length,digits) -> 
@@ -111,12 +135,11 @@ let solve =
     //printfn "The following digits are distinct by length:\n"
     //printfn "%A" distinctDigits
 
-    let input = parseInput lines
     //printfn "\nInput is:\n"
     //printfn "%A" input
     printfn "\nDistinct lengths are: %A" distinctLengths
 
-    let allOutputValues = input 
+    let allOutputValues = puzzles 
                             |> Array.map (fun p -> p.outputValues)
                             |> Array.concat
 
@@ -129,48 +152,73 @@ let solve =
                                              )
     printfn "There are %d easy ones" easyOutputValues.Length
 
-    let pattern = input[0]
-    printfn "%A" pattern
+    let puzzle = puzzles[0]
+    //printfn "%A" pattern
 
-    printfn "Digits"
-    for d in digits do
-        printfn "%d (%d signals) %A" d.number d.letterCount d.letters
+    //printfn "Digits"
+    //for d in digits do
+    //    printfn "%d (%d signals) %A" d.number d.letterCount d.letters
 
     let state =
             {
                 digits = digits;
+                digitsByLength = digitsByLength;
                 distinctDigits = distinctDigits;
                 distinctLengths = distinctLengths;
-                signals = pattern.observedSignals;
+                puzzleSignals = puzzle.observedSignals;
                 decodedSignals = new Dictionary<char,char>();
-                outputValues = pattern.outputValues;
+                puzzleOutputValues = puzzle.outputValues;
             }
+    state
 
-    printfn "\nState:\n%A\n" state
+let dumpState (state:State) : unit =
+    //printfn "\nState:\n%A\n" state
+    //printfn "Digit Set Analysis\n"
 
-    printfn "Digit Set Analysis\n"
+    //printfn "Distinct digits"
+    //for dd in state.distinctDigits do
+    //    printfn "%A" dd
 
-    printfn "Distinct digits"
-    for dd in state.distinctDigits do
-        printfn "%A" dd
+    //printfn ""
 
-    printfn ""
+    //for i in seq { 0 .. state.digits.Length - 1 } do
+    //    for j in seq { i + 1 .. state.digits.Length - 1 } do
+    //        let d1 = state.digits[i]
+    //        let d2 = state.digits[j]
+    //        if (Set.isProperSubset d1.letters d2.letters)
+    //        then
+    //            let d2Diff = Set.difference d2.letters d1.letters
+    //            if (d2Diff.Count <= 1)
+    //            then
+    //                printfn "%d (%A) is a subset of %d (%A) differing by %d segments (%A)" d1.number d1.letters d2.number d2.letters d2Diff.Count d2Diff
+    //        elif (Set.isProperSubset d2.letters d1.letters)
+    //        then
+    //            let d1Diff = Set.difference d1.letters d2.letters
+    //            if (d1Diff.Count <= 1)
+    //            then
+    //                printfn "%d (%A) is a subset of %d (%A) differing by %d segments (%A)" d2.number d2.letters d1.number d1.letters d1Diff.Count d1Diff
 
-    for i in seq { 0 .. state.digits.Length - 1 } do
-        for j in seq { i + 1 .. state.digits.Length - 1 } do
-            let d1 = state.digits[i]
-            let d2 = state.digits[j]
-            if (Set.isProperSubset d1.letters d2.letters)
-            then
-                let d2Diff = Set.difference d2.letters d1.letters
-                if (d2Diff.Count <= 1)
-                then
-                    printfn "%d (%A) is a subset of %d (%A) differing by %d segments (%A)" d1.number d1.letters d2.number d2.letters d2Diff.Count d2Diff
-            elif (Set.isProperSubset d2.letters d1.letters)
-            then
-                let d1Diff = Set.difference d1.letters d2.letters
-                if (d1Diff.Count <= 1)
-                then
-                    printfn "%d (%A) is a subset of %d (%A) differing by %d segments (%A)" d2.number d2.letters d1.number d1.letters d1Diff.Count d1Diff
+    //printfn ""
+
+    for dbl in state.digitsByLength do
+        printfn "\n%d signals" dbl.letterCount
+        for d in dbl.digits do
+            printfn "\t(%d) - %A" d.number d.letters
+
+    printfn "\nObserved:\n"
+
+    for sigSet in state.puzzleSignals do
+        printfn "%A (%d letters) => ?" sigSet sigSet.Count 
+
+let solve =
+    let lines = Common.getSampleDataAsArray 2021 8
+    // let lines = Common.getChallengeDataAsArray 2021 8
+    let puzzles = parseInput lines
+
+    //printAllLines lines
+    let digits = buildDigitMap()
+    let state = buildState digits puzzles
+
+    dumpState state
 
     ()
