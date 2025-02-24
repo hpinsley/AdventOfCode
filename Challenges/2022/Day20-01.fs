@@ -19,15 +19,14 @@ type Cell (value:int) =
     member this.V with get() = v
 
     member this.Pred
-            with
-                get() = pred |> Option.defaultValue (new Cell(-1))
-            and
-                set(newPred:Cell) = pred <- Some newPred
+        with get() = pred |> Option.defaultValue (new Cell(-1))
+        and set(newPred:Cell) = 
+            pred <- Some newPred
 
     member this.Succ
-            with
+        with
                 get() = succ |> Option.defaultValue (new Cell(-1))
-            and
+        and
                 set(newSucc:Cell) = succ <- Some newSucc
 
 (*

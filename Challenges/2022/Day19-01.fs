@@ -51,7 +51,7 @@ let SkipThreshholds = [|
     //(19, [| 1; 4; 1; 1 |])
     //(14, [| 1; 4; 1; 0 |])
     //(6, [| 1; 2; 0; 0 |])
-|]
+                        |]
 
 let shouldSkipState(state:State) : bool =
     let threshhold = SkipThreshholds

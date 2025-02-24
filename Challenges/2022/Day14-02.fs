@@ -79,11 +79,11 @@ let buildGrid (points:Point[]) : GridCell[,] =
 
 let displayGrid (grid:GridCell[,]) : unit =
         printGrid grid (fun (cell:GridCell) -> match cell with
-                                            | Empty -> '.'
-                                            | Rock -> '#'
-                                            | Sand -> 'O'
-                                            | SandSource -> '+'
-                                            | Floor -> 'X')
+                                                | Empty -> '.'
+                                                | Rock -> '#'
+                                                | Sand -> 'O'
+                                                | SandSource -> '+'
+                                                | Floor -> 'X')
 
 let dropSandGrain (grid:GridCell[,]) : bool =
     let minY = Array2D.base1 grid

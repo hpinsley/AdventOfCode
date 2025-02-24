@@ -81,9 +81,9 @@ let parseGrid (lines:string[]) : GridCellType[,] =
 
 let displayGrid (grid:GridCellType[,]) : unit =
     printGrid grid (fun c -> match c with
-                        | OutOfBounds -> ' '
-                        | Tile -> '.'
-                        | Wall -> '#'
+                                | OutOfBounds -> ' '
+                                | Tile -> '.'
+                                | Wall -> '#'
                     )
 
 let getRowBoundariesOfGrid (grid:GridCellType[,]) : (int * int)[] =
