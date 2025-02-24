@@ -15,7 +15,7 @@ let getLists (lines:string[]) : int[] * int[] =
         |> Array.unzip
     
 
-let part1 (lines:string[]) : unit =
+let part1 (lines:string[]) : int[] * int[] =
     let (list1, list2) = getLists lines
     let sorted1 = list1 |> Seq.sort |> Seq.toArray
     let sorted2 = list2 |> Seq.sort |> Seq.toArray
@@ -23,13 +23,16 @@ let part1 (lines:string[]) : unit =
     let diffs = Array.map2 (fun v1 v2 -> abs (v2 - v1)) sorted1 sorted2
     let answer = diffs |> Seq.sum
     dump "Answer" answer
+    (sorted1, sorted2)
+
+let part2 (list1:int[], list2:int[]) : unit =
     ()
 
 let solve =
-    //let lines = Common.getSampleDataAsArray 2021 1
-    //let lines = Common.getSampleDataAsArray 2024 1
-    let lines = Common.getChallengeDataAsArray 2024 1
-    part1(lines)
+    let lines = Common.getSampleDataAsArray 2024 1
+    //let lines = Common.getChallengeDataAsArray 2024 1
+    let sorted1, sorted2 = part1(lines)
 
-    //part2(lines)
+    part2(sorted1, sorted2)
+
     ()
