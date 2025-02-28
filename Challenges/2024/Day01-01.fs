@@ -25,14 +25,16 @@ let part1 (lines:string[]) : int[] * int[] =
     dump "Answer" answer
     (sorted1, sorted2)
 
-let part2 (list1:int[], list2:int[]) : unit =
-    ()
+let part2 (list1:int[], list2:int[]) : int =
+    list1
+        |> Array.fold (fun acc v -> acc + v * (list2 |> Array.filter (fun v2 -> v2 = v) |> Array.length )) 0
 
 let solve =
-    let lines = Common.getSampleDataAsArray 2024 1
-    //let lines = Common.getChallengeDataAsArray 2024 1
+    //let lines = Common.getSampleDataAsArray 2024 1
+    let lines = Common.getChallengeDataAsArray 2024 1
     let sorted1, sorted2 = part1(lines)
 
-    part2(sorted1, sorted2)
+    let part2Solution = part2(sorted1, sorted2)
+    dump "Part 2 solution" part2Solution
 
     ()
