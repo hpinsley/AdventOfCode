@@ -31,9 +31,24 @@ let getDiffs (report:int[]) : int[] =
     let tupleList = Array.zip list1 list2
     tupleList |> Array.map (fun tpl -> snd tpl - fst tpl)
 
+let isSafe (report:int[]) : bool =
+    let diffs = getDiffs report
+    isValidDeltaList diffs
+
+let isSafeWithDampener (report:int[]) : bool =
+    if isSafe report
+        then true
+    else
+        let indexRange = seq { 0 .. report.Length - 1}
+        let subReports = Seq.map (fun index -> Array.removeAt index report) indexRange |> Seq.toArray
+        Array.exists isSafe subReports
+
 let part1 (data: int[][]) : int =
-    let deltas = data |> Array.map getDiffs
-    let countSafe = deltas |> Array.filter isValidDeltaList |> Array.length
+    let countSafe = Array.filter isSafe data |> Array.length
+    countSafe
+
+let part2 (data: int[][]) : int =
+    let countSafe = Array.filter isSafeWithDampener data |> Array.length
     countSafe
 
 
@@ -42,5 +57,7 @@ let solve =
     let lines = Common.getChallengeDataAsArray 2024 2
     let data = parseLines lines
     let part1Result = part1 data
-    printfn "There are %d valid reports" part1Result
+    printfn "Part 1: There are %d valid reports" part1Result
+    let part2Result = part2 data
+    printfn "Part 2: There are %d valid reports" part2Result
     ()
