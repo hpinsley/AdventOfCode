@@ -10,6 +10,7 @@
       <Compile Include="Common.fs" />
       <Compile Include="Challenges\2024\Day01-01.fs" />
       <Compile Include="Challenges\2024\Day02-01.fs" />
+      <Compile Include="Challenges\2024\Day03-01.fs" />
       <Compile Include="Challenges\2021\Day01-01.fs" />
       <Compile Include="Challenges\2021\Day02-01.fs" />
       <Compile Include="Challenges\2021\Day03-01 .fs" />
