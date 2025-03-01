@@ -76,6 +76,28 @@ let extendFragments (targetLetter:char) (fragments:Fragment list) (grid:char[,])
                             }
                     )
 
+let part2 (grid:char[,]) : int =
+    // Construct the indexes for which we have an A but not near the edge
+    let rows = Array2D.length1 grid
+    let cols = Array2D.length2 grid
+
+    let indexPairs = seq {  for r in {1..rows-2} do
+                            for c in {1..cols-2} do
+                            yield (r,c) } |> Seq.toList
+
+    let anchorCells = indexPairs |> List.filter (fun tpl -> grid.[fst tpl, snd tpl] = 'A')
+    let xMasList = anchorCells
+                    |> List.filter (fun (r,c) ->
+                                    let ne = grid.[r-1,c+1]
+                                    let nw = grid.[r-1,c-1]
+                                    let se = grid.[r+1, c+1]
+                                    let sw = grid.[r+1, c-1]
+                                    ((ne = 'M' && sw = 'S') || (ne = 'S' && sw = 'M'))
+                                    && 
+                                    ((nw = 'M' && se = 'S') || (nw = 'S' && se = 'M'))
+                                    )
+    List.length xMasList
+
 let part1 (grid:char[,]) : int =
 
     let target = "XMAS"
@@ -143,5 +165,8 @@ let solve =
 
     let part1Result = part1 grid
     printfn "Part 1: There are %d instances of XMAS" part1Result
+
+    let part2Result = part2 grid
+    printfn "Part 2: There are %d instances of cris-cross MAS" part2Result
 
     ()
