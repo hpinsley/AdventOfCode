@@ -9,7 +9,8 @@ let main argv =
     printfn "Main driver"
     //let x = Year2024Day1_Part1.solve
     //let x = Year2024Day2_Part1.solve
-    let x = Year2024Day3_Part1.solve
+    //let x = Year2024Day3_Part1.solve
+    let x = Year2024Day4_Part1.solve
 
     //let x = Year2021Day8_Part1.solve
     //let x = Year2021Day7_Part1.solve
