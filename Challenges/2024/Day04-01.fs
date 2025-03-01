@@ -76,29 +76,17 @@ let extendFragments (targetLetter:char) (fragments:Fragment list) (grid:char[,])
                             }
                     )
 
+let part1 (grid:char[,]) : int =
 
-let solve =
-    // let lines = Common.getSampleDataAsArray 2024 4
-    let lines = Common.getChallengeDataAsArray 2024 4
+    let target = "XMAS"
+    let rows = Array2D.length1 grid
+    let cols = Array2D.length2 grid
 
-    //printfn "%A" lines
-
-    let rows = lines.Length
-    let cols = lines[0].Length
-
-
+    //First find letter positions
 
     let indexPairs = seq {  for r in {0..rows-1} do
                             for c in {0..cols-1} do
                             yield (r,c) } |> Seq.toList
-
-    let grid = Array2D.init rows cols (fun i j -> lines[i][j])
-    //printGrid grid id
-
-
-    let target = "XMAS"
-
-    //First find letter positions
 
     let firstLetter = target[0]
     let anchorCells = indexPairs |> List.filter (fun tpl -> grid.[fst tpl, snd tpl] = firstLetter)
@@ -136,6 +124,24 @@ let solve =
                                                         extendFragments targetLetter fragments grid
                                                   )
                                                   fragments
+
+    finalList.Length
     
-    printfn "Part 1: There are %d instances of %s" finalList.Length target
+
+
+let solve =
+    // let lines = Common.getSampleDataAsArray 2024 4
+    let lines = Common.getChallengeDataAsArray 2024 4
+
+    //printfn "%A" lines
+
+    let rows = lines.Length
+    let cols = lines[0].Length
+
+    let grid = Array2D.init rows cols (fun i j -> lines[i][j])
+    //printGrid grid id
+
+    let part1Result = part1 grid
+    printfn "Part 1: There are %d instances of XMAS" part1Result
+
     ()
