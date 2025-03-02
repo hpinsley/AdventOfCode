@@ -31,7 +31,30 @@ let isValidUpdateList (isValidSuccessor:int->int->bool) (updateList:UpdateList) 
             result <- result && (isValidSuccessor predecessor successor)
 
     result
-            
+       
+let moveItemToValidLocation (isValidSuccessor:int->int->bool) (updateList:UpdateList) (lastIndex:int): unit =
+    let mutable i = lastIndex
+
+    while (i > 0) do
+        let priorIndex = i - 1
+        let last = updateList[i]
+        let prior = updateList[priorIndex]
+
+        if not (isValidSuccessor prior last) then // Swap the elements
+            Array.set updateList priorIndex last
+            Array.set updateList i prior
+        else
+            ()
+        i <- i - 1
+
+let rec reorderUpdateList (isValidSuccessor:int->int->bool) (updateList:UpdateList) (itemsToReorder:int): unit =
+    if (itemsToReorder > 1)
+    then
+        reorderUpdateList isValidSuccessor updateList (itemsToReorder - 1) |> ignore
+        moveItemToValidLocation isValidSuccessor updateList (itemsToReorder - 1)
+    else
+        ()
+
 let solve =
     // let lines = Common.getSampleDataAsArray 2024 5
     let lines = Common.getChallengeDataAsArray 2024 5
@@ -69,4 +92,11 @@ let solve =
     let updateSum = validUpdateLists |> Array.sumBy middleElement
     printfn "Part 1: There are %d valid update lists.  Check sum is %d" validUpdateLists.Length updateSum
 
+    let invalidUpdateLists = updateLists |> Array.filter (fun ul -> not (isValidUpdateList isValidSuccessor ul))
+
+    for v in invalidUpdateLists do
+        reorderUpdateList isValidSuccessor v v.Length
+
+    let invalidUpdateSum = invalidUpdateLists |> Array.sumBy middleElement
+    printfn "Part 2: There are %d invalid update lists.  Corrected sum is %d" invalidUpdateLists.Length invalidUpdateSum
     ()
