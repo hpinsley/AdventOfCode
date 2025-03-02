@@ -42,16 +42,35 @@ let turnRight (moveDirection: MoveDirection) =
                         | _ when moveDirection = left  -> up
                         | _ -> raise (Exception("Unknown direction"))
 
+type State =
+    {
+        grid: char[,]
+        guardStatus: GuardStatus
+        visited: Set<Location>
+        isDone: bool
+    }
+
+let advanceState (state: State): State =
+    let newRow = state.guardStatus.location.row + state.guardStatus.direction.deltaY
+    let newCol = state.guardStatus.location.col + state.guardStatus.direction.deltaX
+    let newLocation = { row = newRow; col = newCol }
+    if (newRow < 0 || newRow >= Array2D.length1 state.grid || newCol < 0 || newCol > Array2D.length2 state.grid)
+    then
+        { state with isDone = true }
+    else
+        match state.grid[newRow, newCol] with
+            | '#' -> { state with guardStatus.direction = turnRight state.guardStatus.direction }
+            | _ -> { state with guardStatus.location = { row = newRow; col = newCol}; visited = Set.add newLocation state.visited }
+
 let solve =
     let stopWatch = Stopwatch.StartNew()
-    let lines = Common.getSampleDataAsArray 2024 6
-    // let lines = Common.getChallengeDataAsArray 2024 6
+    //let lines = Common.getSampleDataAsArray 2024 6
+    let lines = Common.getChallengeDataAsArray 2024 6
 
     let rows = lines.Length
     let cols = lines[0].Length
 
     let grid = Array2D.init rows cols (fun i j -> lines[i][j])
-    printGrid grid id
 
     // Find the guard
 
@@ -66,9 +85,18 @@ let solve =
                                 | _ -> ()
                           )
     
-    printfn "The guard is located at %A" guardStatus
+    let initialState:State = { grid = grid; guardStatus = guardStatus; visited = Set.ofList [guardStatus.location] ; isDone = false }
+
+    // printfn "Initial state: %A" state
+
+    let mutable state = initialState
+
+    while not state.isDone do
+        state <- advanceState state
 
     let part1Time = stopWatch.ElapsedMilliseconds
+
+    printf "Part 1: The guard visited %d locations" state.visited.Count
 
     stopWatch.Restart()
 
