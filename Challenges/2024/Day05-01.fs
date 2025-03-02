@@ -50,6 +50,8 @@ let rec reorderUpdateList (isValidSuccessor:int->int->bool) (updateList:UpdateLi
         ()
 
 let solve =
+    let stopWatch = System.Diagnostics.Stopwatch.StartNew()
+
     // let lines = Common.getSampleDataAsArray 2024 5
     let lines = Common.getChallengeDataAsArray 2024 5
 
@@ -84,7 +86,12 @@ let solve =
 
     let validUpdateLists = updateLists |> Array.filter updateCheck
     let updateSum = validUpdateLists |> Array.sumBy middleElement
+
+    let part1Time = stopWatch.ElapsedMilliseconds
+
     printfn "Part 1: There are %d valid update lists.  Check sum is %d" validUpdateLists.Length updateSum
+
+    stopWatch.Restart() |> ignore
 
     let invalidUpdateLists = updateLists |> Array.filter (fun ul -> not (isValidUpdateList isValidSuccessor ul))
 
@@ -92,5 +99,9 @@ let solve =
         reorderUpdateList isValidSuccessor v v.Length
 
     let invalidUpdateSum = invalidUpdateLists |> Array.sumBy middleElement
+    let part2Time = stopWatch.ElapsedMilliseconds;
+
     printfn "Part 2: There are %d invalid update lists.  Corrected sum is %d" invalidUpdateLists.Length invalidUpdateSum
+
+    printfn "Timings.  Part 1: %dµs, Part 2: %dµs" part1Time part2Time
     ()
