@@ -22,7 +22,7 @@ let part1 (lines:string[]) : int[] * int[] =
 
     let diffs = Array.map2 (fun v1 v2 -> abs (v2 - v1)) sorted1 sorted2
     let answer = diffs |> Seq.sum
-    dump "Answer" answer
+    dump "Answer" answer |> ignore
     (sorted1, sorted2)
 
 let part2 (list1:int[], list2:int[]) : int =
@@ -35,6 +35,6 @@ let solve =
     let sorted1, sorted2 = part1(lines)
 
     let part2Solution = part2(sorted1, sorted2)
-    dump "Part 2 solution" part2Solution
+    dump "Part 2 solution" part2Solution |> ignore
 
     ()

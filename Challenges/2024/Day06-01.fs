@@ -8,6 +8,39 @@ open Microsoft.FSharp.Core.Operators.Checked
 open System.Collections.Generic
 open System.Diagnostics
 
+let Obstacle = '#'
+
+type Location =
+    {
+        row: int
+        col: int
+    }
+
+
+type MoveDirection = 
+    {
+        deltaX: int
+        deltaY: int
+    }
+
+let up = { deltaX = 0; deltaY = -1 }
+let down = { deltaX = 0; deltaY = 1 }
+let right = { deltaX = 1; deltaY = 0 }
+let left = { deltaX = -1; deltaY = 0 }
+
+type GuardStatus =
+    {
+        location: Location
+        direction: MoveDirection
+    }
+
+let turnRight (moveDirection: MoveDirection) =
+    match moveDirection with
+                        | _ when moveDirection = up -> right 
+                        | _ when moveDirection = down -> left
+                        | _ when moveDirection = right -> down
+                        | _ when moveDirection = left  -> up
+                        | _ -> raise (Exception("Unknown direction"))
 
 let solve =
     let stopWatch = Stopwatch.StartNew()
@@ -19,6 +52,21 @@ let solve =
 
     let grid = Array2D.init rows cols (fun i j -> lines[i][j])
     printGrid grid id
+
+    // Find the guard
+
+    let mutable guardStatus:GuardStatus = { location = { row = -1; col = -1}; direction = up }
+
+    grid |> Array2D.iteri ( fun r c elem -> 
+                              match elem with
+                                | '^' -> guardStatus <- { location = { row = r; col = c}; direction = up }
+                                | '>' -> guardStatus <- { location = { row = r; col = c}; direction = right }
+                                | 'v' -> guardStatus <- { location = { row = r; col = c}; direction = down }
+                                | '<' -> guardStatus <- { location = { row = r; col = c}; direction = left }
+                                | _ -> ()
+                          )
+    
+    printfn "The guard is located at %A" guardStatus
 
     let part1Time = stopWatch.ElapsedMilliseconds
 
