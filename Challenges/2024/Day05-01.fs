@@ -103,5 +103,5 @@ let solve =
 
     printfn "Part 2: There are %d invalid update lists.  Corrected sum is %d" invalidUpdateLists.Length invalidUpdateSum
 
-    printfn "Timings.  Part 1: %dµs, Part 2: %dµs" part1Time part2Time
+    printfn "Timings.  Part 1: %dms, Part 2: %dms" part1Time part2Time
     ()
