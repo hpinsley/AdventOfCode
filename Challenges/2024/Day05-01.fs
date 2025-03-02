@@ -7,18 +7,12 @@ open System.Text.RegularExpressions
 open Microsoft.FSharp.Core.Operators.Checked
 open System.Collections.Generic
 
-type OrderingRule =
-    {
-        predecessor: int;
-        successor: int;
-    }
-
 type UpdateList = int[]
 
 let middleElement (updateList:UpdateList) : int =
     if updateList.Length % 2 = 0
     then
-        raise (Exception("Did not expect an update list with a middle element"))
+        raise (Exception("Did not expect an update list an even number of items.  There is not 'middle' element."))
     else
         updateList[updateList.Length / 2]
         
