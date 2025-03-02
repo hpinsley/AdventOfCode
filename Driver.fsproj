@@ -12,7 +12,8 @@
       <Compile Include="Challenges\2024\Day02-01.fs" />
       <Compile Include="Challenges\2024\Day03-01.fs" />
       <Compile Include="Challenges\2024\Day04-01.fs" />
-      <Compile Include="Challenges\2021\Day01-01.fs" />
+      <Compile Include="Challenges\2024\Day05-01.fs" />
+      <!--<Compile Include="Challenges\2021\Day01-01.fs" />
       <Compile Include="Challenges\2021\Day02-01.fs" />
       <Compile Include="Challenges\2021\Day03-01 .fs" />
       <Compile Include="Challenges\2021\Day04-01.fs" />
@@ -70,7 +71,7 @@
       <Compile Include="Challenges\2018\Day12.fs" />
       <Compile Include="Challenges\2018\Day13.fs" />
       <Compile Include="Challenges\2018\Day14.fs" />
-      <Compile Include="Challenges\2018\Day15.fs" />
+      <Compile Include="Challenges\2018\Day15.fs" />-->
       <Compile Include="Driver.fs" />
       <Content Include="InputFiles\**\*.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
