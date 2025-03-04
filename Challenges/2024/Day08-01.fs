@@ -36,12 +36,27 @@ let solve =
 
     let rows = lines.Length
     let cols = lines[0].Length
-
+    let possibleLocations = allRowColPairs rows cols
+                            |> Seq.map (fun (r,c) -> { row = r; col = c })
+                            |> List.ofSeq
 
 
     let grid = Array2D.init rows cols (fun i j -> lines[i][j])
     // printGrid grid id
 
+    let possibleLocations = allRowColPairs rows cols
+                            |> Seq.map (fun (r,c) -> { row = r; col = c })
+                            |> List.ofSeq
+
+    let antennas = possibleLocations |> List.fold (fun state loc ->
+                                                    let chr = grid[loc.row, loc.col]
+                                                    if chr <> '.'
+                                                    then
+                                                        (chr, loc) :: state
+                                                    else
+                                                        state
+                                                  ) 
+                                                  []
 
     let part1Time = stopWatch.ElapsedMilliseconds
  
