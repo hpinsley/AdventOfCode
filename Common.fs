@@ -128,6 +128,13 @@ let allCombinations<'a> (v:'a[]) : ('a * 'a) seq =
                 yield (v[i], v[j])
     }
 
+let allRowColPairs (rows:int) (cols:int) : (int * int) seq =
+    seq {
+        for r in seq {0..rows - 1} do
+            for c in seq {0..cols - 1} do
+                yield (r,c)
+    }
+
 // I have not tested this algorithm (Floyd's cycle-finding algorith)
 let findCycle (str: string) : (int * int) =
     let tortoise = str[0]
