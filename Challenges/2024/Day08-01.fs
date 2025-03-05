@@ -8,28 +8,16 @@ open Microsoft.FSharp.Core.Operators.Checked
 open System.Collections.Generic
 open System.Diagnostics
 
-let Obstacle = '#'
-
 type Location =
     {
         row: int
         col: int
     }
 
-
-type MoveDirection = 
-    {
-        deltaX: int
-        deltaY: int
-    }
-
-let up = { deltaX = 0; deltaY = -1 }
-let down = { deltaX = 0; deltaY = 1 }
-let right = { deltaX = 1; deltaY = 0 }
-let left = { deltaX = -1; deltaY = 0 }
-
 // Given two antenna's compute the distance between them and use that to compute two antinode locations
-let computeAntinodeLocations (antenna1:Location) (antenna2:Location) : Location * Location =
+let computeAntinodeLocationsPart1 (rows:int) (cols:int) (antenna1:Location) (antenna2:Location) : Location list =
+
+    let isValidLocation loc = loc.row >= 0 && loc.row < rows && loc.col >= 0 && loc.col < cols
     // Compute vector from a1 to a2
     let rowDelta = antenna2.row - antenna1.row
     let colDelta = antenna2.col - antenna1.col
@@ -39,11 +27,41 @@ let computeAntinodeLocations (antenna1:Location) (antenna2:Location) : Location 
     let location1 = { row = antenna1.row - rowDelta; col = antenna1.col - colDelta }
     let location2 = { row = antenna2.row + rowDelta; col = antenna2.col + colDelta }
     
-    (location1, location2)
+    let unvalidatedAntinodes = [location1; location2]
+    unvalidatedAntinodes |> List.filter isValidLocation
+
+// Given two antenna's compute the distance between them and use that to compute as many antinodes
+// that fit in the grid
+let computeAntinodeLocationsPart2 (rows:int) (cols:int) (antenna1:Location) (antenna2:Location) : Location list =
+   
+    let isValidLocation loc = loc.row >= 0 && loc.row < rows && loc.col >= 0 && loc.col < cols
+    
+    let rec walkLocations (loc1:Location) (loc2:Location) (rowDelta:int) (colDelta:int) : Location list =
+        let (loc1Valid, loc2Valid) = (isValidLocation loc1, isValidLocation loc2)
+
+        match (loc1Valid, loc2Valid) with
+            | (false, false) -> []
+            | (true, false) ->  
+                let n1 = { row = loc1.row - rowDelta; col = loc1.col - colDelta }
+                loc1 :: walkLocations n1 loc2 rowDelta colDelta
+            | (false, true) ->
+                let n2 = { row = loc2.row + rowDelta; col = loc2.col + colDelta }
+                loc2 :: walkLocations loc1 n2 rowDelta colDelta
+            | (true, true) ->
+                let n1 = { row = loc1.row - rowDelta; col = loc1.col - colDelta }
+                let n2 = { row = loc2.row + rowDelta; col = loc2.col + colDelta }
+                loc1 :: loc2 :: walkLocations n1 n2 rowDelta colDelta
+
+    // Compute vector from a1 to a2
+    let rowDelta = antenna2.row - antenna1.row
+    let colDelta = antenna2.col - antenna1.col
+
+    // Antinodes is a1 - N*v and the other is a2 + Mv for n>=1 and m>=1 until we are off the grid
+        
+    let allLocations = walkLocations antenna1 antenna2 rowDelta colDelta
+    allLocations
 
 let determineAntiNodes (rows:int) (cols:int) (antennaLocations: (char * (Location[])) list) : Location list =
-    
-    let isValidLocation loc = loc.row >= 0 && loc.row < rows && loc.col >= 0 && loc.col < cols
     
     let frequencyPairs = antennaLocations
                             |> List.map (fun tpl -> List.ofSeq (allCombinations (snd tpl)))
@@ -51,13 +69,12 @@ let determineAntiNodes (rows:int) (cols:int) (antennaLocations: (char * (Locatio
     // the same frequency
 
     let allPairs = List.concat frequencyPairs
-    let (l1, l2) = allPairs |> List.map (fun locTpl -> computeAntinodeLocations (fst locTpl) (snd locTpl))
-                            |> List.unzip                
+    let antinodes = allPairs
+                        //|> List.map (fun locTpl -> computeAntinodeLocationsPart1 rows cols (fst locTpl) (snd locTpl))
+                        |> List.map (fun locTpl -> computeAntinodeLocationsPart2 rows cols (fst locTpl) (snd locTpl))
+                        |> List.concat                    
 
-    let allAntinodeLocations = List.append l1 l2
-    let validAntinodeLocations = allAntinodeLocations |> List.filter isValidLocation
-    let uniqueAntinodeLocations = validAntinodeLocations |> Set.ofList |> List.ofSeq
-
+    let uniqueAntinodeLocations = antinodes |> Set.ofList |> List.ofSeq
     uniqueAntinodeLocations
 
 let solve =
