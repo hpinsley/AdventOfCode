@@ -17,7 +17,7 @@ type CompactEntry =
 type State =
     {
         blockContents: int[]
-        freeList: List<int>
+        freeList: int list
         totalBlocks: int
     }
 
@@ -45,11 +45,21 @@ let buildState (entries:CompactEntry[]) : State =
     printfn "The disk contains %d blocks" totalBlocks
     {
         blockContents = blockContents;
-        freeList = freeList
+        freeList = List.ofSeq freeList
         totalBlocks = totalBlocks
     }
 
-
+let rec compactTheDisk (state: State) : State =
+    if state.blockContents[state.totalBlocks - 1] = FREE_BLOCK
+    then
+        compactTheDisk { state with totalBlocks = state.totalBlocks - 1 }
+    else
+        match state.freeList with
+            | [] -> state
+            | freeBlock :: remainingFree ->
+                state.blockContents[freeBlock] <- state.blockContents[state.totalBlocks - 1]
+                compactTheDisk { state with freeList = remainingFree; totalBlocks = state.totalBlocks - 1}
+    
 let part1 (line:string) : uint64 =
     
     let isFile compactIndex = compactIndex % 2 = 0
@@ -63,6 +73,8 @@ let part1 (line:string) : uint64 =
                                         Empty v) 
                                 compactMap
     let initialState = buildState parsedMap
+    let finalState = compactTheDisk initialState
+
     0UL
 
 let solve =
