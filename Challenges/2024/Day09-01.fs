@@ -10,9 +10,13 @@ open System.Diagnostics
 
 let FREE_BLOCK = -1
 
+type T_FILENO = int
+type T_FILESIZE = int
+type T_HASMOVED = bool
+
 type CompactEntry =
-    | Empty of int
-    | File of (int * int)
+    | Empty of T_FILESIZE
+    | File of (T_FILESIZE * T_FILESIZE * T_HASMOVED)
 
 type State =
     {
@@ -25,7 +29,7 @@ let buildState (entries:CompactEntry[]) : State =
     let totalBlocks = entries |> Array.sumBy (fun entry -> match entry 
                                                             with 
                                                                 | Empty size -> size
-                                                                | File (_, size) -> size
+                                                                | File (_, size, _) -> size
                                              )
     
     let blockContents = Array.create totalBlocks FREE_BLOCK
@@ -34,7 +38,7 @@ let buildState (entries:CompactEntry[]) : State =
     let mutable nextBlock = 0
     for entry in entries do
         match entry with
-            | File (fileno, size) ->
+            | File (fileno, size, false) ->
                 Array.fill blockContents nextBlock size fileno
                 nextBlock <- nextBlock + size
             | Empty size ->
@@ -49,10 +53,10 @@ let buildState (entries:CompactEntry[]) : State =
         totalBlocks = totalBlocks
     }
 
-let rec compactTheDisk (state: State) : State =
+let rec compactTheDiskPart1Strategy (state: State) : State =
     if state.blockContents[state.totalBlocks - 1] = FREE_BLOCK  // Skip free blocks at the end
     then
-        compactTheDisk { state with totalBlocks = state.totalBlocks - 1 }
+        compactTheDiskPart1Strategy { state with totalBlocks = state.totalBlocks - 1 }
     else
         match state.freeList with
             | [] -> state
@@ -61,41 +65,42 @@ let rec compactTheDisk (state: State) : State =
                 if freeBlock < state.totalBlocks - 1
                 then
                     state.blockContents[freeBlock] <- state.blockContents[state.totalBlocks - 1]
-                    compactTheDisk { state with freeList = remainingFree; totalBlocks = state.totalBlocks - 1}
+                    compactTheDiskPart1Strategy { state with freeList = remainingFree; totalBlocks = state.totalBlocks - 1}
                 else    // We are done because we shifted left and the original free block is not needed
                     state
+let computeChecksum (disk:int[]) : uint64 =
+    disk    |> Seq.mapi (fun index fileno ->
+                        if fileno = FREE_BLOCK then 0UL
+                        else uint64(index) * uint64(fileno)
+                    )
+            |> Seq.sum
 
-let part1 (line:string) : uint64 =
-    
+let buildCompactMap (line:string) : CompactEntry[] =
     let isFile compactIndex = compactIndex % 2 = 0
 
     let compactMap = line |> Array.ofSeq |> Array.map (fun c -> parseInt (c.ToString()))
-    let parsedMap = Array.mapi (fun index v ->
-                                    if isFile index
-                                    then
-                                        File (index / 2, v)
-                                    else
-                                        Empty v) 
-                                compactMap
-    let initialState = buildState parsedMap
+    Array.mapi (fun index v ->
+                if isFile index
+                then
+                    File (index / 2, v, false)
+                else
+                    Empty v) 
+            compactMap
+
+let part1 (line:string) : uint64 =
+    let compactEntries = buildCompactMap line    
+    let initialState = buildState compactEntries
     let mutableCopy = Array.copy initialState.blockContents;
-    let finalState = compactTheDisk { initialState with blockContents = mutableCopy }
+    let finalState = compactTheDiskPart1Strategy { initialState with blockContents = mutableCopy }
 
     let disk = finalState.blockContents[0..finalState.totalBlocks - 1]
-
-    let checksum = disk |> Seq.mapi (fun index fileno ->
-                                        if fileno = FREE_BLOCK then 0UL
-                                        else uint64(index) * uint64(fileno)
-                                    )
-                        |> Seq.sum
-
-    checksum
+    computeChecksum disk
 
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
-    // let lines = Common.getSampleDataAsArray 2024 9
-    let lines = Common.getChallengeDataAsArray 2024 9
+    let lines = Common.getSampleDataAsArray 2024 9
+    // let lines = Common.getChallengeDataAsArray 2024 9
 
     let part1Result = part1 lines[0]
 
