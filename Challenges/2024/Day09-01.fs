@@ -25,7 +25,7 @@ let buildState (entries:CompactEntry[]) : State =
     let totalBlocks = entries |> Array.sumBy (fun entry -> match entry 
                                                             with 
                                                                 | Empty size -> size
-                                                                | File (fileno, size) -> size
+                                                                | File (_, size) -> size
                                              )
     
     let blockContents = Array.create totalBlocks FREE_BLOCK
@@ -50,16 +50,21 @@ let buildState (entries:CompactEntry[]) : State =
     }
 
 let rec compactTheDisk (state: State) : State =
-    if state.blockContents[state.totalBlocks - 1] = FREE_BLOCK
+    if state.blockContents[state.totalBlocks - 1] = FREE_BLOCK  // Skip free blocks at the end
     then
         compactTheDisk { state with totalBlocks = state.totalBlocks - 1 }
     else
         match state.freeList with
             | [] -> state
             | freeBlock :: remainingFree ->
-                state.blockContents[freeBlock] <- state.blockContents[state.totalBlocks - 1]
-                compactTheDisk { state with freeList = remainingFree; totalBlocks = state.totalBlocks - 1}
-    
+                // We have a free block to move.  However, it may be past where we are now
+                if freeBlock < state.totalBlocks - 1
+                then
+                    state.blockContents[freeBlock] <- state.blockContents[state.totalBlocks - 1]
+                    compactTheDisk { state with freeList = remainingFree; totalBlocks = state.totalBlocks - 1}
+                else    // We are done because we shifted left and the original free block is not needed
+                    state
+
 let part1 (line:string) : uint64 =
     
     let isFile compactIndex = compactIndex % 2 = 0
@@ -73,20 +78,29 @@ let part1 (line:string) : uint64 =
                                         Empty v) 
                                 compactMap
     let initialState = buildState parsedMap
-    let finalState = compactTheDisk initialState
+    let mutableCopy = Array.copy initialState.blockContents;
+    let finalState = compactTheDisk { initialState with blockContents = mutableCopy }
 
-    0UL
+    let disk = finalState.blockContents[0..finalState.totalBlocks - 1]
+
+    let checksum = disk |> Seq.mapi (fun index fileno ->
+                                        if fileno = FREE_BLOCK then 0UL
+                                        else uint64(index) * uint64(fileno)
+                                    )
+                        |> Seq.sum
+
+    checksum
 
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
-    let lines = Common.getSampleDataAsArray 2024 9
-    // let lines = Common.getChallengeDataAsArray 2024 9
+    // let lines = Common.getSampleDataAsArray 2024 9
+    let lines = Common.getChallengeDataAsArray 2024 9
 
     let part1Result = part1 lines[0]
 
     let part1Time = stopWatch.ElapsedMilliseconds
- 
+    printfn "Part 1 checksum is %d" part1Result
     stopWatch.Restart()
 
     // Part 2
