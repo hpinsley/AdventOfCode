@@ -87,8 +87,7 @@ let buildCompactMap (line:string) : CompactEntry[] =
                     Empty v) 
             compactMap
 
-let part1 (line:string) : uint64 =
-    let compactEntries = buildCompactMap line    
+let part1 (compactEntries:CompactEntry[]) : uint64 =
     let initialState = buildState compactEntries
     let mutableCopy = Array.copy initialState.blockContents;
     let finalState = compactTheDiskPart1Strategy { initialState with blockContents = mutableCopy }
@@ -102,7 +101,8 @@ let solve =
     let lines = Common.getSampleDataAsArray 2024 9
     // let lines = Common.getChallengeDataAsArray 2024 9
 
-    let part1Result = part1 lines[0]
+    let compactEntries = buildCompactMap lines[0]    
+    let part1Result = part1 compactEntries
 
     let part1Time = stopWatch.ElapsedMilliseconds
     printfn "Part 1 checksum is %d" part1Result
