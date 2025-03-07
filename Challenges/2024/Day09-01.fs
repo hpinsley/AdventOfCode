@@ -68,6 +68,7 @@ let rec compactTheDiskPart1Strategy (state: State) : State =
                     compactTheDiskPart1Strategy { state with freeList = remainingFree; totalBlocks = state.totalBlocks - 1}
                 else    // We are done because we shifted left and the original free block is not needed
                     state
+
 let computeChecksum (disk:int[]) : uint64 =
     disk    |> Seq.mapi (fun index fileno ->
                         if fileno = FREE_BLOCK then 0UL
@@ -95,6 +96,15 @@ let part1 (compactEntries:CompactEntry[]) : uint64 =
     let disk = finalState.blockContents[0..finalState.totalBlocks - 1]
     computeChecksum disk
 
+let part2 (compactEntries:CompactEntry[]) : uint64 =
+    // Strategy:
+    // Iterate this array from the right stopping at every file.  For each file iterate
+    // the array from the left examing every free block.
+    // If the free block is big enough, determine the difference.  We would like to move the file
+    // to the free block, but there often will be extra free.  That would require us to shift everything
+    // to the right which will be slow.  Do we need a doubly linked list?
+    printfn "There are %d entries in the array for part 2" compactEntries.Length
+    0UL
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
@@ -109,8 +119,11 @@ let solve =
     stopWatch.Restart()
 
     // Part 2
+    let part2Result = part2 compactEntries
 
     let part2Time = stopWatch.ElapsedMilliseconds;
+    printfn "Part 2 checksum is %d" part2Result
+
     printfn "Timings.  Part 1: %dms, Part 2: %dms" part1Time part2Time
 
     ()
