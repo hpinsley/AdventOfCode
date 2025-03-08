@@ -1,6 +1,15 @@
 module Common
 
+open System
 open System.IO
+open System.Text.RegularExpressions
+open System.Collections.Generic
+open Microsoft.FSharp.Core.Operators.Checked
+
+let bold = fun text -> $"\x1b[1m{text}\x1b[0m"
+let bold_red = fun text -> $"\x1b[1;31m{text}\x1b[0m"
+let bold_green = fun text -> $"\x1b[1;32m{text}\x1b[0m"
+let bold_yellow = fun text -> $"\x1b[1;33m{text}\x1b[0m"
 
 let dump label o =
     printfn "\n%s:\n%A" label o
@@ -58,11 +67,13 @@ let stdDevList list =
 let printGrid (grid:'T[,]) (cellToCharFunc: 'T -> char) =
     let rows = Array2D.length1 grid
     let cols = Array2D.length2 grid
+    let r0 = Array2D.base1 grid
+    let c0 = Array2D.base2 grid
 
-    [0..rows - 1]
+    [r0..r0 + rows - 1]
         |> List.iter (fun r ->
                             let s =
-                                [0..cols-1]
+                                [c0..c0 + cols-1]
                                     |> List.fold (fun (line:string) (c:int) ->
                                                     let charToAppend = cellToCharFunc grid.[r,c]
                                                     line + (string charToAppend)
@@ -71,3 +82,217 @@ let printGrid (grid:'T[,]) (cellToCharFunc: 'T -> char) =
                             printfn "%s" s
                         )
 
+// ParseRegex parses a regular expression and returns a list of the strings that match each group in
+// the regular expression.
+// List.tail is called to eliminate the first element in the list, which is the full matched expression,
+// since only the matches for each group are wanted.
+// This is an Active Pattern
+let (|ParseRegex|_|) regex str =
+   let m = Regex(regex).Match(str)
+   if m.Success
+   then Some (List.tail [ for x in m.Groups -> x.Value ])
+   else None
+
+let printAllLines (lines:seq<string>) : unit =
+    for line in lines do
+        printfn "%s" line
+
+// Given a positive integer n, return all combinations of indices split between two "consumers"
+let allSplits (n: int) : (int list * int list) list =
+    let getOnBits (n: int) : seq<int> =
+        
+        seq {
+            let mutable v = n
+            let mutable bitNumber = 0
+
+            while v <> 0 do
+                if (v &&& 1 = 1) then yield bitNumber
+                v <- v >>> 1
+                bitNumber <- bitNumber + 1
+        }
+    
+    seq {
+        let truncationMask = (pown 2 n) - 1
+        for k in seq { 0 .. truncationMask } do
+            let mask1 = k
+            let mask2 = ~~~k &&& truncationMask
+            let onBits1 = getOnBits mask1 |> List.ofSeq
+            let onBits2 = getOnBits mask2 |> List.ofSeq
+            yield (onBits1, onBits2)
+    } |> List.ofSeq
+ 
+let allCombinations<'a> (v:'a[]) : ('a * 'a) seq =
+    seq {
+        for i in seq {0..v.Length - 1} do
+            for j in seq {i + 1 .. v.Length - 1} do
+                yield (v[i], v[j])
+    }
+
+let allRowColPairs (rows:int) (cols:int) : (int * int) seq =
+    seq {
+        for r in seq {0..rows - 1} do
+            for c in seq {0..cols - 1} do
+                yield (r,c)
+    }
+
+// I have not tested this algorithm (Floyd's cycle-finding algorith)
+let findCycle (str: string) : (int * int) =
+    let tortoise = str[0]
+    let hare = str[0]
+
+    let rec findMeetingPoint (t: char) (h: char) =
+        if t = h then t
+        else findMeetingPoint str[int(t)] str[int(str[int(h)])]
+
+    let cycleStart = str[0]
+    let meetingPoint = findMeetingPoint tortoise hare
+
+    let rec findCycleStart (cs: char) (mp: char) =
+        if cs = mp then cs
+        else findCycleStart str[int(cs)] str[int(mp)]
+
+    let rec findCycleLength (cs: char) (cl: int) (mp: char) =
+        if cs <> mp then findCycleLength str[int(cs)] (cl + 1) str[int(mp)]
+        else cl
+
+    let cycleStartPoint = findCycleStart cycleStart meetingPoint
+    let cycleLength = findCycleLength cycleStartPoint 1 cycleStartPoint
+
+    (int(cycleStartPoint)), cycleLength
+
+(* Taxicab distance *)
+let manhattan (n1:int * int) (n2:int * int) : int =
+    let (r1,c1) = n1
+    let (r2,c2) = n2
+    (abs r2-r1) + (abs c2-c1)
+    
+let rec gcd (n1:int) (n2:int) =
+    if n2 = 0 then n1
+    else gcd n2 (n1 % n2)
+
+let lcm (n1:int) (n2:int) =
+    let g = gcd n1 n2
+    ((abs n1) / g) * (abs n2)
+
+(*
+    A-Star path finding algorithm.
+    Not tested yet
+    See https://en.wikipedia.org/wiki/A*_search_algorithm
+    See comment, below, about question about skipping adding neighbor to the
+    openset if it is there already.
+*)
+let aStar 
+    (start:'T)                      // The starting node 
+    (isGoal:'T -> bool)             // Made this a function in case the goal moves
+    (getNeighbers:'T -> 'T list)
+    (dist: 'T -> 'T -> int)         // The actual distance/cost between neighbors
+    (h:'T -> int)                   // Heuristic function.  See https://en.wikipedia.org/wiki/A*_search_algorithm
+    
+    // Callbacks
+
+    // This callback will return the node being queued and it's queued h-score
+    (enqueCallback: Option<'T -> int -> unit>)
+    (dequeCallback: Option<'T -> unit>)
+    
+        : 'T list =
+    
+    let gscore = new Dictionary<'T, int>()
+    gscore[start] <- 0
+
+    let getGscore (node:'T) : int =
+        let (found, valFound) = gscore.TryGetValue(node)
+        if found then valFound else Int32.MaxValue
+
+    let notifyEnqueue (node:'T) (fScore:int) : unit =
+        match enqueCallback with
+            | Some f -> f node fScore
+            | None -> ()
+
+    let notifyDequeue (node:'T) : unit =
+        match dequeCallback with
+            | Some f -> f node
+            | None -> ()
+
+    let cameFrom = new Dictionary<'T,'T>()
+    
+    let reconstruct_path (current:'T) : 'T list =
+        let rec buildPath (current:'T) (descendents:'T list) : 'T list =
+            let p = current :: descendents
+            if (cameFrom.ContainsKey(current))
+            then
+                let parent = cameFrom[current]
+                buildPath parent p
+            else
+                p
+        buildPath current []
+
+    let openSet = new PriorityQueue<'T, int>()
+    openSet.Enqueue (start, Int32.MaxValue)
+    notifyEnqueue start Int32.MaxValue
+
+    let mutable current = start
+    while (openSet.Count > 0 && (not (isGoal current))) do
+        current <- openSet.Dequeue()
+        notifyDequeue current
+
+        let ourGScore = getGscore current
+        let neighbors = getNeighbers current
+        //printfn "Dequeued %A with gScore = %d which has %d neighbors"
+        //        current ourGScore neighbors.Length
+
+        for n in neighbors do
+            let d = dist current n
+            let tentativeGScore = ourGScore + d
+            let neighborGScore = getGscore n
+            if (tentativeGScore < neighborGScore)
+            then
+                cameFrom[n] <- current
+                gscore[n] <- tentativeGScore
+                let hVal = h n
+                let fscore = tentativeGScore + hVal
+                // Technically we should not add n to the openSet if it is already there
+                openSet.Enqueue (n, fscore)
+                notifyEnqueue n fscore
+
+    if (isGoal current)
+    then
+        let path = reconstruct_path current
+        path
+    else
+        failwith "openset is empty but goal not reached"
+
+let convertBase10ToBaseN (n:int64) (numericBase:int64) : string =
+    let rec convert (n:int64) (prior:string list) : string list =
+        if n = 0
+        then
+            prior
+        else
+            let q = n / numericBase
+            let r = n % numericBase
+            convert q (string r :: prior)
+    let digits = convert n []
+    if (digits.Length = 0)
+    then
+        "0"
+    else
+        digits |> List.fold (fun prior digit -> prior + digit) ""
+
+
+let convertBaseNToBase10 (n:int64) (numericBase:int64) : int64 =
+    let digits = n.ToString() |> Seq.map (fun c -> int64(c) - int64('0')) |> List.ofSeq |> List.rev
+    let (total, _) = digits 
+                        |> List.fold (fun (total, place) (d:int64) -> 
+                                        let newTotal = total + (pown numericBase place) * d
+                                        (newTotal, place + 1)
+                                     )
+                                     (0L, 0)
+
+    total
+
+let binaryStringToInt (s:string) : int =
+    s |> Seq.fold (fun v c ->
+                    match c with 
+                        | '0' -> 2 * v
+                        | '1' -> 2 * v + 1
+                        | _ -> failwith "Invalid binary digit"
+                    ) 0
