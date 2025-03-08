@@ -1,0 +1,14 @@
+{
+	"name": "Advent of Code",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "devcontainer",
+	"workspaceFolder": "/workspace",
+	"forwardPorts": [
+		3000
+	],
+	"customizations": {
+		"vscode": {
+			"extensions": []
+		}
+	}
+}
