@@ -12,24 +12,46 @@ let FREE_BLOCK = -1
 
 type T_FILENO = int
 type T_FILESIZE = int
-type T_HASMOVED = bool
+type T_OFFSET = int
 
 type CompactEntry =
     | Empty of T_FILESIZE
-    | File of (T_FILESIZE * T_FILESIZE * T_HASMOVED)
+    | File of (T_FILENO * T_FILESIZE)
 
-type State =
+type Part1State =
     {
         blockContents: int[]
         freeList: int list
         totalBlocks: int
     }
 
-let buildState (entries:CompactEntry[]) : State =
+type FreeMapEntry =
+    {
+        freeSize: int
+        startBlock: int
+        endBlock: int
+    }
+
+type FreeMap = FreeMapEntry[]
+
+type FileInfo =
+    {
+        fileno: T_FILENO
+        filesize: T_FILESIZE
+        startOffset: T_OFFSET
+    }
+
+type Part2State =
+    {
+        blockContents: int[]
+        filesToMove: FileInfo list
+    }
+
+let buildPart1State (entries:CompactEntry[]) : Part1State =
     let totalBlocks = entries |> Array.sumBy (fun entry -> match entry 
                                                             with 
                                                                 | Empty size -> size
-                                                                | File (_, size, _) -> size
+                                                                | File (_, size) -> size
                                              )
     
     let blockContents = Array.create totalBlocks FREE_BLOCK
@@ -38,7 +60,7 @@ let buildState (entries:CompactEntry[]) : State =
     let mutable nextBlock = 0
     for entry in entries do
         match entry with
-            | File (fileno, size, false) ->
+            | File (fileno, size) ->
                 Array.fill blockContents nextBlock size fileno
                 nextBlock <- nextBlock + size
             | Empty size ->
@@ -53,7 +75,37 @@ let buildState (entries:CompactEntry[]) : State =
         totalBlocks = totalBlocks
     }
 
-let rec compactTheDiskPart1Strategy (state: State) : State =
+let buildPart2State (entries:CompactEntry[]) : Part2State =
+    let totalBlocks = entries |> Array.sumBy (fun entry -> match entry 
+                                                            with 
+                                                                | Empty size -> size
+                                                                | File (_, size) -> size
+                                             )
+    
+    let blockContents = Array.create totalBlocks FREE_BLOCK
+
+    let mutable nextBlock = 0
+    let fileList = List<FileInfo>()
+
+    for entry in entries do
+        match entry with
+            | File (fileno, size) ->
+                Array.fill blockContents nextBlock size fileno
+                fileList.Add({ fileno = fileno; filesize = size; startOffset = nextBlock })
+                nextBlock <- nextBlock + size
+            | Empty size ->
+                nextBlock <- nextBlock + size
+
+    fileList.Reverse();
+
+    printfn "The disk contains %d blocks" totalBlocks
+
+    {
+        blockContents = blockContents;
+        filesToMove = List.ofSeq fileList
+    }
+
+let rec compactTheDiskPart1Strategy (state: Part1State) : Part1State =
     if state.blockContents[state.totalBlocks - 1] = FREE_BLOCK  // Skip free blocks at the end
     then
         compactTheDiskPart1Strategy { state with totalBlocks = state.totalBlocks - 1 }
@@ -83,33 +135,82 @@ let buildCompactMap (line:string) : CompactEntry[] =
     Array.mapi (fun index v ->
                 if isFile index
                 then
-                    File (index / 2, v, false)
+                    File (index / 2, v)
                 else
                     Empty v) 
             compactMap
 
 let part1 (compactEntries:CompactEntry[]) : uint64 =
-    let initialState = buildState compactEntries
+    let initialState = buildPart1State compactEntries
     let mutableCopy = Array.copy initialState.blockContents;
     let finalState = compactTheDiskPart1Strategy { initialState with blockContents = mutableCopy }
 
     let disk = finalState.blockContents[0..finalState.totalBlocks - 1]
     computeChecksum disk
 
+let iterateFreeSpace (buffer:T_FILENO[]) : FreeMapEntry seq =
+    let mutable startFreeBlock = None
+
+    seq { 
+            for index in 0.. buffer.Length - 1 do
+                if buffer[index] = FREE_BLOCK
+                then
+                    match startFreeBlock with
+                        | None -> startFreeBlock <- Some index
+                        | _ -> ()
+                else // We are at a file
+                    match startFreeBlock with
+                        | Some freeStart ->
+                            let freeblock = {
+                                freeSize = index - freeStart;
+                                startBlock = freeStart;
+                                endBlock = index - 1;
+                            }
+                            yield freeblock
+                            startFreeBlock <- None
+
+                        | None ->
+                            ()
+    }
+
+
 let part2 (compactEntries:CompactEntry[]) : uint64 =
-    // Strategy:
-    // Iterate this array from the right stopping at every file.  For each file iterate
-    // the array from the left examing every free block.
-    // If the free block is big enough, determine the difference.  We would like to move the file
-    // to the free block, but there often will be extra free.  That would require us to shift everything
-    // to the right which will be slow.  Do we need a doubly linked list?
     printfn "There are %d entries in the array for part 2" compactEntries.Length
-    0UL
+
+    let initialState = buildPart2State compactEntries
+    let freeSpace= iterateFreeSpace initialState.blockContents |> Array.ofSeq
+
+    let findSpace (sizeNeeded: T_FILESIZE) (maxOffset: T_OFFSET) : T_OFFSET option =
+        if sizeNeeded = 0
+        then
+            raise (Exception("Can't search for zero blocks"))
+        else
+            freeSpace |> Array.tryFindIndex (fun freeMapEntry -> 
+                                                    freeMapEntry.freeSize >= sizeNeeded 
+                                                    && freeMapEntry.startBlock + freeMapEntry.freeSize <= maxOffset)
+        
+    let rec moveState (state:Part2State) : Part2State =
+        match state.filesToMove with
+            | [] -> state
+            | fileToMove :: remainingFiles ->
+                match findSpace fileToMove.filesize fileToMove.startOffset with
+                    | None -> moveState { state with filesToMove = remainingFiles}
+                    | Some slotIndex -> 
+                        let freeSlotInfo = freeSpace[slotIndex]
+                        Array.fill state.blockContents freeSlotInfo.startBlock fileToMove.filesize fileToMove.fileno
+                        freeSpace[slotIndex] <- { freeSlotInfo with startBlock = freeSlotInfo.startBlock + fileToMove.filesize;
+                                                                    freeSize = freeSlotInfo.freeSize - fileToMove.filesize }
+                        Array.fill state.blockContents fileToMove.startOffset fileToMove.filesize FREE_BLOCK
+                        moveState { state with filesToMove = remainingFiles }
+
+    let finalState = moveState initialState
+    computeChecksum finalState.blockContents
+
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
-    let lines = Common.getSampleDataAsArray 2024 9
-    // let lines = Common.getChallengeDataAsArray 2024 9
+    // let lines = Common.getSampleDataAsArray 2024 9
+    let lines = Common.getChallengeDataAsArray 2024 9
 
     let compactEntries = buildCompactMap lines[0]    
     let part1Result = part1 compactEntries
