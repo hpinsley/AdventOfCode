@@ -9,6 +9,7 @@
 	"customizations": {
 		"vscode": {
 			"extensions": [
+				"mhutchie.git-graph",
 				"Ionide.Ionide-fsharp"
 			]
 		}
