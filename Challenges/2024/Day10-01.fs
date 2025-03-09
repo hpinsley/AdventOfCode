@@ -68,12 +68,13 @@ let headScore (trails:Location list list) : int =
     // Get the index of the each trail end
     trails |> List.map List.head |> List.distinct |> List.length
 
-let part1 (grid: int[,]) : int =
+let getScores (grid: int[,]) : int * int =
     let trailHeads = getTrailHeads grid
     let headTrails = trailHeads |> List.map (fun head -> findPaths grid head)
-    let scores = headTrails |> List.map headScore
-    scores |> List.sum
-    
+    let trailLengths = headTrails |> List.map List.length
+    let part2Score = trailLengths |> List.sum
+    let part1Score = headTrails |> List.map headScore |> List.sum
+    (part1Score, part2Score)    
 
 let solve =
     let stopWatch = Stopwatch.StartNew()
@@ -94,8 +95,8 @@ let solve =
                 )
     // printGrid grid (fun i -> i.ToString()[0])   // We only expect single digit numbers
 
-    let part1Result = part1 grid
-    printfn "Part 1: %d" part1Result
+    let part1Result, part2Result = getScores grid
+    printfn "Part 1: %d; Part2: %d" part1Result part2Result
 
     let part1Time = stopWatch.ElapsedMilliseconds
 
