@@ -32,7 +32,7 @@ let changeStone (stone:T_STONE) : (T_STONE * T_STONE option) =
 let rec expandSingleStone ((stone, blinks):T_STONE * T_COUNT) (stoneCount:T_COUNT) (dictionary:Dictionary<(T_STONE * T_COUNT), T_COUNT>): T_COUNT =
     if dictionary.ContainsKey((stone, blinks)) then
         let count = dictionary.[(stone, blinks)]
-        printfn "Found %A %A" (stone, blinks) count
+        //printfn "Found %A %A" (stone, blinks) count
         count
     elif blinks = 0 then
         stoneCount
