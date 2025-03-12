@@ -21,8 +21,15 @@ type Cell =
     {
         plant: char
         region: REGION option
+        cellPerimeter: int
     }
 
+type RegionStats = {
+    region: REGION
+    perimeter: int
+    area: int
+    cellCount: int
+}
 
 let getNeighbors (rows:int) (cols:int) (location:Location) : Location list =
     let possibles = [ 
@@ -34,16 +41,28 @@ let getNeighbors (rows:int) (cols:int) (location:Location) : Location list =
     possibles |> List.filter (fun loc -> loc.row >= 0 && loc.row < rows && loc.col >= 0 && loc.col < cols)
 
 let rec floodFillRegion (grid:Cell[,]) (location:Location) (region:REGION) : unit =
-    match grid[location.row,location.col].region with
+   match grid[location.row,location.col].region with
         | Some _ -> ()          // This cell is already assigned a region
         | None ->
+            grid[location.row,location.col] <- { grid[location.row, location.col] with region = Some region }
+        
             let rows = Array2D.length1 grid
             let cols = Array2D.length2 grid
 
+            // Set this location to the given region
             grid[location.row,location.col] <- { grid[location.row,location.col] with region = Some region}
+        
             let neighbors = getNeighbors rows cols location
-            neighbors |> List.iter (fun neighborLoc -> (need to check plant here)floodFillRegion grid neighborLoc region)
-    ()
+            neighbors |> List.iter (fun neighborLoc ->
+                                        // We only recurse if the neighbor has some plant and is not assigned
+                                        // to some other region
+                                        if grid[neighborLoc.row, neighborLoc.col].plant = grid[location.row, location.col].plant &&
+                                            Option.isNone grid[neighborLoc.row, neighborLoc.col].region
+                                        then
+                                            floodFillRegion grid neighborLoc region
+                                        else
+                                            ()
+                                    )
 
 let rec floodFill (grid:Cell[,]) (location:Location) : unit =
     match grid[location.row,location.col].region with
@@ -57,27 +76,93 @@ let rec floodFill (grid:Cell[,]) (location:Location) : unit =
 let buildRegions (grid:Cell[,]): unit =
     Array2D.iteri (fun r c _ -> floodFill grid { row = r; col = c }) grid
 
+let computePerimeter (grid:Cell[,]) (location:Location) : int =
+    let rows = Array2D.length1 grid
+    let cols = Array2D.length2 grid
+
+
+    let ourRegion = match grid[location.row, location.col].region with
+                        | Some r -> r
+                        | None -> raise (Exception("No region!"))
+
+    let neighbors = getNeighbors rows cols location
+    // The number of neighbors tells us a few things along the outer boundary of the grid
+    
+    let exteriorPerimeter = match neighbors.Length with
+                                | 4 -> 0        //Interior nodes have 4 neighbers so no exterior wall
+                                | 3 -> 1        //Walls - walls have 3 neighbors and 1 exterior wall
+                                | 2 -> 2        //Corners have two neighbors and 2 exterior walls
+                                | _ -> raise (Exception("Unexpected neighbor length"))
+
+    // Add to the exterior perimeter if any of the valid neighbors are NOT of the same region
+    let interiorWalls = neighbors |> List.sumBy (fun neighbor ->
+                                                    match grid[neighbor.row,neighbor.col].region with
+                                                        | None -> raise(Exception("No region on neighbor"))
+                                                        | Some theirRegion -> if theirRegion <> ourRegion then 1 else 0   //Don't need a wall between friends!
+                                                        
+                                                )
+
+    let perimeter = exteriorPerimeter + interiorWalls
+    perimeter
+
+let totalRegion (cellTuples:(REGION*int) list) : (int * int) =
+    let regionArea = cellTuples.Length
+    let regionPerimeter = cellTuples |> List.sumBy (fun (_,p) -> p)
+    (regionArea, regionPerimeter)
+
 let part1 (grid:Cell[,]): int =
+
+    // Assign every cell to a region
     buildRegions grid
-    0
+    // Now compute the perimeter of each cell such that the region's perimeter is the sum of the cell's perimiter
+
+    // Now we have to find out the perimeter of a cell
+
+    Array2D.iteri (fun r c cell ->
+                    let location = { row = r; col = c }
+                    let p = computePerimeter grid location
+                    grid[r,c] <- { cell with cellPerimeter = p }
+                   ) grid
+
+    // Now we can lose the 2d grid and group by region.  All we need for each cell is the region and
+    // the perimeter, so map to tuples that lose the option part
+
+    let cellInfoByRegion = grid    
+                            |> iterate2DArray 
+                            |> Seq.map (fun (i,j,c) -> 
+                                            let r = match c.region with 
+                                                        | Some r -> r
+                                                        | None -> raise (Exception("No region?"))
+                                            (r, c.cellPerimeter)
+                                        )
+                            |> List.ofSeq
+                            |> List.groupBy fst
+                            |> List.ofSeq
+
+    // Now map each entry to region totals
+    let totals = cellInfoByRegion |> List.map (fun (r,members) -> totalRegion members)
+    let price = totals |> List.map (fun (a,p) -> a * p)
+    let totalPrice = List.sum price
+    totalPrice
     
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
-    let lines = Common.getSampleDataAsArray 2024 12
-    // let lines = Common.getChallengeDataAsArray 2024 12
+    // let lines = Common.getSampleDataAsArray 2024 12
+    let lines = Common.getChallengeDataAsArray 2024 12
     
     let rows = lines.Length
     let cols = lines[0].Length
 
     printfn "The grid is %d x %d" rows cols
 
-    let grid = Array2D.init rows cols (fun r c -> { plant = lines[r][c]; region = None })
-    printGrid grid (fun cell -> cell.plant)
+    let grid = Array2D.init rows cols (fun r c -> { plant = lines[r][c]; region = None; cellPerimeter = -1 })
+    //printGrid grid (fun cell -> cell.plant)
 
     let part1Result = part1 grid
-
     let part1Time = stopWatch.ElapsedMilliseconds
+
+    printfn "Part 1 result is %d" part1Result
     stopWatch.Restart()
 
     // Part 2

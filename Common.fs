@@ -296,3 +296,10 @@ let binaryStringToInt (s:string) : int =
                         | '1' -> 2 * v + 1
                         | _ -> failwith "Invalid binary digit"
                     ) 0
+
+let iterate2DArray (grid:'T[,]) : seq<int * int * 'T> =
+    seq {
+        for r in { 0..Array2D.length1 grid - 1 } do
+            for c in { 0..Array2D.length2 grid - 1} do
+                yield (r, c, grid[r,c])
+    }
