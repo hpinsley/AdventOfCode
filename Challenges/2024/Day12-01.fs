@@ -17,6 +17,9 @@ type Location =
 
 type REGION = Location     // A region is identified by the first location encountered
 
+type T_X = int
+type T_Y = int
+
 type Cell =
     {
         plant: char
@@ -30,6 +33,10 @@ type RegionStats = {
     area: int
     cellCount: int
 }
+
+type Wall =
+    | Vertical of T_X * T_Y * T_Y
+    | Horizontal of T_Y * T_X * T_X
 
 let getNeighbors (rows:int) (cols:int) (location:Location) : Location list =
     let possibles = [ 
@@ -74,6 +81,41 @@ let rec floodFill (grid:Cell[,]) (location:Location) : unit =
             
 let buildRegions (grid:Cell[,]): unit =
     Array2D.iteri (fun r c _ -> floodFill grid { row = r; col = c }) grid
+
+let determineCellWals (grid:Cell[,]) (location:Location) : Wall list =
+    let rows = Array2D.length1 grid
+    let cols = Array2D.length2 grid
+
+
+    let ourRegion = match grid[location.row, location.col].region with
+                        | Some r -> r
+                        | None -> raise (Exception("No region!"))
+
+
+    let leftWall = if location.col = 0
+                   then
+                        Some (Vertical (0,location.row,location.row + 1))
+                   else
+                        let neighbor = grid[location.row, location.col - 1]
+                        let neighborRegion = Option.get neighbor.region
+                        if neighborRegion <> ourRegion
+                        then
+                            Some (Vertical (location.col, location.row, location.row + 1))
+                        else
+                            None
+
+    let rightWall =     if location.col = cols - 1
+                        then
+                            Some (Vertical (location.col,location.row,location.row + 1))
+                        else
+                            let neighbor = grid[location.row, location.col + 1]
+                            let neighborRegion = Option.get neighbor.region
+                            if neighborRegion <> ourRegion
+                            then
+                                Some (Vertical (location.col + 1, location.row, location.row + 1))
+                            else
+                                None
+    []
 
 let computePerimeter (grid:Cell[,]) (location:Location) : int =
     let rows = Array2D.length1 grid
