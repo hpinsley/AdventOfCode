@@ -44,13 +44,12 @@ let rec floodFillRegion (grid:Cell[,]) (location:Location) (region:REGION) : uni
    match grid[location.row,location.col].region with
         | Some _ -> ()          // This cell is already assigned a region
         | None ->
-            grid[location.row,location.col] <- { grid[location.row, location.col] with region = Some region }
         
             let rows = Array2D.length1 grid
             let cols = Array2D.length2 grid
 
             // Set this location to the given region
-            grid[location.row,location.col] <- { grid[location.row,location.col] with region = Some region}
+            grid[location.row,location.col] <- { grid[location.row, location.col] with region = Some region }
         
             let neighbors = getNeighbors rows cols location
             neighbors |> List.iter (fun neighborLoc ->
@@ -148,8 +147,8 @@ let part1 (grid:Cell[,]): int =
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
-    // let lines = Common.getSampleDataAsArray 2024 12
-    let lines = Common.getChallengeDataAsArray 2024 12
+    let lines = Common.getSampleDataAsArray 2024 12
+    // let lines = Common.getChallengeDataAsArray 2024 12
     
     let rows = lines.Length
     let cols = lines[0].Length
