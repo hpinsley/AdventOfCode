@@ -175,14 +175,20 @@ let part1 (grid:Cell[,]): int =
     let totalPrice = List.sum price
     totalPrice
 
+let joinWallSegments (walls:Wall list) : Wall list =
+    []
+
 let computePart2Price (cells:Cell list) : int =
-    // Each cell now has a region a list of sides.  Within a region we want to collect sides so that they
-    // can be joined.  
-    // 
-    // Horizontal walls: Sort these by "y"
     let area = cells.Length
-    let perimeter = cells |> List.sumBy (fun cell -> cell.cellPerimeter)
-    area * perimeter
+    
+    // Now we need the number of sides in this region.  Each cell has a list of sides so we need to join
+    // wall segments that are part of the same wall.  First pull out all the wall segments
+
+    let wallSegments = cells |> List.map (fun c -> c.walls) |> List.concat
+    let joinedWallSegments = joinWallSegments wallSegments
+    let sides = joinedWallSegments.Length
+    let total = area * sides
+    total
 
 let part2 (grid:Cell[,]): int =
 
