@@ -94,7 +94,7 @@ let determineCellWals (grid:Cell[,]) (location:Location) : Wall list =
 
     let leftWall = if location.col = 0
                    then
-                        Some (Vertical (0,location.row,location.row + 1))
+                        Some (Vertical (location.col,location.row,location.row + 1))
                    else
                         let neighbor = grid[location.row, location.col - 1]
                         let neighborRegion = Option.get neighbor.region
@@ -106,7 +106,7 @@ let determineCellWals (grid:Cell[,]) (location:Location) : Wall list =
 
     let rightWall =     if location.col = cols - 1
                         then
-                            Some (Vertical (location.col,location.row,location.row + 1))
+                            Some (Vertical (location.col + 1,location.row,location.row + 1))
                         else
                             let neighbor = grid[location.row, location.col + 1]
                             let neighborRegion = Option.get neighbor.region
@@ -115,7 +115,36 @@ let determineCellWals (grid:Cell[,]) (location:Location) : Wall list =
                                 Some (Vertical (location.col + 1, location.row, location.row + 1))
                             else
                                 None
-    []
+
+    let topWall = if location.row = 0
+                   then
+                        Some (Horizontal (location.row,location.col,location.col + 1))
+                   else
+                        let neighbor = grid[location.row - 1, location.col]
+                        let neighborRegion = Option.get neighbor.region
+                        if neighborRegion <> ourRegion
+                        then
+                            Some (Horizontal (location.row, location.col, location.col + 1))
+                        else
+                            None
+
+    let bottomWall =    if location.row = rows - 1
+                        then
+                            Some (Horizontal (location.row + 1, location.col,location.col + 1))
+                        else
+                            let neighbor = grid[location.row + 1, location.col]
+                            let neighborRegion = Option.get neighbor.region
+                            if neighborRegion <> ourRegion
+                            then
+                                Some (Horizontal (location.row + 1, location.col, location.col + 1))
+                            else
+                                None
+
+    let possibleWalls = [topWall; rightWall; bottomWall; leftWall]
+    let walls = possibleWalls |> List.choose id
+    
+    walls
+    
 
 let computePerimeter (grid:Cell[,]) (location:Location) : int =
     let rows = Array2D.length1 grid
@@ -157,11 +186,15 @@ let part1 (grid:Cell[,]): int =
     buildRegions grid
     // Now compute the perimeter of each cell such that the region's perimeter is the sum of the cell's perimiter
 
+    // let wallTest1 = determineCellWals grid { row = 0; col = 0 }
+
     // Now we have to find out the perimeter of a cell
 
     Array2D.iteri (fun r c cell ->
                     let location = { row = r; col = c }
-                    let p = computePerimeter grid location
+                    // let p = computePerimeter grid location
+                    let walls = determineCellWals grid location
+                    let p = walls.Length
                     grid[r,c] <- { cell with cellPerimeter = p }
                    ) grid
 
@@ -189,8 +222,8 @@ let part1 (grid:Cell[,]): int =
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
-    let lines = Common.getSampleDataAsArray 2024 12
-    // let lines = Common.getChallengeDataAsArray 2024 12
+    // let lines = Common.getSampleDataAsArray 2024 12
+    let lines = Common.getChallengeDataAsArray 2024 12
     
     let rows = lines.Length
     let cols = lines[0].Length
