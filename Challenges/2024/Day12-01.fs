@@ -20,10 +20,15 @@ type REGION = Location     // A region is identified by the first location encou
 type T_X = int
 type T_Y = int
 
+type Wall =
+    | Vertical of T_X * T_Y * T_Y
+    | Horizontal of T_Y * T_X * T_X
+
 type Cell =
     {
         plant: char
         region: REGION option
+        walls: Wall list
         cellPerimeter: int
     }
 
@@ -34,9 +39,6 @@ type RegionStats = {
     cellCount: int
 }
 
-type Wall =
-    | Vertical of T_X * T_Y * T_Y
-    | Horizontal of T_Y * T_X * T_X
 
 let getNeighbors (rows:int) (cols:int) (location:Location) : Location list =
     let possibles = [ 
@@ -152,20 +154,6 @@ let totalRegion (cellTuples:(REGION*int) list) : (int * int) =
 
 let part1 (grid:Cell[,]): int =
 
-    // Assign every cell to a region
-    buildRegions grid
-    // Now compute the perimeter of each cell such that the region's perimeter is the sum of the cell's perimiter
-
-    // let wallTest1 = determineCellWals grid { row = 0; col = 0 }
-
-    // Now we have to find out the perimeter of a cell
-
-    Array2D.iteri (fun r c cell ->
-                    let location = { row = r; col = c }
-                    let walls = determineCellWals grid location
-                    grid[r,c] <- { cell with cellPerimeter = walls.Length }
-                   ) grid
-
     // Now we can lose the 2d grid and group by region.  All we need for each cell is the region and
     // the perimeter, so map to tuples that lose the option part
 
@@ -190,16 +178,26 @@ let part1 (grid:Cell[,]): int =
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
-    // let lines = Common.getSampleDataAsArray 2024 12
-    let lines = Common.getChallengeDataAsArray 2024 12
+    let lines = Common.getSampleDataAsArray 2024 12
+    // let lines = Common.getChallengeDataAsArray 2024 12
     
     let rows = lines.Length
     let cols = lines[0].Length
 
     printfn "The grid is %d x %d" rows cols
 
-    let grid = Array2D.init rows cols (fun r c -> { plant = lines[r][c]; region = None; cellPerimeter = -1 })
+    let grid = Array2D.init rows cols (fun r c -> { plant = lines[r][c]; region = None; cellPerimeter = -1; walls = [] })
     //printGrid grid (fun cell -> cell.plant)
+
+    // Assign every cell to a region
+    buildRegions grid
+
+    // Now find all the walls
+    Array2D.iteri (fun r c cell ->
+                    let location = { row = r; col = c }
+                    let walls = determineCellWals grid location
+                    grid[r,c] <- { cell with cellPerimeter = walls.Length; walls = walls }
+                   ) grid
 
     let part1Result = part1 grid
     let part1Time = stopWatch.ElapsedMilliseconds
