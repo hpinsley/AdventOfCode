@@ -175,8 +175,30 @@ let part1 (grid:Cell[,]): int =
     let totalPrice = List.sum price
     totalPrice
 
-let joinWallSegments (walls:Wall list) : Wall list =
+let reduceSortedHorizontalInfo (wallInfo:(int * (int * int))) : (int * (int * int)) =
+    wallInfo
+
+let getSideList (walls:Wall list) : Wall list =
+    // To join wall segments that are part of the same wall, we can sort first the type of wall (horizontal
+    // or vertical).
+    // Horizontal: Wall segments must be in the same row and the end of one matches the start of the other
+    // Vertical: Wall segments must be in the same column and the end of one matches the start of the other.
+
+    let horizontalWalls = walls |> List.choose (fun w ->
+                                                    match w with
+                                                        | Horizontal (y,x1,x2) -> Some (y,(x1,x2))
+                                                        | _ -> None
+                                                )
+                                |> List.sort
+
+    let verticalWalls = walls |> List.choose (fun w ->
+                                                    match w with
+                                                        | Vertical (x,y1,y2) -> Some (x,(y1,y2))
+                                                        | _ -> None
+                                                )
+                                |> List.sort
     []
+
 
 let computePart2Price (cells:Cell list) : int =
     let area = cells.Length
@@ -185,7 +207,7 @@ let computePart2Price (cells:Cell list) : int =
     // wall segments that are part of the same wall.  First pull out all the wall segments
 
     let wallSegments = cells |> List.map (fun c -> c.walls) |> List.concat
-    let joinedWallSegments = joinWallSegments wallSegments
+    let joinedWallSegments = getSideList wallSegments
     let sides = joinedWallSegments.Length
     let total = area * sides
     total
