@@ -174,7 +174,36 @@ let part1 (grid:Cell[,]): int =
     let price = totals |> List.map (fun (a,p) -> a * p)
     let totalPrice = List.sum price
     totalPrice
+
+let computePart2Price (cells:Cell list) : int =
+    // Each cell now has a region a list of sides.  Within a region we want to collect sides so that they
+    // can be joined.  
+    // 
+    // Horizontal walls: Sort these by "y"
+    let area = cells.Length
+    let perimeter = cells |> List.sumBy (fun cell -> cell.cellPerimeter)
+    area * perimeter
+
+let part2 (grid:Cell[,]): int =
+
+    // Let's get lists of cells by region.
+
+    let regions:Cell list list  = grid  |> iterate2DArray
+                                        |> Seq.map (fun (i,j,c) -> 
+                                                        let r = match c.region with 
+                                                                    | Some r -> r
+                                                                    | None -> raise (Exception("No region?"))
+                                                        (r, c)
+                                                    )
+                                        |> Seq.groupBy fst
+                                        |> Seq.map snd
+                                        |> Seq.map (fun tplList -> Seq.map snd tplList |> List.ofSeq)
+                                        |> List.ofSeq
+
+    let totalPrice = regions |> List.sumBy computePart2Price
+    totalPrice
     
+
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
@@ -206,7 +235,10 @@ let solve =
     stopWatch.Restart()
 
     // Part 2
-    let part2Time = stopWatch.ElapsedMilliseconds;
+    let part2Result = part2 grid
+    let part2Time = stopWatch.ElapsedMilliseconds
+
+    printfn "Part 2 result is %d" part2Result
 
     printfn "Timings.  Part 1: %dms, Part 2: %dms" part1Time part2Time
 
