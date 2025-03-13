@@ -145,36 +145,6 @@ let determineCellWals (grid:Cell[,]) (location:Location) : Wall list =
     
     walls
     
-
-let computePerimeter (grid:Cell[,]) (location:Location) : int =
-    let rows = Array2D.length1 grid
-    let cols = Array2D.length2 grid
-
-
-    let ourRegion = match grid[location.row, location.col].region with
-                        | Some r -> r
-                        | None -> raise (Exception("No region!"))
-
-    let neighbors = getNeighbors rows cols location
-    // The number of neighbors tells us a few things along the outer boundary of the grid
-    
-    let exteriorPerimeter = match neighbors.Length with
-                                | 4 -> 0        //Interior nodes have 4 neighbers so no exterior wall
-                                | 3 -> 1        //Walls - walls have 3 neighbors and 1 exterior wall
-                                | 2 -> 2        //Corners have two neighbors and 2 exterior walls
-                                | _ -> raise (Exception("Unexpected neighbor length"))
-
-    // Add to the exterior perimeter if any of the valid neighbors are NOT of the same region
-    let interiorWalls = neighbors |> List.sumBy (fun neighbor ->
-                                                    match grid[neighbor.row,neighbor.col].region with
-                                                        | None -> raise(Exception("No region on neighbor"))
-                                                        | Some theirRegion -> if theirRegion <> ourRegion then 1 else 0   //Don't need a wall between friends!
-                                                        
-                                                )
-
-    let perimeter = exteriorPerimeter + interiorWalls
-    perimeter
-
 let totalRegion (cellTuples:(REGION*int) list) : (int * int) =
     let regionArea = cellTuples.Length
     let regionPerimeter = cellTuples |> List.sumBy (fun (_,p) -> p)
@@ -192,10 +162,8 @@ let part1 (grid:Cell[,]): int =
 
     Array2D.iteri (fun r c cell ->
                     let location = { row = r; col = c }
-                    // let p = computePerimeter grid location
                     let walls = determineCellWals grid location
-                    let p = walls.Length
-                    grid[r,c] <- { cell with cellPerimeter = p }
+                    grid[r,c] <- { cell with cellPerimeter = walls.Length }
                    ) grid
 
     // Now we can lose the 2d grid and group by region.  All we need for each cell is the region and
