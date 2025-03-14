@@ -216,9 +216,13 @@ let getRegionSideList (walls:Wall list) : Wall list =
                                 |> List.sort
 
     let reducedHorizontal = reduceSortedHorizontalInfo horizontalWalls
-    let reducedVertigal = reduceSortedHorizontalInfo verticalWalls
-
-    []
+    let reducedVertical = reduceSortedHorizontalInfo verticalWalls
+    
+    // Now turn them back into Walls
+    let horizontalWalls = reducedHorizontal |> List.map (fun (y, (x1, x2)) -> Horizontal (y,x1,x2))
+    let verticalWalls = reducedVertical |> List.map (fun (x, (y1, y2)) -> Vertical (x, y1, y2))
+    let sides = List.concat [horizontalWalls; verticalWalls]
+    sides
 
 
 let computePart2PriceForRegion (cells:Cell list) : int =
