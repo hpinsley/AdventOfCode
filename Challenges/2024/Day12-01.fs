@@ -17,14 +17,18 @@ type Location =
 
 type REGION = Location     // A region is identified by the first location encountered
 
-type T_X = int
-type T_Y = int
+type T_WALL =
+    | Top
+    | Bottom
+    | Left
+    | Right
 
-type Wall =
-    | Vertical of T_X * T_Y * T_Y
-    | Horizontal of T_Y * T_X * T_X
-
-type GenericWallInfo = (int * (int * int))
+type Wall = 
+    {
+        wallType: T_WALL
+        startRC: int
+        endRC: int
+    }
 
 type Cell =
     {
@@ -98,49 +102,49 @@ let determineCellWals (grid:Cell[,]) (location:Location) : Wall list =
 
     let leftWall = if location.col = 0
                    then
-                        Some (Vertical (location.col,location.row,location.row + 1))
+                        Some { wallType = Left; startRC = location.row; endRC = location.row }
                    else
                         let neighbor = grid[location.row, location.col - 1]
                         let neighborRegion = Option.get neighbor.region
                         if neighborRegion <> ourRegion
                         then
-                            Some (Vertical (location.col, location.row, location.row + 1))
+                            Some { wallType = Left; startRC = location.row; endRC = location.row }
                         else
                             None
 
     let rightWall =     if location.col = cols - 1
                         then
-                            Some (Vertical (location.col + 1,location.row,location.row + 1))
+                            Some { wallType = Right; startRC = location.row; endRC = location.row }
                         else
                             let neighbor = grid[location.row, location.col + 1]
                             let neighborRegion = Option.get neighbor.region
                             if neighborRegion <> ourRegion
                             then
-                                Some (Vertical (location.col + 1, location.row, location.row + 1))
+                                Some { wallType = Right; startRC = location.row; endRC = location.row }
                             else
                                 None
 
     let topWall = if location.row = 0
                    then
-                        Some (Horizontal (location.row,location.col,location.col + 1))
+                        Some { wallType = Top; startRC = location.col; endRC = location.col }
                    else
                         let neighbor = grid[location.row - 1, location.col]
                         let neighborRegion = Option.get neighbor.region
                         if neighborRegion <> ourRegion
                         then
-                            Some (Horizontal (location.row, location.col, location.col + 1))
+                            Some { wallType = Top; startRC = location.col; endRC = location.col }
                         else
                             None
 
     let bottomWall =    if location.row = rows - 1
                         then
-                            Some (Horizontal (location.row + 1, location.col,location.col + 1))
+                           Some { wallType = Bottom; startRC = location.col; endRC = location.col }
                         else
                             let neighbor = grid[location.row + 1, location.col]
                             let neighborRegion = Option.get neighbor.region
                             if neighborRegion <> ourRegion
                             then
-                                Some (Horizontal (location.row + 1, location.col, location.col + 1))
+                                Some { wallType = Bottom; startRC = location.col; endRC = location.col }
                             else
                                 None
 
