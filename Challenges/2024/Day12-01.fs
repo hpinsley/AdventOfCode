@@ -26,6 +26,7 @@ type T_WALL =
 type Wall = 
     {
         wallType: T_WALL
+        RC: int
         startRC: int
         endRC: int
     }
@@ -102,49 +103,49 @@ let determineCellWals (grid:Cell[,]) (location:Location) : Wall list =
 
     let leftWall = if location.col = 0
                    then
-                        Some { wallType = Left; startRC = location.row; endRC = location.row }
+                        Some { wallType = Left; RC = location.col; startRC = location.row; endRC = location.row }
                    else
                         let neighbor = grid[location.row, location.col - 1]
                         let neighborRegion = Option.get neighbor.region
                         if neighborRegion <> ourRegion
                         then
-                            Some { wallType = Left; startRC = location.row; endRC = location.row }
+                            Some { wallType = Left; RC = location.col; startRC = location.row; endRC = location.row }
                         else
                             None
 
-    let rightWall =     if location.col = cols - 1
+    let rightWall = if location.col = cols - 1
                         then
-                            Some { wallType = Right; startRC = location.row; endRC = location.row }
+                            Some { wallType = Right; RC = location.col; startRC = location.row; endRC = location.row }
                         else
                             let neighbor = grid[location.row, location.col + 1]
                             let neighborRegion = Option.get neighbor.region
                             if neighborRegion <> ourRegion
                             then
-                                Some { wallType = Right; startRC = location.row; endRC = location.row }
+                                Some { wallType = Right; RC = location.col; startRC = location.row; endRC = location.row }
                             else
                                 None
 
     let topWall = if location.row = 0
                    then
-                        Some { wallType = Top; startRC = location.col; endRC = location.col }
+                        Some { wallType = Top; RC = location.row; startRC = location.col; endRC = location.col }
                    else
                         let neighbor = grid[location.row - 1, location.col]
                         let neighborRegion = Option.get neighbor.region
                         if neighborRegion <> ourRegion
                         then
-                            Some { wallType = Top; startRC = location.col; endRC = location.col }
+                            Some { wallType = Top; RC = location.row; startRC = location.col; endRC = location.col }
                         else
                             None
 
     let bottomWall =    if location.row = rows - 1
                         then
-                           Some { wallType = Bottom; startRC = location.col; endRC = location.col }
+                           Some { wallType = Bottom;  RC = location.row; startRC = location.col; endRC = location.col }
                         else
                             let neighbor = grid[location.row + 1, location.col]
                             let neighborRegion = Option.get neighbor.region
                             if neighborRegion <> ourRegion
                             then
-                                Some { wallType = Bottom; startRC = location.col; endRC = location.col }
+                                Some { wallType = Bottom;  RC = location.row; startRC = location.col; endRC = location.col }
                             else
                                 None
 
@@ -181,26 +182,26 @@ let part1 (grid:Cell[,]): int =
     let totalPrice = List.sum price
     totalPrice
 
-//let reduceSortedHorizontalInfo (wallInfo:GenericWallInfo list) : GenericWallInfo list =
 
-//    let rec _reduceSortedHorizontalInfo (unreduced:GenericWallInfo list) (fullyReduced:GenericWallInfo list) : GenericWallInfo list = 
-//                                        match unreduced with
-//                                            | [] -> fullyReduced
-//                                            | seg1 :: [] -> seg1 :: fullyReduced
-//                                            | ((seg1rc, (seg1Start, seg1End)) as p1) :: ((seg2rc, (seg2Start, seg2End)) as p2) :: pending ->
-//                                                if (seg1rc = seg2rc && seg1End = seg2Start)
-//                                                then
-//                                                    let combinedWall = (seg1rc, (seg1Start, seg2End))
-//                                                    _reduceSortedHorizontalInfo (combinedWall :: pending) fullyReduced
-//                                                else
-//                                                    _reduceSortedHorizontalInfo (p2 :: pending) (p1::fullyReduced)
-//    _reduceSortedHorizontalInfo wallInfo []                                                
-                                     
+let combineSimilarWallSegments (unreduced:Wall list) : Wall list =
+    let rec _combine (unreduced:Wall list) (fullyReduced:Wall list) : Wall list = 
+        match unreduced with
+            | [] -> fullyReduced
+            | seg1 :: [] -> seg1 :: fullyReduced
+            | seg1 :: seg2 :: pending ->
+                if seg1.wallType = seg2.wallType && seg1.RC = seg2.RC && seg1.endRC = seg2.startRC - 1
+                then
+                    let combinedWall = { wallType = seg1.wallType; RC = seg1.RC; startRC = seg1.startRC; endRC = seg2.endRC }
+                    _combine (combinedWall :: pending) fullyReduced
+                else
+                    _combine (seg2 :: pending) (seg1::fullyReduced)
 
-
+    _combine unreduced []                                                
 
 let getRegionSideList (walls:Wall list) : Wall list =
-    walls
+    let sortedWalls = walls |> List.sort
+    let combined = combineSimilarWallSegments sortedWalls
+    combined
 
 let computePart2PriceForRegion (cells:Cell list) : int =
     let area = cells.Length
@@ -208,7 +209,7 @@ let computePart2PriceForRegion (cells:Cell list) : int =
     // Now we need the number of sides in this region.  Each cell has a list of sides so we need to join
     // wall segments that are part of the same wall.  First pull out all the wall segments
 
-    let wallSegments = cells |> List.map (fun c -> c.walls) |> List.concat |> List.sort
+    let wallSegments = cells |> List.map (fun c -> c.walls) |> List.concat
     let joinedWallSegments = getRegionSideList wallSegments
     let sides = joinedWallSegments.Length
     let total = area * sides
@@ -237,8 +238,8 @@ let part2 (grid:Cell[,]): int =
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
-    let lines = Common.getSampleDataAsArray 2024 12
-    // let lines = Common.getChallengeDataAsArray 2024 12
+    // let lines = Common.getSampleDataAsArray 2024 12
+    let lines = Common.getChallengeDataAsArray 2024 12
     
     let rows = lines.Length
     let cols = lines[0].Length
