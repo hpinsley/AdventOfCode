@@ -17,14 +17,19 @@ type Location =
 
 type REGION = Location     // A region is identified by the first location encountered
 
-type T_X = int
-type T_Y = int
+type T_WALL =
+    | Top
+    | Bottom
+    | Left
+    | Right
 
-type Wall =
-    | Vertical of T_X * T_Y * T_Y
-    | Horizontal of T_Y * T_X * T_X
-
-type GenericWallInfo = (int * (int * int))
+type Wall = 
+    {
+        wallType: T_WALL
+        RC: int
+        startRC: int
+        endRC: int
+    }
 
 type Cell =
     {
@@ -98,49 +103,49 @@ let determineCellWals (grid:Cell[,]) (location:Location) : Wall list =
 
     let leftWall = if location.col = 0
                    then
-                        Some (Vertical (location.col,location.row,location.row + 1))
+                        Some { wallType = Left; RC = location.col; startRC = location.row; endRC = location.row }
                    else
                         let neighbor = grid[location.row, location.col - 1]
                         let neighborRegion = Option.get neighbor.region
                         if neighborRegion <> ourRegion
                         then
-                            Some (Vertical (location.col, location.row, location.row + 1))
+                            Some { wallType = Left; RC = location.col; startRC = location.row; endRC = location.row }
                         else
                             None
 
-    let rightWall =     if location.col = cols - 1
+    let rightWall = if location.col = cols - 1
                         then
-                            Some (Vertical (location.col + 1,location.row,location.row + 1))
+                            Some { wallType = Right; RC = location.col; startRC = location.row; endRC = location.row }
                         else
                             let neighbor = grid[location.row, location.col + 1]
                             let neighborRegion = Option.get neighbor.region
                             if neighborRegion <> ourRegion
                             then
-                                Some (Vertical (location.col + 1, location.row, location.row + 1))
+                                Some { wallType = Right; RC = location.col; startRC = location.row; endRC = location.row }
                             else
                                 None
 
     let topWall = if location.row = 0
                    then
-                        Some (Horizontal (location.row,location.col,location.col + 1))
+                        Some { wallType = Top; RC = location.row; startRC = location.col; endRC = location.col }
                    else
                         let neighbor = grid[location.row - 1, location.col]
                         let neighborRegion = Option.get neighbor.region
                         if neighborRegion <> ourRegion
                         then
-                            Some (Horizontal (location.row, location.col, location.col + 1))
+                            Some { wallType = Top; RC = location.row; startRC = location.col; endRC = location.col }
                         else
                             None
 
     let bottomWall =    if location.row = rows - 1
                         then
-                            Some (Horizontal (location.row + 1, location.col,location.col + 1))
+                           Some { wallType = Bottom;  RC = location.row; startRC = location.col; endRC = location.col }
                         else
                             let neighbor = grid[location.row + 1, location.col]
                             let neighborRegion = Option.get neighbor.region
                             if neighborRegion <> ourRegion
                             then
-                                Some (Horizontal (location.row + 1, location.col, location.col + 1))
+                                Some { wallType = Bottom;  RC = location.row; startRC = location.col; endRC = location.col }
                             else
                                 None
 
@@ -177,53 +182,26 @@ let part1 (grid:Cell[,]): int =
     let totalPrice = List.sum price
     totalPrice
 
-let reduceSortedHorizontalInfo (wallInfo:GenericWallInfo list) : GenericWallInfo list =
 
-    let rec _reduceSortedHorizontalInfo (unreduced:GenericWallInfo list) (fullyReduced:GenericWallInfo list) : GenericWallInfo list = 
-                                        match unreduced with
-                                            | [] -> fullyReduced
-                                            | seg1 :: [] -> seg1 :: fullyReduced
-                                            | ((seg1rc, (seg1Start, seg1End)) as p1) :: ((seg2rc, (seg2Start, seg2End)) as p2) :: pending ->
-                                                if (seg1rc = seg2rc && seg1End = seg2Start)
-                                                then
-                                                    let combinedWall = (seg1rc, (seg1Start, seg2End))
-                                                    _reduceSortedHorizontalInfo (combinedWall :: pending) fullyReduced
-                                                else
-                                                    _reduceSortedHorizontalInfo (p2 :: pending) (p1::fullyReduced)
-    _reduceSortedHorizontalInfo wallInfo []                                                
-                                     
+let combineSimilarWallSegments (unreduced:Wall list) : Wall list =
+    let rec _combine (unreduced:Wall list) (fullyReduced:Wall list) : Wall list = 
+        match unreduced with
+            | [] -> fullyReduced
+            | seg1 :: [] -> seg1 :: fullyReduced
+            | seg1 :: seg2 :: pending ->
+                if seg1.wallType = seg2.wallType && seg1.RC = seg2.RC && seg1.endRC = seg2.startRC - 1
+                then
+                    let combinedWall = { wallType = seg1.wallType; RC = seg1.RC; startRC = seg1.startRC; endRC = seg2.endRC }
+                    _combine (combinedWall :: pending) fullyReduced
+                else
+                    _combine (seg2 :: pending) (seg1::fullyReduced)
 
-
+    _combine unreduced []                                                
 
 let getRegionSideList (walls:Wall list) : Wall list =
-    // To join wall segments that are part of the same wall, we can sort first the type of wall (horizontal
-    // or vertical).
-    // Horizontal: Wall segments must be in the same row and the end of one matches the start of the other
-    // Vertical: Wall segments must be in the same column and the end of one matches the start of the other.
-
-    let horizontalWalls = walls |> List.choose (fun w ->
-                                                    match w with
-                                                        | Horizontal (y,x1,x2) -> Some (y,(x1,x2))
-                                                        | _ -> None
-                                                )
-                                |> List.sort
-
-    let verticalWalls = walls |> List.choose (fun w ->
-                                                    match w with
-                                                        | Vertical (x,y1,y2) -> Some (x,(y1,y2))
-                                                        | _ -> None
-                                                )
-                                |> List.sort
-
-    let reducedHorizontal = reduceSortedHorizontalInfo horizontalWalls
-    let reducedVertical = reduceSortedHorizontalInfo verticalWalls
-    
-    // Now turn them back into Walls
-    let horizontalWalls = reducedHorizontal |> List.map (fun (y, (x1, x2)) -> Horizontal (y,x1,x2))
-    let verticalWalls = reducedVertical |> List.map (fun (x, (y1, y2)) -> Vertical (x, y1, y2))
-    let sides = List.concat [horizontalWalls; verticalWalls]
-    sides
-
+    let sortedWalls = walls |> List.sort
+    let combined = combineSimilarWallSegments sortedWalls
+    combined
 
 let computePart2PriceForRegion (cells:Cell list) : int =
     let area = cells.Length
@@ -260,8 +238,8 @@ let part2 (grid:Cell[,]): int =
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
-    let lines = Common.getSampleDataAsArray 2024 12
-    // let lines = Common.getChallengeDataAsArray 2024 12
+    // let lines = Common.getSampleDataAsArray 2024 12
+    let lines = Common.getChallengeDataAsArray 2024 12
     
     let rows = lines.Length
     let cols = lines[0].Length
