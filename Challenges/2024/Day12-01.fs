@@ -181,53 +181,26 @@ let part1 (grid:Cell[,]): int =
     let totalPrice = List.sum price
     totalPrice
 
-let reduceSortedHorizontalInfo (wallInfo:GenericWallInfo list) : GenericWallInfo list =
+//let reduceSortedHorizontalInfo (wallInfo:GenericWallInfo list) : GenericWallInfo list =
 
-    let rec _reduceSortedHorizontalInfo (unreduced:GenericWallInfo list) (fullyReduced:GenericWallInfo list) : GenericWallInfo list = 
-                                        match unreduced with
-                                            | [] -> fullyReduced
-                                            | seg1 :: [] -> seg1 :: fullyReduced
-                                            | ((seg1rc, (seg1Start, seg1End)) as p1) :: ((seg2rc, (seg2Start, seg2End)) as p2) :: pending ->
-                                                if (seg1rc = seg2rc && seg1End = seg2Start)
-                                                then
-                                                    let combinedWall = (seg1rc, (seg1Start, seg2End))
-                                                    _reduceSortedHorizontalInfo (combinedWall :: pending) fullyReduced
-                                                else
-                                                    _reduceSortedHorizontalInfo (p2 :: pending) (p1::fullyReduced)
-    _reduceSortedHorizontalInfo wallInfo []                                                
+//    let rec _reduceSortedHorizontalInfo (unreduced:GenericWallInfo list) (fullyReduced:GenericWallInfo list) : GenericWallInfo list = 
+//                                        match unreduced with
+//                                            | [] -> fullyReduced
+//                                            | seg1 :: [] -> seg1 :: fullyReduced
+//                                            | ((seg1rc, (seg1Start, seg1End)) as p1) :: ((seg2rc, (seg2Start, seg2End)) as p2) :: pending ->
+//                                                if (seg1rc = seg2rc && seg1End = seg2Start)
+//                                                then
+//                                                    let combinedWall = (seg1rc, (seg1Start, seg2End))
+//                                                    _reduceSortedHorizontalInfo (combinedWall :: pending) fullyReduced
+//                                                else
+//                                                    _reduceSortedHorizontalInfo (p2 :: pending) (p1::fullyReduced)
+//    _reduceSortedHorizontalInfo wallInfo []                                                
                                      
 
 
 
 let getRegionSideList (walls:Wall list) : Wall list =
-    // To join wall segments that are part of the same wall, we can sort first the type of wall (horizontal
-    // or vertical).
-    // Horizontal: Wall segments must be in the same row and the end of one matches the start of the other
-    // Vertical: Wall segments must be in the same column and the end of one matches the start of the other.
-
-    let horizontalWalls = walls |> List.choose (fun w ->
-                                                    match w with
-                                                        | Horizontal (y,x1,x2) -> Some (y,(x1,x2))
-                                                        | _ -> None
-                                                )
-                                |> List.sort
-
-    let verticalWalls = walls |> List.choose (fun w ->
-                                                    match w with
-                                                        | Vertical (x,y1,y2) -> Some (x,(y1,y2))
-                                                        | _ -> None
-                                                )
-                                |> List.sort
-
-    let reducedHorizontal = reduceSortedHorizontalInfo horizontalWalls
-    let reducedVertical = reduceSortedHorizontalInfo verticalWalls
-    
-    // Now turn them back into Walls
-    let horizontalWalls = reducedHorizontal |> List.map (fun (y, (x1, x2)) -> Horizontal (y,x1,x2))
-    let verticalWalls = reducedVertical |> List.map (fun (x, (y1, y2)) -> Vertical (x, y1, y2))
-    let sides = List.concat [horizontalWalls; verticalWalls]
-    sides
-
+    walls
 
 let computePart2PriceForRegion (cells:Cell list) : int =
     let area = cells.Length
@@ -235,7 +208,7 @@ let computePart2PriceForRegion (cells:Cell list) : int =
     // Now we need the number of sides in this region.  Each cell has a list of sides so we need to join
     // wall segments that are part of the same wall.  First pull out all the wall segments
 
-    let wallSegments = cells |> List.map (fun c -> c.walls) |> List.concat
+    let wallSegments = cells |> List.map (fun c -> c.walls) |> List.concat |> List.sort
     let joinedWallSegments = getRegionSideList wallSegments
     let sides = joinedWallSegments.Length
     let total = area * sides
