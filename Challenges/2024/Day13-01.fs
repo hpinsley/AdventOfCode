@@ -15,6 +15,7 @@ type Button =
         buttonLetter: char
         xDelta: int
         yDelta: int
+        tokenCost: int
     }
 
 type Prize =
@@ -37,10 +38,16 @@ let parseClawLineToButton (clawLine:string) : Button =
     then
         raise (Exception("no match"))
     else
-        
-        {   buttonLetter = m.Groups[1].Value[0]; 
+        let buttonLetter = m.Groups[1].Value[0]
+        let tokenCost = match buttonLetter with
+                            |'A' -> 3
+                            |'B' -> 1
+                            |_ -> raise (Exception("Invalid button letter"))
+
+        {   buttonLetter = buttonLetter; 
             xDelta = parseInt (m.Groups[2].Value) 
             yDelta = parseInt (m.Groups[3].Value)
+            tokenCost = tokenCost
         }
 
 let parseClawLinePrize (clawLine:string) : Prize =
