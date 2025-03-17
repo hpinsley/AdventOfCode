@@ -13,9 +13,12 @@ open System.Diagnostics
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
-    // let lines = Common.getSampleDataAsArray 2024 13
-    let lines = Common.getChallengeDataAsArray 2024 13
+    let lines = Common.getSampleDataAsArray 2024 13
+    // let lines = Common.getChallengeDataAsArray 2024 13
     
+    for l in lines do
+        printfn "%s" l
+
     let part1Time = stopWatch.ElapsedMilliseconds
 
     stopWatch.Restart()
