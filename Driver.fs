@@ -18,7 +18,8 @@ let main argv =
     // let x = Year2024Day9_Part1.solve
     // let x = Year2024Day10_Part1.solve
     //let x = Year2024Day11_Part1.solve
-    let x = Year2024Day12_Part1.solve
+    //let x = Year2024Day12_Part1.solve
+    let x = Year2024Day13_Part1.solve
   
     //let x = Year2021Day8_Part1.solve
     //let x = Year2021Day7_Part1.solve
