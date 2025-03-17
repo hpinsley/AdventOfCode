@@ -10,18 +10,21 @@ open System.Diagnostics
 open FSharp.Stats
 open FSharp.Stats.Algebra
 
+type T_DIST = double
+let parseDistance = Double.Parse
+
 type Button =
     {
         buttonLetter: char
-        xDelta: int
-        yDelta: int
-        tokenCost: int
+        xDelta: T_DIST
+        yDelta: T_DIST
+        tokenCost: T_DIST
     }
 
 type Prize =
     {
-        xLoc: int
-        yLoc: int
+        xLoc: T_DIST
+        yLoc: T_DIST
     }
 
 type Game = 
@@ -80,7 +83,34 @@ let rec parseLinesIntoGames (lines:string[]) : Game list =
     else
         let game = buildGame lines[0] lines[1] lines[2]
         game :: parseLinesIntoGames lines[3..]
-        
+
+let isInteger (d:T_DIST) : bool =
+    T_DIST.Floor d = d
+
+let playGame (game:Game) : unit =
+    // Assume we use a combination of the buttons
+
+    let v1 = vector [game.AButton.xDelta; game.AButton.yDelta]
+    let v2 = vector [game.BButton.xDelta; game.BButton.yDelta]
+    let v3 = vector [game.prize.xLoc; game.prize.yLoc]
+
+    let m = matrix [
+                    [game.AButton.xDelta; game.BButton.xDelta];
+                    [game.AButton.yDelta; game.BButton.yDelta];
+                   ]
+
+    let d = LinearAlgebra.Determinant m
+    let i = LinearAlgebra.Inverse m
+    let product = i * v3
+    let ATokens = Vector.get product 0
+    let BTokens = Vector.get product 1
+    let AIsInteger = isInteger ATokens
+    let BIsInteger = isInteger BTokens
+
+
+    
+    ()
+
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
@@ -88,6 +118,9 @@ let solve =
     // let lines = Common.getChallengeDataAsArray 2024 13
     
     let games = parseLinesIntoGames lines
+
+    let testGame = games[0]
+    playGame testGame
 
     let part1Time = stopWatch.ElapsedMilliseconds
 
