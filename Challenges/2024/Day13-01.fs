@@ -27,9 +27,7 @@ type Game =
     {
         AButton: Button
         BButton: Button
-        AButtonLine: string
-        BButtonLine: string
-        PrizeLine: string
+        prize: Prize
     }
 
 let parseClawLineToButton (clawLine:string) : Button =
@@ -45,12 +43,24 @@ let parseClawLineToButton (clawLine:string) : Button =
             yDelta = parseInt (m.Groups[3].Value)
         }
 
+let parseClawLinePrize (clawLine:string) : Prize =
+    let pattern = @"Prize: X=(.*), Y=(.*)"
+    let m = Regex.Match (clawLine, pattern)
+    if not m.Success
+    then
+        raise (Exception("no match"))
+    
+    {   xLoc = parseInt (m.Groups[1].Value) 
+        yLoc = parseInt (m.Groups[2].Value)
+    }
+
 let buildGame (AButtonLine: string) (BButtonLine:string) (prizeLine:String) : Game =
     let aButton = parseClawLineToButton AButtonLine
     let bButton = parseClawLineToButton BButtonLine
+    let prize = parseClawLinePrize prizeLine
+
     {
-        AButton = aButton; BButton = bButton; 
-        AButtonLine = AButtonLine; BButtonLine = BButtonLine; PrizeLine = prizeLine
+        AButton = aButton; BButton = bButton; prize = prize
     }
 
 let rec parseLinesIntoGames (lines:string[]) : Game list =
