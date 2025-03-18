@@ -87,7 +87,7 @@ let rec parseLinesIntoGames (lines:string[]) : Game list =
 let isInteger (d:T_DIST) : bool =
     T_DIST.Floor d = d
 
-let playGame (game:Game) : unit =
+let playGame (game:Game) : T_DIST option =
     // Assume we use a combination of the buttons
 
     let v1 = vector [game.AButton.xDelta; game.AButton.yDelta]
@@ -99,7 +99,6 @@ let playGame (game:Game) : unit =
                     [game.AButton.yDelta; game.BButton.yDelta];
                    ]
 
-    let d = LinearAlgebra.Determinant m
     let i = LinearAlgebra.Inverse m
     let product = i * v3
     let ATokens = Vector.get product 0
@@ -107,9 +106,14 @@ let playGame (game:Game) : unit =
     let AIsInteger = isInteger ATokens
     let BIsInteger = isInteger BTokens
 
+    let bothButtonCost =
+        if AIsInteger && BIsInteger
+        then
+            Some (ATokens * game.AButton.tokenCost + BTokens * game.BButton.tokenCost)
+        else
+            None
 
-    
-    ()
+    bothButtonCost
 
 let solve =
     let stopWatch = Stopwatch.StartNew()
@@ -119,8 +123,20 @@ let solve =
     
     let games = parseLinesIntoGames lines
 
-    let testGame = games[0]
-    playGame testGame
+    let gameResults = games |> List.map playGame
+    //for cost in gameResults do
+    //    match cost with
+    //        |Some c ->
+    //            printfn "Cost is %f" c
+    //        |None -> 
+    //            printfn "No solution"
+
+    let minCost = gameResults |> List.sumBy (fun opt -> 
+                                                match opt with
+                                                    | Some c -> c
+                                                    | None -> 0
+                                            )
+    printfn "Part 1: %f" minCost
 
     let part1Time = stopWatch.ElapsedMilliseconds
 
