@@ -85,7 +85,7 @@ let rec parseLinesIntoGames (lines:string[]) : Game list =
         game :: parseLinesIntoGames lines[3..]
 
 let isInteger (d:T_DIST) : bool =
-    let epsilon = 0.001
+    let epsilon = 0.00000001
     abs((T_DIST.Round d) - d) < epsilon
 
 let computeCostForBasis (game:Game) (v1:vector) (v2:vector) : double option =
@@ -103,7 +103,7 @@ let computeCostForBasis (game:Game) (v1:vector) (v2:vector) : double option =
     let AIsInteger = isInteger ATokens
     let BIsInteger = isInteger BTokens
 
-    if AIsInteger && BIsInteger
+    if AIsInteger && BIsInteger && ATokens <= 100 && BTokens <= 100
     then
         Some (ATokens * game.AButton.tokenCost + BTokens * game.BButton.tokenCost)
     else
