@@ -87,16 +87,12 @@ let rec parseLinesIntoGames (lines:string[]) : Game list =
 let isInteger (d:T_DIST) : bool =
     T_DIST.Floor d = d
 
-let playGame (game:Game) : T_DIST option =
-    // Assume we use a combination of the buttons
-
-    let v1 = vector [game.AButton.xDelta; game.AButton.yDelta]
-    let v2 = vector [game.BButton.xDelta; game.BButton.yDelta]
+let computeCostForBasis (game:Game) (v1:vector) (v2:vector) : double option =
     let v3 = vector [game.prize.xLoc; game.prize.yLoc]
 
     let m = matrix [
-                    [game.AButton.xDelta; game.BButton.xDelta];
-                    [game.AButton.yDelta; game.BButton.yDelta];
+                    [Vector.get v1 0; Vector.get v2 0];
+                    [Vector.get v1 1; Vector.get v2 1];
                    ]
 
     let i = LinearAlgebra.Inverse m
@@ -106,13 +102,18 @@ let playGame (game:Game) : T_DIST option =
     let AIsInteger = isInteger ATokens
     let BIsInteger = isInteger BTokens
 
-    let bothButtonCost =
-        if AIsInteger && BIsInteger
-        then
-            Some (ATokens * game.AButton.tokenCost + BTokens * game.BButton.tokenCost)
-        else
-            None
+    if AIsInteger && BIsInteger
+    then
+        Some (ATokens * game.AButton.tokenCost + BTokens * game.BButton.tokenCost)
+    else
+        None
 
+let playGame (game:Game) : T_DIST option =
+    // Assume we use a combination of the buttons
+
+    let v1 = vector [game.AButton.xDelta; game.AButton.yDelta]
+    let v2 = vector [game.BButton.xDelta; game.BButton.yDelta]
+    let bothButtonCost = computeCostForBasis game v1 v2
     bothButtonCost
 
 let solve =
