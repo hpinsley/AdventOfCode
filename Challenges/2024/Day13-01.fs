@@ -85,7 +85,8 @@ let rec parseLinesIntoGames (lines:string[]) : Game list =
         game :: parseLinesIntoGames lines[3..]
 
 let isInteger (d:T_DIST) : bool =
-    T_DIST.Floor d = d
+    let epsilon = 0.001
+    abs((T_DIST.Round d) - d) < epsilon
 
 let computeCostForBasis (game:Game) (v1:vector) (v2:vector) : double option =
     let v3 = vector [game.prize.xLoc; game.prize.yLoc]
@@ -114,13 +115,32 @@ let playGame (game:Game) : T_DIST option =
     let v1 = vector [game.AButton.xDelta; game.AButton.yDelta]
     let v2 = vector [game.BButton.xDelta; game.BButton.yDelta]
     let bothButtonCost = computeCostForBasis game v1 v2
-    bothButtonCost
+
+    let av1 = vector [game.AButton.xDelta; 0]
+    let av2 = vector [0; game.AButton.yDelta]
+    let justAButtonCost = computeCostForBasis game av1 av2
+
+    let bv1 = vector [game.BButton.xDelta; 0]
+    let bv2 = vector [0; game.BButton.yDelta]
+    let justBButtonCost = computeCostForBasis game bv1 bv2
+
+    let allResults = [bothButtonCost; justAButtonCost; justBButtonCost]
+
+    //printfn "%A" allResults
+    let allCosts = allResults |> List.choose id
+
+    if List.isEmpty allCosts
+    then
+        None
+    else
+        List.min allCosts |> Some 
+
 
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
-    let lines = Common.getSampleDataAsArray 2024 13
-    // let lines = Common.getChallengeDataAsArray 2024 13
+    // let lines = Common.getSampleDataAsArray 2024 13
+    let lines = Common.getChallengeDataAsArray 2024 13
     
     let games = parseLinesIntoGames lines
 
