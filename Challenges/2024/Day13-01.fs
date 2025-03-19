@@ -103,9 +103,13 @@ let computeCostForBasis (game:Game) (v1:vector) (v2:vector) : double option =
     let AIsInteger = isInteger ATokens
     let BIsInteger = isInteger BTokens
 
-    if AIsInteger && BIsInteger && ATokens <= 100 && BTokens <= 100
+    if AIsInteger && BIsInteger
     then
-        Some (ATokens * game.AButton.tokenCost + BTokens * game.BButton.tokenCost)
+        if (ATokens <= 100 && BTokens <= 100)
+        then
+            Some (ATokens * game.AButton.tokenCost + BTokens * game.BButton.tokenCost)
+        else
+            None
     else
         None
 
