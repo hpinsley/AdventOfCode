@@ -60,8 +60,11 @@ let parseClawLinePrize (clawLine:string) : Prize =
     then
         raise (Exception("no match"))
     
-    {   xLoc = parseInt (m.Groups[1].Value) 
-        yLoc = parseInt (m.Groups[2].Value)
+    let x = Int64.Parse(m.Groups[1].Value) + 10000000000000L
+    let y = Int64.Parse(m.Groups[2].Value) + 10000000000000L
+
+    {   xLoc = float x
+        yLoc = float y
     }
 
 let buildGame (AButtonLine: string) (BButtonLine:string) (prizeLine:String) : Game =
@@ -88,7 +91,7 @@ let isInteger (d:T_DIST) : bool =
     let epsilon = 0.00000001
     abs((T_DIST.Round d) - d) < epsilon
 
-let computeCostForBasis (game:Game) (v1:vector) (v2:vector) : double option =
+let computeCostForBasis (game:Game) (maxButtonPresses: int) (v1:vector) (v2:vector) : double option =
     let v3 = vector [game.prize.xLoc; game.prize.yLoc]
 
     let m = matrix [
@@ -105,7 +108,7 @@ let computeCostForBasis (game:Game) (v1:vector) (v2:vector) : double option =
 
     if AIsInteger && BIsInteger
     then
-        if (ATokens <= 100 && BTokens <= 100)
+        if (ATokens <= maxButtonPresses && BTokens <= maxButtonPresses)
         then
             Some (ATokens * game.AButton.tokenCost + BTokens * game.BButton.tokenCost)
         else
@@ -113,22 +116,14 @@ let computeCostForBasis (game:Game) (v1:vector) (v2:vector) : double option =
     else
         None
 
-let playGame (game:Game) : T_DIST option =
+let playGame (maxButtonPresses:int) (game:Game) : T_DIST option =
     // Assume we use a combination of the buttons
 
     let v1 = vector [game.AButton.xDelta; game.AButton.yDelta]
     let v2 = vector [game.BButton.xDelta; game.BButton.yDelta]
-    let bothButtonCost = computeCostForBasis game v1 v2
+    let bothButtonCost = computeCostForBasis game maxButtonPresses v1 v2
 
-    let av1 = vector [game.AButton.xDelta; 0]
-    let av2 = vector [0; game.AButton.yDelta]
-    let justAButtonCost = computeCostForBasis game av1 av2
-
-    let bv1 = vector [game.BButton.xDelta; 0]
-    let bv2 = vector [0; game.BButton.yDelta]
-    let justBButtonCost = computeCostForBasis game bv1 bv2
-
-    let allResults = [bothButtonCost; justAButtonCost; justBButtonCost]
+    let allResults = [bothButtonCost]
 
     //printfn "%A" allResults
     let allCosts = allResults |> List.choose id
@@ -143,19 +138,14 @@ let playGame (game:Game) : T_DIST option =
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
-    // let lines = Common.getSampleDataAsArray 2024 13
-    let lines = Common.getChallengeDataAsArray 2024 13
+    let lines = Common.getSampleDataAsArray 2024 13
+    // let lines = Common.getChallengeDataAsArray 2024 13
     
     let games = parseLinesIntoGames lines
+    // let part1Game = playGame 100
+    let part2Game = playGame Int32.MaxValue
 
-    let gameResults = games |> List.map playGame
-    //for cost in gameResults do
-    //    match cost with
-    //        |Some c ->
-    //            printfn "Cost is %f" c
-    //        |None -> 
-    //            printfn "No solution"
-
+    let gameResults = games |> List.map part2Game
     let minCost = gameResults |> List.sumBy (fun opt -> 
                                                 match opt with
                                                     | Some c -> c
