@@ -1,3 +1,4 @@
 {
-    "FSharp.fsiFilePath": "/Library/Frameworks/Mono.framework/Versions/Current/Commands/fsharpi"
+    "FSharp.fsiFilePath": "/Library/Frameworks/Mono.framework/Versions/Current/Commands/fsharpi",
+    "files.autoSave": "afterDelay"
 }
