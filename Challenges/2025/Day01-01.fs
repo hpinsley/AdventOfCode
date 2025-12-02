@@ -18,10 +18,14 @@ type State =
 
 type Rotation = (int * int)
 
-let processRotation (state: State) (rotation: Rotation) : State =
+let processPart1Rotation (state: State) (rotation: Rotation) : State =
     let (direction, magnitude) = rotation
-    let currentNumber = (((state.currentNumber + direction * magnitude) % DIAL_SIZE) + DIAL_SIZE) % DIAL_SIZE
+    // let currentNumber = (((state.currentNumber + direction * magnitude) % DIAL_SIZE) + DIAL_SIZE) % DIAL_SIZE
  
+    let rotatedTo = state.currentNumber + direction * magnitude
+    let turns = (direction * magnitude |> abs) / DIAL_SIZE
+    let currentNumber = (((state.currentNumber + direction * magnitude) % DIAL_SIZE) + DIAL_SIZE) % DIAL_SIZE
+
     { state with 
         currentNumber = currentNumber;
         moveCount = state.moveCount + 1;
@@ -38,12 +42,17 @@ let parseRotation (instruction:string) : Rotation =
     let steps = int m.Groups[2].Value
     (direction, steps)
 
+let part1 (rotations:Rotation[]) : State =
+    let finalState = rotations |> Array.fold processPart1Rotation { currentNumber = 50; moveCount = 0; zeroCount = 0 }
+    finalState
+
 let solve =
-    // let lines = Common.getSampleDataAsArray 2025 1
-    let lines = Common.getChallengeDataAsArray 2025 1
+    let lines = Common.getSampleDataAsArray 2025 1
+    // let lines = Common.getChallengeDataAsArray 2025 1
     printfn "Input text: %A" lines
     let rotations = lines |> Array.map parseRotation
-    let finalState = rotations |> Array.fold processRotation { currentNumber = 50; moveCount = 0; zeroCount = 0 }
+
+    let part1Result = part1 rotations
     // let finalState = rotations |> Array.fold 
-    printfn "Final state: %A" finalState
+    printfn "Part1 result: %A" part1Result
     ()
