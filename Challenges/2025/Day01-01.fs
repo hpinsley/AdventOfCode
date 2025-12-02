@@ -7,7 +7,26 @@ open System.Text.RegularExpressions
 open Microsoft.FSharp.Core.Operators.Checked
 open System.Collections.Generic
 
-type Rotation = (int * int) // (direction, steps)
+let DIAL_SIZE = 100
+
+type State =
+    {
+        currentNumber: int
+        moveCount: int
+        zeroCount: int
+    }
+
+type Rotation = (int * int)
+
+let processRotation (state: State) (rotation: Rotation) : State =
+    let (direction, magnitude) = rotation
+    let currentNumber = (((state.currentNumber + direction * magnitude) % DIAL_SIZE) + DIAL_SIZE) % DIAL_SIZE
+ 
+    { state with 
+        currentNumber = currentNumber;
+        moveCount = state.moveCount + 1;
+        zeroCount = if state.currentNumber = 0 then state.zeroCount + 1 else state.zeroCount
+    }
 
 let parseRotation (instruction:string) : Rotation =
     let m = Regex("(R|L)(\d+)").Match(instruction)
@@ -20,9 +39,11 @@ let parseRotation (instruction:string) : Rotation =
     (direction, steps)
 
 let solve =
-    let lines = Common.getSampleDataAsArray 2025 1
-    // let text = Common.getChallengeDataAsArray 2025 1
+    // let lines = Common.getSampleDataAsArray 2025 1
+    let lines = Common.getChallengeDataAsArray 2025 1
     printfn "Input text: %A" lines
     let rotations = lines |> Array.map parseRotation
-    printfn "Parsed rotations: %A" rotations
+    let finalState = rotations |> Array.fold processRotation { currentNumber = 50; moveCount = 0; zeroCount = 0 }
+    // let finalState = rotations |> Array.fold 
+    printfn "Final state: %A" finalState
     ()
