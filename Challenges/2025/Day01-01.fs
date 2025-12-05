@@ -60,7 +60,7 @@ let processPart2Rotation (state: State) (rotation: Rotation) : State =
                                     zeroClicks = state.zeroClicks + zeroClicks
                                 }
 
-    printfn "%A %A %A\n=============" state rotation newState
+    // printfn "%A %A %A\n=============" state rotation newState
     newState
 
 let parseRotation (instruction:string) : Rotation =
@@ -82,8 +82,8 @@ let part2 (rotations:Rotation[]) : State =
     finalState
 
 let solve =
-    let lines = Common.getSampleDataAsArray 2025 1
-    // let lines = Common.getChallengeDataAsArray 2025 1
+    // let lines = Common.getSampleDataAsArray 2025 1
+    let lines = Common.getChallengeDataAsArray 2025 1
     printfn "Input text: %A" lines
     let rotations = lines |> Array.map parseRotation
 
@@ -91,6 +91,6 @@ let solve =
     // printfn "Part1 result: %A" part1Result
 
     let part2Result = part2 rotations
-    // printfn "Part2 result: %A" part2Result
+    printfn "Part2 result: %A" part2Result
 
     ()
