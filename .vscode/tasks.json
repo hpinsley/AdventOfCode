@@ -12,6 +12,58 @@
                 "reveal": "silent"
             },
             "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "build tests",
+            "command": "dotnet",
+            "type": "shell",
+            "args": [
+                "build",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "silent"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}/Tests"
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "run tests",
+            "command": "dotnet",
+            "type": "shell",
+            "args": [
+                "test",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/Tests"
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "debug tests",
+            "command": "dotnet",
+            "type": "shell",
+            "args": [
+                "test",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/Tests",
+                "env": {
+                    "VSTEST_HOST_DEBUG": "1"
+                }
+            },
+            "problemMatcher": "$msCompile"
         }
     ]
 }
