@@ -17,9 +17,17 @@ type Range =
 
 let checkSingleNumber (v: Number) : bool =
     let s = v.ToString()
-    printfn "Checking %A (%A)" v s
-    true
-
+    // printfn "Checking %A (%A)" v s
+    let codeLength = s.Length
+    let isEven = codeLength % 2 = 0
+    
+    if isEven then
+        let l = codeLength / 2
+        let left = s[0..l-1]
+        let right = s[l..]
+        left = right
+    else
+        false
 let locateInvalidsForRange (range: Range): Number[] =
     printfn "Checking range: %A - %A" range.low range.high
     // Construct a sequence
@@ -44,8 +52,8 @@ let parseForRanges (line:string) : Range[] =
 
 
 let solve =
-    let line = Common.getSampleData 2025 2
-    // let line = Common.getChallengeData 2025 2
+    // let line = Common.getSampleData 2025 2
+    let line = Common.getChallengeData 2025 2
     // printfn "Input text: %A" line
 
     let ranges = parseForRanges line
