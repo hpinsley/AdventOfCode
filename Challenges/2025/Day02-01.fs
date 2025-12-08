@@ -29,7 +29,7 @@ let isInvalidCodeForPartOne (v: Number) : bool =
     else
         false
 let locateInvalidsForRange (validator: Number -> bool) (range: Range): Number[] =
-    printfn "Checking range: %A - %A" range.low range.high
+    // printfn "Checking range: %A - %A" range.low range.high
     // Construct a sequence
     let s = seq { range.low..range.high }
     let qualifies = s |> Seq.filter validator
@@ -43,8 +43,13 @@ let part1 (ranges:Range array) : Number =
         |> Array.concat
         |> Array.sum
 
-let part2 () : int =
-    2
+let part2 (ranges:Range array) : Number =
+    let f = (locateInvalidsForRange isInvalidCodeForPartOne)
+
+    ranges 
+        |> Array.map f 
+        |> Array.concat
+        |> Array.sum
 
 let parseForRanges (line:string) : Range[] =
     line.Split(',')
@@ -69,7 +74,7 @@ let solve =
     let part1Result = part1 ranges
     printfn "Part1 result: %A" part1Result
 
-    // let part2Result = part2()
-    // printfn "Part2 result: %A" part2Result
+    let part2Result = part2 ranges
+    printfn "Part2 result: %A" part2Result
 
     ()
