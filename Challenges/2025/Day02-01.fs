@@ -16,18 +16,22 @@ type Range =
     }
 
 let checkSingleNumber (v: Number) : bool =
+    let s = v.ToString()
+    printfn "Checking %A (%A)" v s
     true
-let checkRange (range: Range): int =
+
+let locateInvalidsForRange (range: Range): Number[] =
     printfn "Checking range: %A - %A" range.low range.high
     // Construct a sequence
     let s = seq { range.low..range.high }
     let qualifies = s |> Seq.filter checkSingleNumber
-    let qualCount = qualifies |> Seq.length
-    printfn "Qualifies: %A" qualCount
-    qualCount
+    qualifies |> Array.ofSeq
 
-let part1 (ranges:Range array) : int =
-    ranges |> Array.sumBy checkRange
+let part1 (ranges:Range array) : Number =
+    ranges 
+        |> Array.map locateInvalidsForRange
+        |> Array.concat
+        |> Array.sum
 
 let part2 () : int =
     2
