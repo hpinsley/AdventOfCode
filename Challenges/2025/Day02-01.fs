@@ -15,9 +15,16 @@ type Range =
         high: Number 
     }
 
+let checkSingleNumber (v: Number) : bool =
+    true
 let checkRange (range: Range): int =
     printfn "Checking range: %A - %A" range.low range.high
-    1
+    // Construct a sequence
+    let s = seq { range.low..range.high }
+    let qualifies = s |> Seq.filter checkSingleNumber
+    let qualCount = qualifies |> Seq.length
+    printfn "Qualifies: %A" qualCount
+    qualCount
 
 let part1 (ranges:Range array) : int =
     ranges |> Array.sumBy checkRange
