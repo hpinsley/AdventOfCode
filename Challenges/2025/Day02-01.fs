@@ -15,9 +15,12 @@ type Range =
         high: Number 
     }
 
-
-let part1 () : int =
+let checkRange (range: Range): int =
+    printfn "Checking range: %A - %A" range.low range.high
     1
+
+let part1 (ranges:Range array) : int =
+    ranges |> Array.sumBy checkRange
 
 let part2 () : int =
     2
@@ -30,8 +33,8 @@ let parseForRanges (line:string) : Range[] =
 
 
 let solve =
-    // let line = Common.getSampleData 2025 2
-    let line = Common.getChallengeData 2025 2
+    let line = Common.getSampleData 2025 2
+    // let line = Common.getChallengeData 2025 2
     // printfn "Input text: %A" line
 
     let ranges = parseForRanges line
@@ -42,8 +45,8 @@ let solve =
     let numberCount = ranges |> Array.sumBy (fun r -> r.high - r.low)
     printfn "Total numbers: %u" numberCount
 
-    // let part1Result = part1()
-    // printfn "Part1 result: %A" part1Result
+    let part1Result = part1 ranges
+    printfn "Part1 result: %A" part1Result
 
     // let part2Result = part2()
     // printfn "Part2 result: %A" part2Result
