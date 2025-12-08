@@ -15,7 +15,7 @@ type Range =
         high: Number 
     }
 
-let checkSingleNumber (v: Number) : bool =
+let isInvalidCodeForPartOne (v: Number) : bool =
     let s = v.ToString()
     // printfn "Checking %A (%A)" v s
     let codeLength = s.Length
@@ -28,16 +28,18 @@ let checkSingleNumber (v: Number) : bool =
         left = right
     else
         false
-let locateInvalidsForRange (range: Range): Number[] =
+let locateInvalidsForRange (validator: Number -> bool) (range: Range): Number[] =
     printfn "Checking range: %A - %A" range.low range.high
     // Construct a sequence
     let s = seq { range.low..range.high }
-    let qualifies = s |> Seq.filter checkSingleNumber
+    let qualifies = s |> Seq.filter validator
     qualifies |> Array.ofSeq
 
 let part1 (ranges:Range array) : Number =
+    let f = (locateInvalidsForRange isInvalidCodeForPartOne)
+
     ranges 
-        |> Array.map locateInvalidsForRange
+        |> Array.map f 
         |> Array.concat
         |> Array.sum
 
@@ -52,8 +54,8 @@ let parseForRanges (line:string) : Range[] =
 
 
 let solve =
-    // let line = Common.getSampleData 2025 2
-    let line = Common.getChallengeData 2025 2
+    let line = Common.getSampleData 2025 2
+    // let line = Common.getChallengeData 2025 2
     // printfn "Input text: %A" line
 
     let ranges = parseForRanges line
