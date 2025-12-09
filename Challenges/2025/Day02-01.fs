@@ -28,6 +28,44 @@ let isInvalidCodeForPartOne (v: Number) : bool =
         left = right
     else
         false
+
+let isWordOnlyMadeUpOfTwoOrMoreSubstrings (word: string) (substring: string) : bool =
+    
+    if word.Length % substring.Length <> 0  // It has to fit evenly
+    then
+        false
+    else
+        let repCount = word.Length / substring.Length
+        if repCount = 1
+        then
+            false
+        else
+            let constructed = String.replicate repCount substring
+            constructed = word
+
+
+let isInvalidCodeForPartTwo (v: Number) : bool =
+    let s = v.ToString()
+    // printfn "\nChecking word %s" s
+
+    // printfn "Checking %A (%A)" v s
+    let codeLength = s.Length
+    let half = codeLength / 2
+
+    if half = 0
+    then
+        false
+    else
+        // If half if 4, generate 4, 3, 2, 1
+        let subStringLenghs = seq { half.. -1 .. 1 }
+        // printfn "%A -> %A" half (List.ofSeq subStringLenghs)
+        let substrings = subStringLenghs |> Seq.map (fun i -> s[0..i-1])
+        // printfn "%A" (List.ofSeq substrings)
+        let isInvalid = substrings |> Seq.map (isWordOnlyMadeUpOfTwoOrMoreSubstrings s)
+        // printfn "%A" (List.ofSeq isInvalid)
+        isInvalid |> Seq.exists id
+
+
 let locateInvalidsForRange (validator: Number -> bool) (range: Range): Number[] =
     // printfn "Checking range: %A - %A" range.low range.high
     // Construct a sequence
@@ -44,7 +82,7 @@ let part1 (ranges:Range array) : Number =
         |> Array.sum
 
 let part2 (ranges:Range array) : Number =
-    let f = (locateInvalidsForRange isInvalidCodeForPartOne)
+    let f = (locateInvalidsForRange isInvalidCodeForPartTwo)
 
     ranges 
         |> Array.map f 
@@ -59,8 +97,8 @@ let parseForRanges (line:string) : Range[] =
 
 
 let solve =
-    let line = Common.getSampleData 2025 2
-    // let line = Common.getChallengeData 2025 2
+    // let line = Common.getSampleData 2025 2
+    let line = Common.getChallengeData 2025 2
     // printfn "Input text: %A" line
 
     let ranges = parseForRanges line
