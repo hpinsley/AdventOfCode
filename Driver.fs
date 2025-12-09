@@ -8,7 +8,8 @@ open System.Text.RegularExpressions
 let main (argv: string array) =
     printfn "Main driver"
     // let x = Year2025Day1_Part1.solve
-    let x = Year2025Day2_Part1.solve
+    // let x = Year2025Day2_Part1.solve
+    let x = Year2025Day3_Part1.solve
     
     //let x = Year2024Day1_Part1.solve
     //let x = Year2024Day2_Part1.solve
