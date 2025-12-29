@@ -7,6 +7,11 @@ open System.Text.RegularExpressions
 open Microsoft.FSharp.Core.Operators.Checked
 open System.Collections.Generic
 
+let getMaxVoltageSubstring (input:string) (cellLength:int): string =
+    let left = input[0..(input.Length - cellLength)]
+    let right = input[input.Length - cellLength..input.Length - 1]
+    ""
+
 let getMaxVoltage (digits:string) : int =
     let maxJoltage = seq {
                         for i in 0 .. digits.Length - 1 do
@@ -18,19 +23,21 @@ let getMaxVoltage (digits:string) : int =
     printfn "Max joltage: %d" maxJoltage
     maxJoltage
 
-let solve =
-    // let lines = Common.getSampleDataAsArray 2025 3
-    let lines = Common.getChallengeDataAsArray 2025 3
-    printfn "Input text: %A" lines
-
+let part1 (lines:string[]) : int =
     let joltages = lines |> Array.map getMaxVoltage
     let maxJoltage = Array.sum joltages
-    printfn "Max joltage is %d" maxJoltage
+    maxJoltage
 
-    // let part1Result = part1 ranges
+let solve =
+    let test = "123456789"
+    let two = getMaxVoltageSubstring test 2
+    
+    // let lines = Common.getSampleDataAsArray 2025 3
+    // let lines = Common.getChallengeDataAsArray 2025 3
+    
+    
+    // printfn "Input text: %A" lines
+    // let part1Result = part1 lines
     // printfn "Part1 result: %A" part1Result
-
-    // let part2Result = part2 ranges
-    // printfn "Part2 result: %A" part2Result
 
     ()
