@@ -8,8 +8,8 @@ open Microsoft.FSharp.Core.Operators.Checked
 open System.Collections.Generic
 
 let getMaxVoltageSubstring (input:string) (cellLength:int): string =
-    let left = input[0..(input.Length - cellLength)]
-    let right = input[input.Length - cellLength..input.Length - 1]
+    let left = input[0..(input.Length - cellLength)-1]
+    let right = input[input.Length - cellLength..input.Length]
     ""
 
 let getMaxVoltage (digits:string) : int =
