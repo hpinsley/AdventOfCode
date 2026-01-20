@@ -7,10 +7,26 @@ open System.Text.RegularExpressions
 open Microsoft.FSharp.Core.Operators.Checked
 open System.Collections.Generic
 
-let getMaxVoltageSubstring (input:string) (cellLength:int): string =
-    let left = input[0..(input.Length - cellLength)-1]
-    let right = input[input.Length - cellLength..input.Length]
-    ""
+let rec getMaxVoltageSubstring (input:string) (cellLength:int): string =    
+    // Algorithm
+    // Given a cell length of n, we have to pick a digit from those between 0 and length - n
+    // Get the max digit in that range.  But once we determine it, we need to choose the leftmost one.
+    // Then recurse
+
+    match cellLength with
+        | 0 -> ""
+        | _ -> 
+            let minCharactersToLeave = (cellLength - 1)
+            let maxToTake = input.Length - minCharactersToLeave
+            let maxDigit = input |> Seq.take maxToTake |> Seq.max |> Char.ToString
+
+            let maxDigitIndex = input.IndexOf(maxDigit)
+            let remaining = input[maxDigitIndex + 1..]
+            let result = maxDigit + getMaxVoltageSubstring remaining (cellLength - 1)
+            result
+    
+
+
 
 let getMaxVoltage (digits:string) : int =
     let maxJoltage = seq {
@@ -29,8 +45,10 @@ let part1 (lines:string[]) : int =
     maxJoltage
 
 let solve =
-    let test = "123456789"
-    let two = getMaxVoltageSubstring test 2
+    let test = "123456789123456789123456789"
+    let joltage = getMaxVoltageSubstring test 1
+    printfn "%s\n" joltage
+    let x = 1
     
     // let lines = Common.getSampleDataAsArray 2025 3
     // let lines = Common.getChallengeDataAsArray 2025 3
