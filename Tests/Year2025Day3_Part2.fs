@@ -14,6 +14,6 @@ open Year2025Day3_Part1
 [<InlineData("234234234234278", 12, "434234234278")>]
 [<InlineData("818181911112111", 12, "888911112111")>]
 let ``can extract strings`` (input:string) (cellLength:int) (expected:string) : unit =
-    let actual = getMaxVoltageSubstring input cellLength
+    let actual = getMaxVoltageSubstring cellLength input
     Assert.Equal(expected, actual)
 
