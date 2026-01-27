@@ -26,11 +26,23 @@ let whoCanReach (grid: char[,]) : (int * int * int)[] =
     let canReach = locsWithNeighborCount |> Seq.filter (fun (_, _, count) -> count < 4)
     Array.ofSeq canReach
 
+let rec RemoveAllThatCanReach (grid: char[,]) (removalCount: int): int =
+    let canReach = whoCanReach grid
+
+    let result = match canReach.Length with
+                        | 0 -> removalCount
+                        | _ -> 
+                            let removed = removalCount + canReach.Length
+                            canReach |> Array.iter (fun (r, c, _) -> grid[r,c] <- '.')
+                            RemoveAllThatCanReach grid removed
+                            
+    result
+
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
-    let lines = Common.getSampleDataAsArray 2025 4
-    // let lines: string array = Common.getChallengeDataAsArray 2025 4
+    // let lines = Common.getSampleDataAsArray 2025 4
+    let lines: string array = Common.getChallengeDataAsArray 2025 4
 
     let rows = lines.Length
     let cols = lines[0].Length
@@ -41,4 +53,8 @@ let solve =
     let part1Result = Seq.length canReach
     printfn "Timings.  %dms" stopWatch.ElapsedMilliseconds
     printfn "Part 1: %A" part1Result
+
+    let part2Result = RemoveAllThatCanReach grid 0
+    printfn "Part 2: %A" part2Result
+
     ()
