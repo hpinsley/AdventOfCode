@@ -31,8 +31,8 @@ let rec RemoveAllThatCanReach (grid: char[,]) (removalCount: int): int =
 
     let result = match canReach.Length with
                         | 0 -> removalCount
-                        | _ -> 
-                            let removed = removalCount + canReach.Length
+                        | l -> 
+                            let removed = removalCount + l
                             canReach |> Array.iter (fun (r, c, _) -> grid[r,c] <- '.')
                             RemoveAllThatCanReach grid removed
                             
