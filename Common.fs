@@ -303,3 +303,27 @@ let iterate2DArray (grid:'T[,]) : seq<int * int * 'T> =
             for c in { 0..Array2D.length2 grid - 1} do
                 yield (r, c, grid[r,c])
     }
+
+let getNeighbors (gridDimensions:int * int) (cell:int * int): (int * int)[] =
+    let rows, cols = gridDimensions
+    let r, c = cell
+    let unbounded = [|
+                                (r - 1, c - 1);
+                                (r - 1, c);
+                                (r - 1, c + 1);
+                                (r, c - 1);
+                                // Skip self
+                                (r, c + 1);
+                                (r + 1, c - 1);
+                                (r + 1, c);
+                                (r + 1, c + 1);
+                                |]
+    let bounded = unbounded |> Array.filter (fun (r,c) ->
+                                                                 r >= 0 && r < rows &&
+                                                                 c >= 0 && c < cols
+                                                                )
+    bounded
+
+let getNeighborCount (gridDimensions:int * int) (cell:int * int): int =
+    let neighbors = getNeighbors gridDimensions cell
+    neighbors.Length
