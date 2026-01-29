@@ -299,8 +299,8 @@ let binaryStringToInt (s:string) : int =
 
 let iterate2DArray (grid:'T[,]) : seq<int * int * 'T> =
     seq {
-        for r in { 0..Array2D.length1 grid - 1 } do
-            for c in { 0..Array2D.length2 grid - 1} do
+        for r in seq { 0..Array2D.length1 grid - 1 } do
+            for c in seq { 0..Array2D.length2 grid - 1} do
                 yield (r, c, grid[r,c])
     }
 
