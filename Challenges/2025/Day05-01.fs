@@ -19,15 +19,34 @@ let isFresh (itemNumber:ItemNumber) (freshRanges:(ItemNumber * ItemNumber)[]) : 
     freshRanges
         |> Array.exists (fun (low, high) -> itemNumber >= low && itemNumber <= high) 
 
+type State = {
+    result: (ItemNumber * ItemNumber)[]
+    current: int
+}
+
 let collapseRanges (ranges:(ItemNumber * ItemNumber)[]) : (ItemNumber * ItemNumber)[] =
-    let sortedRanges = Array.sort ranges
-    sortedRanges
+    
+    let sortedRanges = Array.sort ranges |> List.ofArray
+
+    let collapsed = sortedRanges
+                    |> List.fold (fun acc (s,e) ->
+                                        match acc with
+                                        | [] -> [(s,e)]
+                                        | (cs,ce)::rest when s <= ce ->
+                                            (cs, max ce e)::rest
+                                        | _ ->
+                                            (s,e)::acc
+                                    ) []
+    
+    let result = collapsed |> List.rev |> Array.ofList
+    result
+
 
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
-    let lines = Common.getSampleDataAsArray 2025 5
-    // let lines: string array = Common.getChallengeDataAsArray 2025 5
+    // let lines = Common.getSampleDataAsArray 2025 5
+    let lines: string array = Common.getChallengeDataAsArray 2025 5
 
     // printfn "%A" lines
     
@@ -57,4 +76,8 @@ let solve =
     printfn "Ranges: %A" ranges
     printfn "Sorted ranges: %A" collapsedRanges
 
+    let part2Result =
+        collapsedRanges |> Array.sumBy (fun (r1, r2) -> r2 - r1 + 1L)
+
+    printfn "Part 2 result is %A" part2Result
     ()
