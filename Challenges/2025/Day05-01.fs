@@ -19,11 +19,15 @@ let isFresh (itemNumber:ItemNumber) (freshRanges:(ItemNumber * ItemNumber)[]) : 
     freshRanges
         |> Array.exists (fun (low, high) -> itemNumber >= low && itemNumber <= high) 
 
+let collapseRanges (ranges:(ItemNumber * ItemNumber)[]) : (ItemNumber * ItemNumber)[] =
+    let sortedRanges = Array.sort ranges
+    sortedRanges
+
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
-    // let lines = Common.getSampleDataAsArray 2025 5
-    let lines: string array = Common.getChallengeDataAsArray 2025 5
+    let lines = Common.getSampleDataAsArray 2025 5
+    // let lines: string array = Common.getChallengeDataAsArray 2025 5
 
     // printfn "%A" lines
     
@@ -47,4 +51,10 @@ let solve =
     // printfn "%A" freshItems
 
     printfn "Part 1: %d" freshItems.Length
+
+    let collapsedRanges = collapseRanges ranges
+
+    printfn "Ranges: %A" ranges
+    printfn "Sorted ranges: %A" collapsedRanges
+
     ()
