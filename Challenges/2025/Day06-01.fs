@@ -15,7 +15,7 @@ type Operation =
 type Operand = int64
 type Problem = Operation of Operand[]
 
-let transposeStrings (lines:string[]) : string[][] =
+let parseComponents (lines:string[]) : string[][] =
     let x = lines 
                 |> Array.map (fun line -> 
                                 let trimmedLine = line.Trim()
@@ -25,6 +25,15 @@ let transposeStrings (lines:string[]) : string[][] =
                                 components
                              )
     x
+
+let transposeStrings (components:string[][]) : string[,] =
+    let rows = components.Length
+    let cols = components[0].Length
+    printfn "Rows: %d, Cols: %d" rows cols
+
+    let x = Array2D.init cols rows (fun r c -> components[c][r])
+    x
+    
 
 // let parseInputData (lines:string[]): Problem[] =
 //     let x = lines
@@ -40,9 +49,14 @@ let solve =
 
     printfn "%A" lines
 
-    let x = transposeStrings lines
-    printfn "Transposed"
+    let composed = parseComponents lines
+    printfn "Composed"
+    printfn "%A" composed
 
-    printfn "%A" x
+    printfn ""
+
+    let transposed = transposeStrings composed
+    printfn "Transposed"
+    printfn "%A" transposed
 
     ()
