@@ -17,6 +17,10 @@ open Year2025Day6_Part1
 //     let actual = getMaxVoltageSubstring cellLength input
 //     Assert.Equal(expected, actual)
 
-[<Fact>]
-let ``can convert part1 operands to part 2 operands`` () : unit =
+[<Theory>]
+[<InlineData("64,23,314", "4,431,623")>]
+[<InlineData("X64,23,314", "4,431,623")>]
+[<InlineData("y64,23,314", "4,431,623")>]
+let ``can convert part1 operands to part 2 operands`` (input: string) (expectedOutput:string): unit =
     Assert.Equal (1, 1)
+
