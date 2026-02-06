@@ -77,11 +77,14 @@ let parseInputData (lines:string[]): Problem[] =
                             |> Array.ofSeq
     problems
 
+let convertPart1OperandsToPart2 (operands:Operand []) : Operand[] =
+    operands
+    
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
-    // let lines = Common.getSampleDataAsArray 2025 6
-    let lines: string array = Common.getChallengeDataAsArray 2025 6
+    let lines = Common.getSampleDataAsArray 2025 6
+    // let lines: string array = Common.getChallengeDataAsArray 2025 6
 
     printfn "%A" lines
     let problems = parseInputData lines
