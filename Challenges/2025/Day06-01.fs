@@ -13,7 +13,7 @@ type Operation =
     | Multiply
 
 type Operand = int64
-type Problem = Operation of Operand[]
+type Problem = OneProblem of Operation * Operand[]
 
 let parseComponents (lines:string[]) : string[][] =
     let x = lines 
@@ -33,7 +33,19 @@ let transposeStrings (components:string[][]) : string[,] =
 
     let twoDArray = Array2D.init cols rows (fun r c -> components[c][r])
     twoDArray
-    
+
+
+let solveProblem (problem:Problem): Operand =
+    match problem with
+        | OneProblem (operator, operands) ->
+                let binaryOperator = match operator with
+                                            | Add -> (+)
+                                            | Multiply -> (*)
+                Array.reduce binaryOperator operands
+
+let solveAllProblems (problems:Problem[]) : Operand =
+    problems |> Array.sumBy solveProblem
+
 let parseInputData (lines:string[]): Problem[] =
     let composed = parseComponents lines
     printfn "Composed"
@@ -48,14 +60,22 @@ let parseInputData (lines:string[]): Problem[] =
     let colCount = Array2D.length2 transposed
     printfn "There are %d rows and %d cols" rowCount colCount
 
-    let x = seq {0..rowCount-1} 
+    let problems = seq {0..rowCount-1} 
                             |> Seq.map (fun r -> 
-                                            let op = transposed[r,colCount - 1]
-                                            op
-                                        )  
+                                            let op = match transposed[r,colCount - 1] with
+                                                                    | "+" -> Add
+                                                                    | "*" -> Multiply
+                                                                    | _ -> raise (Exception "Unknown character")
+                                            // We need to put row r, cols 0..colCount -2 into an array
+                                            let operands = seq { 0 .. colCount - 2}
+                                                                |> Seq.map (fun c -> transposed[r, c])
+                                                                |> Seq.map (fun s -> Operand.Parse(s))
+                                                                |> Array.ofSeq
 
-    [||]
-
+                                            OneProblem (op, operands)
+                                        )
+                            |> Array.ofSeq
+    problems
 
 let solve =
     let stopWatch = Stopwatch.StartNew()
@@ -64,6 +84,9 @@ let solve =
     let lines: string array = Common.getChallengeDataAsArray 2025 6
 
     printfn "%A" lines
-    let x = parseInputData lines
+    let problems = parseInputData lines
+    printfn "%A" problems
 
+    let part1Result = solveAllProblems problems
+    printfn "Part 1: %A" part1Result
     ()
