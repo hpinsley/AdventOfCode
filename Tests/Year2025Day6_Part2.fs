@@ -19,8 +19,15 @@ open Year2025Day6_Part1
 
 [<Theory>]
 [<InlineData("64,23,314", "4,431,623")>]
-[<InlineData("X64,23,314", "4,431,623")>]
-[<InlineData("y64,23,314", "4,431,623")>]
 let ``can convert part1 operands to part 2 operands`` (input: string) (expectedOutput:string): unit =
-    Assert.Equal (1, 1)
+    let intputOperands = input.Split(",")
+                                            |> Array.map Operand.Parse
+    let expectedOutputOperands = expectedOutput.Split(",")
+                                    |> Array.map Operand.Parse
+
+    let outputOperands = convertPart1OperandsToPart2 intputOperands
+                                    
+    Assert.Equal (expectedOutputOperands.Length, outputOperands.Length)
+    expectedOutputOperands
+        |> Array.iteri (fun index expected -> Assert.Equal(expected, outputOperands[index]))
 
