@@ -99,7 +99,13 @@ let convertPart1OperandsToPart2 (operands:Operand []) : Operand[] =
                         |> Array.ofSeq
 
     outputOperands
-    
+
+let part1ProblemToPart2 (problem:Problem) : Problem =
+    match problem with
+        | OneProblem (operator, operands) ->
+            OneProblem (operator, (convertPart1OperandsToPart2 operands))
+
+
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
@@ -112,4 +118,12 @@ let solve =
 
     let part1Result = solveAllProblems problems
     printfn "Part 1: %A" part1Result
+
+    let part2Problems = problems |> Array.map part1ProblemToPart2
+
+    printfn "Part 2 problems: %A" part2Problems
+
+    let part2Result = solveAllProblems part2Problems
+    printfn "Part 2: %A" part2Result
+
     ()
