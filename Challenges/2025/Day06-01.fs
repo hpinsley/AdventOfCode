@@ -46,7 +46,36 @@ let solveProblem (problem:Problem): Operand =
 let solveAllProblems (problems:Problem[]) : Operand =
     problems |> Array.sumBy solveProblem
 
-let parseInputData (lines:string[]): Problem[] =
+type Column = int
+
+type OperatorColumns = {
+    operators: (Operation * Column) list
+}
+
+let parsePart2InputData (lines:string[]): Problem[] =
+    let argCount = lines.Length - 1
+    // The operators are in lines[argCount]
+    // They also denote the start of a problem.
+
+    let operatorLine = lines[argCount]
+    let width = operatorLine.Length
+
+
+    let columnInfo= seq {0..width - 1}
+                        |> Seq.fold (fun acc index ->
+                                        match operatorLine[index] with
+                                            | '+' -> acc
+                                            | '*' -> acc
+                                            | _ -> raise (Exception "Unknown character")
+
+                                    )
+                                    { 
+                                        operators = List.empty
+                                    }
+
+    [||]
+
+let parsePart1InputData (lines:string[]): Problem[] =
     let composed = parseComponents lines
     printfn "Composed"
     printfn "%A" composed
@@ -84,7 +113,7 @@ let convertPart1OperandsToPart2 (operands:Operand []) : Operand[] =
                                     |> Array.map (fun s ->
                                                     let l = s.Length
                                                     let toPad = maxLength - l
-                                                    let paddChars = String.replicate toPad "0"
+                                                    let paddChars = String.replicate toPad " "
                                                     s + paddChars // Pad right in this case
                                                 )
     // We expected maxLength operands 
@@ -113,17 +142,13 @@ let solve =
     // let lines: string array = Common.getChallengeDataAsArray 2025 6
 
     printfn "%A" lines
-    let problems = parseInputData lines
-    printfn "%A" problems
+    // let problems = parsePart1InputData lines
+    // printfn "%A" problems
 
-    let part1Result = solveAllProblems problems
-    printfn "Part 1: %A" part1Result
+    // let part1Result = solveAllProblems problems
+    // printfn "Part 1: %A" part1Result
 
-    let part2Problems = problems |> Array.map part1ProblemToPart2
+    let part2Problems = parsePart2InputData lines
 
-    printfn "Part 2 problems: %A" part2Problems
-
-    let part2Result = solveAllProblems part2Problems
-    printfn "Part 2: %A" part2Result
 
     ()
