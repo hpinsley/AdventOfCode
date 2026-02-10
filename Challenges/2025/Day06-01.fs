@@ -78,7 +78,27 @@ let parseInputData (lines:string[]): Problem[] =
     problems
 
 let convertPart1OperandsToPart2 (operands:Operand []) : Operand[] =
-    operands
+    let inputNumStrings = operands |> Array.map string
+    let maxLength = inputNumStrings |> Array.map (fun s -> s.Length) |> Array.max
+    let padded = inputNumStrings 
+                                    |> Array.map (fun s ->
+                                                    let l = s.Length
+                                                    let toPad = maxLength - l
+                                                    let paddChars = String.replicate toPad "0"
+                                                    s + paddChars // Pad right in this case
+                                                )
+    // We expected maxLength operands 
+    let outputOperands = seq {maxLength - 1 .. -1 .. 0 }
+                        |> Seq.map (fun i ->
+                                        let chars = 
+                                            padded 
+                                                |> Array.map (fun s -> s[i])
+                                        let s = String.Join("", chars)
+                                        Operand.Parse s 
+                                    )
+                        |> Array.ofSeq
+
+    outputOperands
     
 let solve =
     let stopWatch = Stopwatch.StartNew()
