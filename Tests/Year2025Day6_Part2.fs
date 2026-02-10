@@ -19,6 +19,7 @@ open Year2025Day6_Part1
 
 [<Theory>]
 [<InlineData("64,23,314", "4,431,623")>]
+[<InlineData("51,387,215", "175,581,32")>]
 let ``can convert part1 operands to part 2 operands`` (input: string) (expectedOutput:string): unit =
     let intputOperands = input.Split(",")
                                             |> Array.map Operand.Parse
