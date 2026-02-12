@@ -63,15 +63,24 @@ let parsePart2InputData (lines:string[]): Problem[] =
 
     let columnInfo= seq {0..width - 1}
                         |> Seq.fold (fun acc index ->
-                                        match operatorLine[index] with
-                                            | '+' -> acc
-                                            | '*' -> acc
-                                            | _ -> raise (Exception "Unknown character")
+                                        let operatorOption = 
+                                            match operatorLine[index] with
+                                                | '+' -> Some Add
+                                                | '*' -> Some Multiply
+                                                | ' ' -> None
+                                                | _ -> raise (Exception "Unknown character")
+
+                                        match operatorOption with
+                                            | None -> acc
+                                            | Some op ->
+                                                let updateList = (op, index) :: acc.operators
+                                                { acc with operators = updateList }
 
                                     )
                                     { 
                                         operators = List.empty
                                     }
+    
 
     [||]
 
