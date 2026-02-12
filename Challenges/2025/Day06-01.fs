@@ -48,10 +48,6 @@ let solveAllProblems (problems:Problem[]) : Operand =
 
 type Column = int
 
-type OperatorColumns = {
-    operators: (Operation * Column) list
-}
-
 let parsePart2InputData (lines:string[]): Problem[] =
     let argCount = lines.Length - 1
     // The operators are in lines[argCount]
@@ -72,17 +68,42 @@ let parsePart2InputData (lines:string[]): Problem[] =
 
                                         match operatorOption with
                                             | None -> acc
-                                            | Some op ->
-                                                let updateList = (op, index) :: acc.operators
-                                                { acc with operators = updateList }
-
+                                            | Some op -> (op, index) :: acc
                                     )
-                                    { 
-                                        operators = List.empty
-                                    }
+                                    List.empty
+                        |> List.rev
     
+    let rec buildFullList = fun (w: int) (fullColInfo: (Operation * int * int) list) (partialColInfo: (Operation * int) list) -> 
+                                    match partialColInfo with
+                                        | [] -> raise (Exception "Should not get here")
+                                        | (op, c) :: [] -> 
+                                                (op, c, w - 1) :: fullColInfo
 
-    [||]
+                                        | (op1, c1) :: (op2, c2) :: rest ->
+                                            buildFullList w ((op1, c1, (c2-2)) :: fullColInfo) ((op2, c2) :: rest)
+
+        
+
+    let fullInfo = 
+        buildFullList width List.empty columnInfo
+            |> List.rev
+
+
+    let problems = 
+        fullInfo
+            |> List.map (fun (op, c1, c2) ->
+                            let operands = 
+                                seq { c1 .. c2}
+                                    |> Seq.map (fun colWithProblem ->
+                                                    let argChars = seq { 0..argCount - 1}
+                                                                        |> Seq.map (fun row -> lines[row][colWithProblem])
+                                                    String(Seq.toArray argChars)
+                                                        |> Operand.Parse
+                                                )
+                                |> Array.ofSeq
+                            OneProblem (op, operands)
+                        )
+    problems |> Array.ofList
 
 let parsePart1InputData (lines:string[]): Problem[] =
     let composed = parseComponents lines
@@ -147,8 +168,8 @@ let part1ProblemToPart2 (problem:Problem) : Problem =
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
-    let lines = Common.getSampleDataAsArray 2025 6
-    // let lines: string array = Common.getChallengeDataAsArray 2025 6
+    // let lines = Common.getSampleDataAsArray 2025 6
+    let lines: string array = Common.getChallengeDataAsArray 2025 6
 
     printfn "%A" lines
     // let problems = parsePart1InputData lines
@@ -158,6 +179,8 @@ let solve =
     // printfn "Part 1: %A" part1Result
 
     let part2Problems = parsePart2InputData lines
+    let part2Result = solveAllProblems part2Problems
+    printfn "Part 2: %A" part2Result
 
 
     ()
