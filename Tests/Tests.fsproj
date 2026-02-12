@@ -9,7 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Year2025Day6_Part2.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
