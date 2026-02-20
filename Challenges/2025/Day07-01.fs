@@ -23,9 +23,13 @@ let IsSplitter cell = match cell with
 
 type Part1State = {
     board: Cell[,]
-    beamList: Cell list
     splitCount: int
 }
+
+type Part2State = {
+    boards: Cell[,] list
+}
+
 
 let processRow (state: Part1State) (row: int) : Part1State =
     let rows = Array2D.length1 state.board
@@ -41,10 +45,12 @@ let processRow (state: Part1State) (row: int) : Part1State =
                                             if IsBeam cell then
                                                 let cellBelow = s.board[nextRow, col]
                                                 if IsSplitter cellBelow then
-                                                    s
+                                                    s.board[nextRow, col-1] <- Beam (nextRow, col - 1)
+                                                    s.board[nextRow, col+1] <- Beam (nextRow, col + 1)
+                                                    { s with splitCount = s.splitCount + 1 }
                                                 else
                                                     // Beam move down
-                                                    s.board[nextRow, col] <- Splitter (nextRow, col)
+                                                    s.board[nextRow, col] <- Beam (nextRow, col)
                                                     s
                                             else
                                                 s
@@ -60,24 +66,23 @@ let printBoard (board: Cell[,]) : unit =
                                                     | Empty _ -> ' '
                                             )
 
-let part1 (board: Cell[,]) (startCol: int): unit =
+let part1 (board: Cell[,]): unit =
     
     printBoard board
     
     let rows = Array2D.length1 board
     let cols = Array2D.length2 board
 
-    printfn "\n%d rows and %d cols.  The start col index is %d\n" rows cols startCol
+    printfn "\n%d rows and %d cols.\n" rows cols
 
     let initialState = {
         board = board
-        beamList = List.empty
         splitCount = 0
     }
 
     let finalState = seq { 0 .. rows - 2}
                         |> Seq.fold (fun s r ->
-                                        s
+                                        processRow s r
                                     ) initialState
                       
     
@@ -88,6 +93,31 @@ let part1 (board: Cell[,]) (startCol: int): unit =
     printfn "Final split count is %d" finalState.splitCount
 
     
+    ()
+
+let getFlattenedListOfAllCells (board: Cell[,]): Cell list =
+        
+    let rows = Array2D.length1 board
+    let cols = Array2D.length2 board
+
+    // Get a the list of splitters
+
+    let rowList = seq {0 .. rows - 1}
+    let colList = seq { 0 .. cols - 1}
+    let indexList = Seq.allPairs rowList colList |> List.ofSeq
+    let cells = indexList |> List.map (fun (r, c) -> board[r,c])
+    cells
+
+let part2 (board: Cell[,]): unit =
+        
+
+    let cells = getFlattenedListOfAllCells board
+    let splitters = cells |> Seq.filter IsSplitter |> List.ofSeq
+    let beams = cells |> Seq.filter IsBeam |> List.ofSeq
+
+    printfn "Splitter list:\n%A" splitters
+    printfn "Beams list:\n%A" beams
+
     ()
 
 let solve =
@@ -101,7 +131,7 @@ let solve =
     let startCol = lines[0].IndexOf("S")
 
     let vData = Array2D.init rows cols (fun r c -> lines[r][c])
-    let bData = vData |> Array2D.mapi  (fun row col c ->
+    let b1Data = vData |> Array2D.mapi  (fun row col c ->
                                                         match c with
                                                             | 'S' | '|' -> Beam (row, col)
                                                             | '^' -> Splitter (row, col)
@@ -111,8 +141,19 @@ let solve =
                                                      )
     // Common.printGrid vData id
 
-    part1 bData startCol
+    part1 b1Data
 
- 
+    // We have to reconvert as part1 mutates the data
+
+    let b2Data = vData |> Array2D.mapi  (fun row col c ->
+                                                    match c with
+                                                        | 'S' | '|' -> Beam (row, col)
+                                                        | '^' -> Splitter (row, col)
+                                                        | '.' -> Empty (row, col)
+                                                        | _ -> raise (Exception("Unexpected character"))
+
+                                                    )
+    part2 b2Data
+
 
     ()
