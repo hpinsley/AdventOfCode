@@ -21,6 +21,14 @@ let IsSplitter cell = match cell with
                                 | Splitter _ -> true
                                 | _ -> false
 
+type RC = (int * int)
+
+let extractLocation (cell:Cell) : (int * int) =
+    match cell with
+        | Beam t -> t
+        | Splitter t -> t
+        | Empty t -> t
+
 type Part1State = {
     board: Cell[,]
     splitCount: int
@@ -108,12 +116,22 @@ let getFlattenedListOfAllCells (board: Cell[,]): Cell list =
     let cells = indexList |> List.map (fun (r, c) -> board[r,c])
     cells
 
-let part2 (board: Cell[,]): unit =
+let getFutureLocs (splitterLocs: RC seq) (currentLoc: RC) : RC list =
+    []
+
+let countUniverses (rows:int) (splitters: RC list) (beamLocs:RC list)  : int =
+    match beamLocs with
+        | (r,c) :: rest -> 0
+        | [] -> 0
+
+let part2 (board: Cell[,]) (rows:int): unit =
         
 
     let cells = getFlattenedListOfAllCells board
-    let splitters = cells |> Seq.filter IsSplitter |> List.ofSeq
-    let beams = cells |> Seq.filter IsBeam |> List.ofSeq
+    let splitters = cells 
+                            |> Seq.filter IsSplitter |> Seq.map extractLocation |> List.ofSeq
+    let beams = cells 
+                            |> Seq.filter IsBeam |> Seq.map extractLocation |> List.ofSeq
 
     printfn "Splitter list:\n%A" splitters
     printfn "Beams list:\n%A" beams
@@ -153,7 +171,7 @@ let solve =
                                                         | _ -> raise (Exception("Unexpected character"))
 
                                                     )
-    part2 b2Data
+    part2 b2Data rows
 
 
     ()
