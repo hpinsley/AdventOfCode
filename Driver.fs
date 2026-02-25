@@ -12,7 +12,8 @@ let main (argv: string array) =
     // let x = Year2025Day4_Part1.solve
     // let x = Year2025Day5_Part1.solve
     // let x = Year2025Day6_Part1.solve
-    let x = Year2025Day7_Part1.solve
+    // let x = Year2025Day7_Part1.solve
+    let x = Year2025Day8_Part1.solve
     
     // let x = Year2025Day3_Part1.solve
     //let x = Year2024Day1_Part1.solve
