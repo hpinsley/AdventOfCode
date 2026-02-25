@@ -116,31 +116,38 @@ let getFlattenedListOfAllCells (board: Cell[,]): Cell list =
     let cells = indexList |> List.map (fun (r, c) -> board[r,c])
     cells
 
-let memos = Dictionary<RC, int>()
+let memos = Dictionary<RC, uint64>()
 
+let rec countUniverses (rows:int) (splitters: Set<RC>) (beamLoc:RC)  : uint64 =
 
-let rec countUniverses (rows:int) (splitters: Set<RC>) (beamLoc:RC)  : int =
-
-    let (r, c) = beamLoc
-
-    let nextRow = r + 1 
-    if nextRow > rows - 1 
+    if memos.ContainsKey(beamLoc)
     then
-        1   // We are at the bottom
+        memos[beamLoc]
     else
-        // See if there is a splitter here
-        let newLoc = (nextRow, c)
-        if Set.contains newLoc splitters
-        then
-            let leftSplit = (nextRow, c - 1)
-            let rightSplit = (nextRow, c + 1)
-            // printfn "Split: %A %A" leftSplit rightSplit
-            let leftCount = countUniverses rows splitters leftSplit
-            let rightCount = countUniverses rows splitters rightSplit
-            leftCount + rightCount
-        else
-            countUniverses rows splitters newLoc
+        let (r, c) = beamLoc
 
+        let nextRow = r + 1 
+        if nextRow > rows - 1 
+        then
+            memos[beamLoc] <- 1UL
+            1UL   // We are at the bottom
+        else
+            // See if there is a splitter here
+            let newLoc = (nextRow, c)
+            if Set.contains newLoc splitters
+            then
+                let leftSplit = (nextRow, c - 1)
+                let rightSplit = (nextRow, c + 1)
+                // printfn "Split: %A %A" leftSplit rightSplit
+                let leftCount = countUniverses rows splitters leftSplit
+                let rightCount = countUniverses rows splitters rightSplit
+                let splitResult = leftCount + rightCount
+                memos[beamLoc] <- splitResult
+                splitResult
+            else
+                let downResult = countUniverses rows splitters newLoc
+                memos[beamLoc] <- downResult
+                downResult
 
 let part2 (board: Cell[,]) (rows:int): unit =
         
@@ -159,14 +166,14 @@ let part2 (board: Cell[,]) (rows:int): unit =
     let startBeam = beams |> List.head
 
     let part2Count = countUniverses rows splitters startBeam
-    printfn "Part2: %d" part2Count
+    printfn "Part2: %A" part2Count
     ()
 
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
-    let lines = Common.getSampleDataAsArray 2025 7
-    // let lines: string array = Common.getChallengeDataAsArray 2025 7
+    // let lines = Common.getSampleDataAsArray 2025 7
+    let lines: string array = Common.getChallengeDataAsArray 2025 7
 
     let rows = lines.Length
     let cols = lines[0].Length
