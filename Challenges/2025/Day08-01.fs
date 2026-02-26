@@ -42,40 +42,37 @@ let parseLine (line:string) : BOX_LOC =
 let parseInputData (lines:string[]) : BOX_LOC[] =
     lines |> Array.map parseLine
 
+
+let buildDistancePairs (parsed: BOX_LOC array) : ((BOX_LOC * BOX_LOC) * float) array =
+    
+    let n = parsed.Length
+
+    seq { 0 .. n - 1}
+                |> Seq.map (fun i ->
+                                seq { i + 1 .. n - 1}
+                                    |> Seq.map (fun j ->
+                                                (parsed[i], parsed[j])
+                                                )
+                            )
+                |> Seq.concat
+                |> Seq.map (fun junctions -> (junctions, tuple_distance junctions))
+                |> Seq.sortBy (fun v -> snd v)
+                |> Array.ofSeq
+
+let printDistanceCalc ((jb1, jb2),  dist) : unit =
+        printfn "Distance from %s to %s is %f" 
+                        (BoxLocString jb1)
+                        (BoxLocString jb2)
+                        dist
+
 let part1 (parsed: BOX_LOC array) : unit =
     
     parsed |> Array.iter (fun jb -> printfn "Box loc: (%s)" (BoxLocString jb))
     printfn "There are %d junction boxes" parsed.Length
-
-    printfn "Generating distances..."
-    let pairs = Array.allPairs parsed parsed
-    printfn "Generated %d pairs" pairs.Length
-
-    let n = parsed.Length
-
-    let lessPairs = seq { 0 .. n - 1}
-                                |> Seq.map (fun i ->
-                                                seq { i + 1 .. n - 1}
-                                                    |> Seq.map (fun j ->
-                                                                (parsed[i], parsed[j])
-                                                                )
-                                            )
-                                |> Seq.concat
-                                |> Seq.map (fun junctions -> (junctions, tuple_distance junctions))
-                                |> Array.ofSeq
-
-    printfn "Generated %d less pairs" lessPairs.Length
-
-    lessPairs |> 
-        Array.iteri (fun i v ->
-                        let ((jb1, jb2), dist) = v
-
-                        printfn "Distance from %s to %s is %f" 
-                                    (BoxLocString jb1)
-                                    (BoxLocString jb2)
-                                    dist
-
-                    )
+    let distanceCalcs = buildDistancePairs parsed
+    printfn "Generated %d less pairs" distanceCalcs.Length
+    
+    distanceCalcs |> Array.iter printDistanceCalc
 
 
 let solve =
