@@ -25,29 +25,25 @@ type JunctionBox =
     }
     static member IdProvider = (Seq.initInfinite id).GetEnumerator()
     static member GetNextId() : int =
-        JunctionBox.IdProvider.MoveNext() |> ignore
+        let x = JunctionBox.IdProvider.MoveNext()
+        printfn "%A" x
         JunctionBox.IdProvider.Current
+    static member Factory (loc:BOX_LOC) : JunctionBox =
+        let id = JunctionBox.GetNextId()
+        { boxId = id; location = loc; circuit = Option.None }
         
 and Circuit = 
     {
-        CircuitId: string
+        CircuitId: int
         junctionBoxes: Set<JunctionBox>
     }
     static member IdProvider = (Seq.initInfinite id).GetEnumerator()
     static member GetNextId() : int =
         Circuit.IdProvider.MoveNext() |> ignore
-        JunctionBox.IdProvider.Current
-
-
-// let getNextCircuitId() : int =
-//     static member CircuitIdProvider = (Seq.initInfinite id).GetEnumerator()
-
-//     let _ = CircuitIdProvider.MoveNext()
-//     CircuitIdProvider.Current
-// let getNextBoxId() : int =
-//     let _ = BoxIdProvider.MoveNext()
-//     CircuitIdProvider.Current
-
+        Circuit.IdProvider.Current
+    static member Factory() : Circuit =
+        let id = Circuit.GetNextId()
+        { CircuitId = id; junctionBoxes = Set.empty }
 
 let BoxLocString (bl:BOX_LOC) : string =
     sprintf "%5d, %5d, %5d" bl.x bl.y bl.z
@@ -64,20 +60,23 @@ let distance (b1:BOX_LOC) (b2:BOX_LOC) : double =
 let tuple_distance (t: BOX_LOC * BOX_LOC) : double =
     distance (fst t) (snd t)
 
-let parseLine (line:string) : BOX_LOC =
+let junctionDistance (boxes: JunctionBox * JunctionBox) : double =
+    tuple_distance ((fst boxes).location, (snd boxes).location)
+
+let parseLine (line:string) : JunctionBox =
     let splitData = line.Split(",")
     let result = { 
         x = UInt64.Parse(splitData[0]); 
         y = UInt64.Parse(splitData[1]); 
         z = UInt64.Parse(splitData[2]); 
     }
-    result
+    JunctionBox.Factory result
 
-let parseInputData (lines:string[]) : BOX_LOC[] =
+let parseInputData (lines:string[]) : JunctionBox[] =
     lines |> Array.map parseLine
 
 
-let buildDistancePairs (parsed: BOX_LOC array) : ((BOX_LOC * BOX_LOC) * float) array =
+let buildDistancePairs (parsed: JunctionBox array) : ((JunctionBox * JunctionBox) * float) array =
     
     let n = parsed.Length
 
@@ -89,19 +88,21 @@ let buildDistancePairs (parsed: BOX_LOC array) : ((BOX_LOC * BOX_LOC) * float) a
                                                 )
                             )
                 |> Seq.concat
-                |> Seq.map (fun junctions -> (junctions, tuple_distance junctions))
+                |> Seq.map (fun junctions -> (junctions, junctionDistance junctions))
                 |> Seq.sortBy (fun v -> snd v)
                 |> Array.ofSeq
 
-let printDistanceCalc ((jb1, jb2),  dist) : unit =
-        printfn "Distance from %s to %s is %f" 
-                        (BoxLocString jb1)
-                        (BoxLocString jb2)
+let printDistanceCalc ((jb1: JunctionBox, jb2: JunctionBox),  dist) : unit =
+        printfn "Distance from %d at  %s to %d at %s is %f"
+                        jb1.boxId 
+                        (BoxLocString jb1.location)
+                        jb2.boxId
+                        (BoxLocString jb2.location)
                         dist
 
-let part1 (parsed: BOX_LOC array) : unit =
+let part1 (parsed: JunctionBox array) : unit =
     
-    parsed |> Array.iter (fun jb -> printfn "Box loc: (%s)" (BoxLocString jb))
+    parsed |> Array.iter (fun jb -> printfn "Box %d loc: (%s)" jb.boxId (BoxLocString jb.location))
     printfn "There are %d junction boxes" parsed.Length
     let distanceCalcs = buildDistancePairs parsed
     printfn "Generated %d less pairs" distanceCalcs.Length
