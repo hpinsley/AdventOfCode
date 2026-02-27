@@ -16,8 +16,42 @@ type BOX_LOC = {
     z: DISTANCE
 }
 
+type JunctionBox = 
+    {
+
+        boxId: int
+        location: BOX_LOC
+        circuit: Circuit option
+    }
+    static member IdProvider = (Seq.initInfinite id).GetEnumerator()
+    static member GetNextId() : int =
+        JunctionBox.IdProvider.MoveNext() |> ignore
+        JunctionBox.IdProvider.Current
+        
+and Circuit = 
+    {
+        CircuitId: string
+        junctionBoxes: Set<JunctionBox>
+    }
+    static member IdProvider = (Seq.initInfinite id).GetEnumerator()
+    static member GetNextId() : int =
+        Circuit.IdProvider.MoveNext() |> ignore
+        JunctionBox.IdProvider.Current
+
+
+// let getNextCircuitId() : int =
+//     static member CircuitIdProvider = (Seq.initInfinite id).GetEnumerator()
+
+//     let _ = CircuitIdProvider.MoveNext()
+//     CircuitIdProvider.Current
+// let getNextBoxId() : int =
+//     let _ = BoxIdProvider.MoveNext()
+//     CircuitIdProvider.Current
+
+
 let BoxLocString (bl:BOX_LOC) : string =
     sprintf "%5d, %5d, %5d" bl.x bl.y bl.z
+
 
 let distance (b1:BOX_LOC) (b2:BOX_LOC) : double =
     let dx = (double) b2.x - (double) b1.x
@@ -86,5 +120,9 @@ let solve =
     printfn "%A" parsed
 
     part1 parsed
+
+    // printfn "First circuit id: %d" (getNextCircuitId())
+    // printfn "Second circuit id: %d" (getNextCircuitId())
+    
 
     ()
