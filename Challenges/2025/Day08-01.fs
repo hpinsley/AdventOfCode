@@ -16,31 +16,33 @@ type BOX_LOC = {
     z: DISTANCE
 }
 
-type JunctionBox = 
-    {
+let mutable private nextJunctionBoxId = 0
+let mutable private nextCircuitId = 0
 
+type JunctionBox =
+    {
         boxId: int
         location: BOX_LOC
         circuit: Circuit option
+        linksTo: (int * int) option
     }
-    static member IdProvider = (Seq.initInfinite id).GetEnumerator()
     static member GetNextId() : int =
-        let x = JunctionBox.IdProvider.MoveNext()
-        printfn "%A" x
-        JunctionBox.IdProvider.Current
+        let id = nextJunctionBoxId
+        nextJunctionBoxId <- nextJunctionBoxId + 1
+        id
     static member Factory (loc:BOX_LOC) : JunctionBox =
         let id = JunctionBox.GetNextId()
-        { boxId = id; location = loc; circuit = Option.None }
-        
-and Circuit = 
+        { boxId = id; location = loc; circuit = Option.None; linksTo = Option.None }
+
+and Circuit =
     {
         CircuitId: int
         junctionBoxes: Set<JunctionBox>
     }
-    static member IdProvider = (Seq.initInfinite id).GetEnumerator()
     static member GetNextId() : int =
-        Circuit.IdProvider.MoveNext() |> ignore
-        Circuit.IdProvider.Current
+        let id = nextCircuitId
+        nextCircuitId <- nextCircuitId + 1
+        id
     static member Factory() : Circuit =
         let id = Circuit.GetNextId()
         { CircuitId = id; junctionBoxes = Set.empty }
@@ -100,14 +102,31 @@ let printDistanceCalc ((jb1: JunctionBox, jb2: JunctionBox),  dist) : unit =
                         (BoxLocString jb2.location)
                         dist
 
+
+type Network = {
+    boxMap: Map<int, JunctionBox>
+    circuitMap: Map<int, Circuit>
+}
+
+let addMeasuredBoxesToNetwork (network: Network) (box:((JunctionBox * JunctionBox) * float)) : Network =
+    
+
 let part1 (parsed: JunctionBox array) : unit =
     
     parsed |> Array.iter (fun jb -> printfn "Box %d loc: (%s)" jb.boxId (BoxLocString jb.location))
     printfn "There are %d junction boxes" parsed.Length
     let distanceCalcs = buildDistancePairs parsed
     printfn "Generated %d less pairs" distanceCalcs.Length
-    
+  
     distanceCalcs |> Array.iter printDistanceCalc
+
+    let initalState = {
+        boxMap = Map.empty; circuitMap = Map.empty
+    }
+
+    let network = distanceCalcs
+                        |> Array.fold addMeasuredBoxesToNetwork initalState
+    ()
 
 
 let solve =
