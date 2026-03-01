@@ -87,7 +87,7 @@ let parseInputData (lines:string[]) : InCircuitBox[] =
     lines |> Array.map parseLine
 
 
-let buildDistancePairs (parsed: InCircuitBox array) : DistanceCalc array =
+let buildDistancePairs (parsed: InCircuitBox array) : ((int * int) * float ) array =
     
     let n = parsed.Length
 
@@ -101,17 +101,20 @@ let buildDistancePairs (parsed: InCircuitBox array) : DistanceCalc array =
                 |> Seq.concat
                 |> Seq.map (fun junctions -> (junctions, junctionDistance junctions))
                 |> Seq.sortBy (fun v -> snd v)
+                |> Seq.map (fun v ->
+                                let (ic1, ic2) = fst v
+                                let d = snd v
+                                let b1 = fst ic1
+                                let b2 = fst ic2
+
+                                ((b1.boxId, b2.boxId), d)
+                            )
                 |> Array.ofSeq
 
-let printDistanceCalc (distanceCalc: DistanceCalc) : unit =
-        let ((cb1, cb2), dist) = distanceCalc
-        let (jb1, jb2) = (fst cb1, fst cb2)
-
-        printfn "Distance from %d at  %s to %d at %s is %f"
-                        jb1.boxId 
-                        (BoxLocString jb1.location)
-                        jb2.boxId
-                        (BoxLocString jb2.location)
+let printDistanceCalc ((box1Id, box2Id), dist) : unit =
+        printfn "Distance from %d to %d is %f"
+                        box1Id
+                        box2Id
                         dist
 
 
@@ -128,7 +131,54 @@ let addMeasuredBoxesToNetwork (network: Network) (dc: InCircuitBox) : Network =
         circuitMap = Map.add c.circuitId c network.circuitMap
     }
 
-let part1 (parsed: InCircuitBox array) : unit =
+let connectNetwork (network: Network) (((boxId1, boxId2), dist):((int * int ) * float)) : Network =
+
+    let box1 = network.boxMap[boxId1]
+    let box2 = network.boxMap[boxId2]
+    let c1 = network.circuitMap[box1.circuitId]
+    let c2 = network.circuitMap[box2.circuitId]
+
+    // printfn "Connecting %d (%s) to %d (%s) with distance %f" box1.boxId (BoxLocString box1.location) box2.boxId (BoxLocString box2.location) dist
+
+    if (box1.circuitId <> box2.circuitId)
+    then
+        // Combine networks
+        let c1boxes = c1.junctionBoxIds
+        let c2boxes = c2.junctionBoxIds
+        let combinedBoxIds = Set.union c1boxes c2boxes
+        let newCircuit = {Circuit.Factory() with junctionBoxIds = combinedBoxIds }
+        let updatedCircuitMap = 
+            network.circuitMap
+                |> Map.remove box1.circuitId
+                |> Map.remove box2.circuitId
+                |> Map.add newCircuit.circuitId newCircuit
+
+        let updatedBoxMap = 
+            combinedBoxIds |>
+                Set.fold (fun (m: Map<int, JunctionBox>) (boxId) -> 
+                            Map.add boxId { m[boxId] with circuitId = newCircuit.circuitId } m
+                         ) network.boxMap
+
+        { network with boxMap = updatedBoxMap; circuitMap = updatedCircuitMap}
+
+    else
+        network
+
+
+let computeScore (network: Network) : UInt64 =
+    let sortedCircuits = network.circuitMap
+                                    |> Map.values
+                                    |> Seq.sortByDescending (fun c -> c.junctionBoxIds.Count)
+                                    |> Array.ofSeq
+
+    let score = sortedCircuits                                
+                                    |> Array.take 3
+                                    |> Array.fold (fun score c ->
+                                                    score * (uint64) c.junctionBoxIds.Count
+                                                ) 1UL
+    score
+
+let part1 (parsed: InCircuitBox array) (connectionsToMake: int) : unit =
     
     parsed |> Array.iter (fun cb -> printfn "Box %d loc: (%s)" (fst cb).boxId (BoxLocString (fst cb).location))
     printfn "There are %d junction boxes" parsed.Length
@@ -137,30 +187,39 @@ let part1 (parsed: InCircuitBox array) : unit =
         boxMap = Map.empty; circuitMap = Map.empty
     }
 
-    let network = parsed
-                        |> Array.fold addMeasuredBoxesToNetwork emptyNetwork
-
-
+    let nonInterconnectedNetwork = 
+        parsed
+            |> Array.fold addMeasuredBoxesToNetwork emptyNetwork
 
     let distanceCalcs = buildDistancePairs parsed
     printfn "Generated %d less pairs" distanceCalcs.Length
   
-    distanceCalcs |> Array.iter printDistanceCalc
+    // distanceCalcs |> Array.iter printDistanceCalc
 
+    let network = distanceCalcs
+                                |> Array.take connectionsToMake
+                                |> Array.fold connectNetwork nonInterconnectedNetwork
+           
+    let score = computeScore network
+    printfn "Final score is %ul" score
     ()
 
 
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
-    let lines = Common.getSampleDataAsArray 2025 8
-    // let lines: string array = Common.getChallengeDataAsArray 2025 8
+    // let lines = Common.getSampleDataAsArray 2025 8
+    // let connectionsToMake = 10
+
+    let lines: string array = Common.getChallengeDataAsArray 2025 8
+    let connectionsToMake = 1000
+
     // printfn "%A" lines
 
     let parsed = parseInputData lines
-    printfn "%A" parsed
+    // printfn "%A" parsed
 
-    part1 parsed
+    part1 parsed connectionsToMake
 
     // printfn "First circuit id: %d" (getNextCircuitId())
     // printfn "Second circuit id: %d" (getNextCircuitId())
