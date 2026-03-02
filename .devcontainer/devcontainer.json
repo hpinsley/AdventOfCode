@@ -6,6 +6,9 @@
 	"forwardPorts": [
 		3000
 	],
+	"features": {
+    	"ghcr.io/anthropics/devcontainer-features/claude-code": {}
+	},
 	"customizations": {
 		"vscode": {
 			"extensions": [
