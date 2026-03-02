@@ -121,6 +121,7 @@ let printDistanceCalc ((box1Id, box2Id), dist) : unit =
 type Network = {
     boxMap: Map<int, JunctionBox>
     circuitMap: Map<int, Circuit>
+    pairsAdded: (int * int) list
 }
 
 let addMeasuredBoxesToNetwork (network: Network) (dc: InCircuitBox) : Network =
@@ -131,7 +132,7 @@ let addMeasuredBoxesToNetwork (network: Network) (dc: InCircuitBox) : Network =
         circuitMap = Map.add c.circuitId c network.circuitMap
     }
 
-let connectNetwork (network: Network) (((boxId1, boxId2), dist):((int * int ) * float)) : Network =
+let addBoxToNetwork (network: Network) (((boxId1, boxId2), dist):((int * int ) * float)) : Network =
 
     let box1 = network.boxMap[boxId1]
     let box2 = network.boxMap[boxId2]
@@ -142,6 +143,8 @@ let connectNetwork (network: Network) (((boxId1, boxId2), dist):((int * int ) * 
 
     if (box1.circuitId <> box2.circuitId)
     then
+        let boxIdPairToAdd = (box1.boxId, box2.boxId)
+
         // Combine networks
         let c1boxes = c1.junctionBoxIds
         let c2boxes = c2.junctionBoxIds
@@ -158,14 +161,15 @@ let connectNetwork (network: Network) (((boxId1, boxId2), dist):((int * int ) * 
                 Set.fold (fun (m: Map<int, JunctionBox>) (boxId) -> 
                             Map.add boxId { m[boxId] with circuitId = newCircuit.circuitId } m
                          ) network.boxMap
+        let updatedPairs = boxIdPairToAdd :: network.pairsAdded
 
-        { network with boxMap = updatedBoxMap; circuitMap = updatedCircuitMap}
+        { network with boxMap = updatedBoxMap; circuitMap = updatedCircuitMap; pairsAdded = updatedPairs}
 
     else
         network
 
 
-let computeScore (network: Network) : UInt64 =
+let computePart1Score (network: Network) : UInt64 =
     let sortedCircuits = network.circuitMap
                                     |> Map.values
                                     |> Seq.sortByDescending (fun c -> c.junctionBoxIds.Count)
@@ -178,13 +182,59 @@ let computeScore (network: Network) : UInt64 =
                                                 ) 1UL
     score
 
+let computePart2Score (network: Network) : uint64 =
+    match network.pairsAdded with
+        | (box1Id, box2Id) :: rest ->
+            let box1 = network.boxMap[box1Id]
+            let box2 = network.boxMap[box2Id]
+            box1.location.x * box2.location.x
+        | _ -> 0UL
+
 let part1 (parsed: InCircuitBox array) (connectionsToMake: int) : unit =
     
     parsed |> Array.iter (fun cb -> printfn "Box %d loc: (%s)" (fst cb).boxId (BoxLocString (fst cb).location))
     printfn "There are %d junction boxes" parsed.Length
 
     let emptyNetwork = {
-        boxMap = Map.empty; circuitMap = Map.empty
+        boxMap = Map.empty; circuitMap = Map.empty; pairsAdded = List.empty
+    }
+
+    let nonInterconnectedNetwork = 
+        parsed
+            |> Array.fold addMeasuredBoxesToNetwork emptyNetwork
+
+    let distanceCalcs = buildDistancePairs parsed
+    printfn "Generated %d less pairs" distanceCalcs.Length
+  
+    // dis tanceCalcs |> Array.iter printDistanceCalc
+
+    let network = distanceCalcs
+                                |> Array.take connectionsToMake
+                                |> Array.fold addBoxToNetwork nonInterconnectedNetwork
+           
+    let score = computePart1Score network
+    printfn "Final score is %ul" score
+    ()
+
+let addBoxToNetworkUntilAllBoxesAreInSameNetwork(network: Network) (((boxId1, boxId2), dist) as boxPair:((int * int ) * float)) : Network =
+    let allCircuitIds = 
+        network.boxMap.Values
+            |> Seq.map (fun b -> b.circuitId)
+            |> Seq.distinct
+            |> Array.ofSeq
+    if allCircuitIds.Length = 1
+    then    // All boxes connected in same network
+        network
+    else
+        addBoxToNetwork network boxPair
+
+let part2 (parsed: InCircuitBox array) : unit =
+    
+    parsed |> Array.iter (fun cb -> printfn "Box %d loc: (%s)" (fst cb).boxId (BoxLocString (fst cb).location))
+    printfn "There are %d junction boxes" parsed.Length
+
+    let emptyNetwork = {
+        boxMap = Map.empty; circuitMap = Map.empty; pairsAdded = List.empty
     }
 
     let nonInterconnectedNetwork = 
@@ -197,13 +247,11 @@ let part1 (parsed: InCircuitBox array) (connectionsToMake: int) : unit =
     // distanceCalcs |> Array.iter printDistanceCalc
 
     let network = distanceCalcs
-                                |> Array.take connectionsToMake
-                                |> Array.fold connectNetwork nonInterconnectedNetwork
-           
-    let score = computeScore network
-    printfn "Final score is %ul" score
-    ()
+                                |> Array.fold addBoxToNetworkUntilAllBoxesAreInSameNetwork nonInterconnectedNetwork
 
+    let part2Score = computePart2Score network
+    printfn "Part2 score: %d" part2Score       
+    ()
 
 let solve =
     let stopWatch = Stopwatch.StartNew()
@@ -219,7 +267,8 @@ let solve =
     let parsed = parseInputData lines
     // printfn "%A" parsed
 
-    part1 parsed connectionsToMake
+    // part1 parsed connectionsToMake
+    part2 parsed
 
     // printfn "First circuit id: %d" (getNextCircuitId())
     // printfn "Second circuit id: %d" (getNextCircuitId())
