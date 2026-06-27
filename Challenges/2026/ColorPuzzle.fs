@@ -22,13 +22,40 @@ type Color =
     | White
     | Yellow
 
-type Tube = (Color option)[]
+type TubeState =
+    | Filled
+    | Mixed
+    | Empty
+
+type ColorList = (Color option)[]
+
+type Tube = {
+    colors: ColorList
+    state: TubeState
+}
+
+let EmptyTube = { colors = [|None; None; None; None|]; state = Empty }
 
 type Game =
     {
         moveCount: int
         tubes: Tube[]
     }
+
+
+let allSameColor (colors: Color[]) : bool =
+    let colorToMatch= colors[0]
+    not (Seq.exists (fun c -> c <> colorToMatch) colors)
+
+let tubeState (colors: ColorList) : TubeState =
+    let filled = colors |> Array.choose id
+    match filled.Length with
+        | 0 -> Empty
+        | 4 -> if (allSameColor filled) then Filled
+               else Mixed
+        | _ -> Mixed
+let gameSolved (game: Game) : bool =
+    false
 
 let letterToColor (c: char) : Color =
     match c with
@@ -46,18 +73,25 @@ let letterToColor (c: char) : Color =
 
 let mapLineToTube (line:string) : Tube =
     let colors = line |> Seq.map letterToColor |> Seq.map Some |> Array.ofSeq
-    colors
+    let state = tubeState colors
+    {
+        colors = colors; state = state
+    }
+
+let playGame (game: Game) : unit =
+    ()
 
 let initGame (lines:string[]) : Game =
     let tubes = lines |> Array.map mapLineToTube
     let extraCount = TUBE_COUNT - tubes.Length
     let emptyTubes = seq { 1 .. extraCount } 
-                                                    |> Seq.map (fun _ -> [|None; None; None; None|]: (Color Option)[])
+                                                    |> Seq.map (fun _ -> EmptyTube)
                                                     |> Array.ofSeq
     let gameTubes = Array.concat [| tubes; emptyTubes |]
     let game = { moveCount = 0; tubes = gameTubes}
     game
-    
+
+
 let solve =
     let stopWatch = Stopwatch.StartNew()
 
@@ -68,6 +102,5 @@ let solve =
     printfn "%A" lines
 
     let game = initGame lines
-
-
+    playGame game
     ()
