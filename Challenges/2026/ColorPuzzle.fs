@@ -50,9 +50,9 @@ type SourcePartial =
     | Take of COUNT * Color * INDEX
 
 type TargeTubeCapacity = 
-    | FourOfAnyColor
-    | AsManyAs of (COUNT * Color)
-    | NoneTubeIsFull
+    | FourOfAnyColor of INDEX
+    | AsManyAs of (INDEX * COUNT * Color)
+    | NoneTubeIsFull of INDEX
 
 type Move = MoveTubes of COUNT * Color * INDEX * INDEX
 
@@ -86,14 +86,14 @@ let getSourceTubeMovePossibility (colors: ColorList) : SourceTubeMovePossibility
             let bottomStreak = actualColors |> Array.rev |> Array.takeWhile (fun c -> c = bottomColor)
             Upto (bottomStreak.Length, bottomColor)
 
-let getTargeTubeCapacity (colors: ColorList) : TargeTubeCapacity =
+let getTargeTubeCapacity (index: INDEX) (colors: ColorList) : TargeTubeCapacity =
     let actualColors = colors |> Array.choose id
     match actualColors.Length with
-        | 0 -> FourOfAnyColor
-        | 4 -> NoneTubeIsFull
+        | 0 -> FourOfAnyColor index
+        | 4 -> NoneTubeIsFull index
         | _ ->
             let bottomColor = actualColors[actualColors.Length - 1]
-            AsManyAs (colors.Length - actualColors.Length, actualColors[actualColors.Length-1])
+            AsManyAs (index, colors.Length - actualColors.Length, actualColors[actualColors.Length-1])
 
 let gameSolved (source: SourceTubeMovePossibility seq) : bool =
     let completedTubes = source |> Seq.sumBy (fun stmp -> 
@@ -135,8 +135,24 @@ let generateAllPossibleMoves (sourceMovePossibilities:SourceTubeMovePossibility[
                                                                         | NoneTubeIsEmpty -> Seq.empty
                                                                        )
                                                                     |> Seq.concat
-                                                                    |> Array.ofSeq
 
+    let pairs = Seq.allPairs sourceMoves targetTubeCapacities
+                                                        |> Array.ofSeq
+
+    let validMoves = pairs |> Seq.choose (fun (sp, ttc) ->
+                                                    match sp with 
+                                                        | Take (sourceCount, sourceColor, sourceIndex) ->
+                                                            match ttc with
+                                                                | NoneTubeIsFull _ -> None
+                                                                | FourOfAnyColor targetIndex -> 
+                                                                    Some (MoveTubes (sourceCount, sourceColor, sourceIndex, targetIndex))
+                                                                | AsManyAs (targetIndex, targetCapacity, targetColor) ->
+                                                                    if sourceColor = targetColor && sourceCount <= targetCapacity
+                                                                    then
+                                                                        Some (MoveTubes (sourceCount, sourceColor, sourceIndex, targetIndex))
+                                                                    else
+                                                                        None
+                                                    )
     Array.empty
 
 
@@ -152,7 +168,7 @@ let playGame (game: Game) : Game =
     else
         let targetTubeCapacities = game.tubes 
                                         |> Seq.map (fun t -> t.colors)
-                                        |> Seq.map getTargeTubeCapacity
+                                        |> Seq.mapi getTargeTubeCapacity
                                         |> Array.ofSeq
 
         let possbileMoves = generateAllPossibleMoves sourceMovePossibilities targetTubeCapacities
