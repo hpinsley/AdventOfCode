@@ -9,6 +9,8 @@ open System.Collections.Generic
 open System.Diagnostics
 
 let TUBE_COUNT = 12
+let INITIAL_EMPTY_COUNT = 2
+let INITIAL_NON_EMPTY_COUNT = TUBE_COUNT - INITIAL_EMPTY_COUNT
 
 type Color = 
     | Blue
@@ -38,6 +40,11 @@ type Tube = {
 type SourceTubeMovePossibility = 
     | Upto of (int * Color)
     | NoneTubeIsEmpty
+
+type TargeTubeCapacity = 
+    | FourOfAnyColor
+    | AsManyAs of (int * Color)
+    | NoneTubeIsFull
 
 type Move = MoveTubes of (int * int * Color)
 
@@ -71,8 +78,23 @@ let getSourceTubeMovePossibility (colors: ColorList) : SourceTubeMovePossibility
             let bottomStreak = actualColors |> Array.rev |> Array.takeWhile (fun c -> c = bottomColor)
             Upto (bottomStreak.Length, bottomColor)
 
-let gameSolved (game: Game) : bool =
-    false
+let getTargeTubeCapacity (colors: ColorList) : TargeTubeCapacity =
+    let actualColors = colors |> Array.choose id
+    match actualColors.Length with
+        | 0 -> FourOfAnyColor
+        | 4 -> NoneTubeIsFull
+        | _ ->
+            let bottomColor = actualColors[actualColors.Length - 1]
+            AsManyAs (colors.Length - actualColors.Length, actualColors[actualColors.Length-1])
+
+let gameSolved (source: SourceTubeMovePossibility seq) : bool =
+    let completedTubes = source |> Seq.sumBy (fun stmp -> 
+                                                        match stmp with
+                                                            | Upto (count, _) -> 
+                                                                if count = 4 then 1 else 0
+                                                            | NoneTubeIsEmpty -> 0
+                                                    )
+    completedTubes = INITIAL_NON_EMPTY_COUNT
 
 let letterToColor (c: char) : Color =
     match c with
@@ -97,18 +119,21 @@ let mapLineToTube (index: int) (line:string) : Tube =
         state = state
     }
 
-    
-
-let findMoves (game: Game) : Move list =
+let playGame (game: Game) : Game =
     let sourceMovePossibilities = game.tubes 
                                     |> Seq.map (fun t -> t.colors)
                                     |> Seq.map getSourceTubeMovePossibility
                                     |> Array.ofSeq
-    []
 
-let playGame (game: Game) : unit =
-    let moves = findMoves game
-    ()
+    if gameSolved sourceMovePossibilities
+    then
+        game
+    else
+        let targetTubeCapacity = game.tubes 
+                                        |> Seq.map (fun t -> t.colors)
+                                        |> Seq.map getTargeTubeCapacity
+                                        |> Array.ofSeq
+        game
 
 let initGame (lines:string[]) : Game =
     let tubes = lines |> Array.mapi mapLineToTube
