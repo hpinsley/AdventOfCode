@@ -35,10 +35,9 @@ type Tube = {
     state: TubeState
 }
 
-type ColorCapacity = 
+type SourceTubeMovePossibility = 
     | Upto of (int * Color)
-    | FourOfAnyColor
-    | NoCapacity
+    | NoneTubeIsEmpty
 
 type Move = MoveTubes of (int * int * Color)
 
@@ -63,12 +62,11 @@ let tubeState (colors: ColorList) : TubeState =
         | 4 -> if (allSameColor filled) then Filled
                else Mixed
         | _ -> Mixed
-let getTubeCapacity (colors: ColorList) : ColorCapacity =
-    match tubeState colors with
-        | Empty -> FourOfAnyColor
-        | Filled -> Upto (4, Option.get colors[0])
-        | Mixed -> 
-            let actualColors = colors |> Array.choose id
+let getSourceTubeMovePossibility (colors: ColorList) : SourceTubeMovePossibility =
+    let actualColors = colors |> Array.choose id
+    match actualColors.Length with
+        | 0 -> NoneTubeIsEmpty
+        | _ ->
             let bottomColor = actualColors[actualColors.Length - 1]
             let bottomStreak = actualColors |> Array.rev |> Array.takeWhile (fun c -> c = bottomColor)
             Upto (bottomStreak.Length, bottomColor)
@@ -102,10 +100,10 @@ let mapLineToTube (index: int) (line:string) : Tube =
     
 
 let findMoves (game: Game) : Move list =
-    let capacity = game.tubes 
-                        |> Seq.map (fun t -> t.colors)
-                        |> Seq.map getTubeCapacity
-                        |> Array.ofSeq
+    let sourceMovePossibilities = game.tubes 
+                                    |> Seq.map (fun t -> t.colors)
+                                    |> Seq.map getSourceTubeMovePossibility
+                                    |> Array.ofSeq
     []
 
 let playGame (game: Game) : unit =
