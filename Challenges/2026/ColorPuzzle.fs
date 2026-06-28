@@ -12,6 +12,11 @@ let TUBE_COUNT = 12
 let INITIAL_EMPTY_COUNT = 2
 let INITIAL_NON_EMPTY_COUNT = TUBE_COUNT - INITIAL_EMPTY_COUNT
 
+type INDEX = int
+type COUNT = int
+type FROM_INDEX = INDEX
+type TO_INDEX = INDEX
+
 type Color = 
     | Blue
     | Cyan
@@ -32,21 +37,24 @@ type TubeState =
 type ColorList = (Color option)[]
 
 type Tube = {
-    index: int
+    index: INDEX
     colors: ColorList
     state: TubeState
 }
 
 type SourceTubeMovePossibility = 
-    | Upto of (int * Color)
+    | Upto of (COUNT * Color)
     | NoneTubeIsEmpty
+
+type SourcePartial = 
+    | Take of COUNT * Color * INDEX
 
 type TargeTubeCapacity = 
     | FourOfAnyColor
-    | AsManyAs of (int * Color)
+    | AsManyAs of (COUNT * Color)
     | NoneTubeIsFull
 
-type Move = MoveTubes of (int * int * Color)
+type Move = MoveTubes of COUNT * Color * INDEX * INDEX
 
 let EmptyTube = { index = -1; colors = [|None; None; None; None|]; state = Empty }
 
@@ -119,6 +127,19 @@ let mapLineToTube (index: int) (line:string) : Tube =
         state = state
     }
 
+let generateAllPossibleMoves (sourceMovePossibilities:SourceTubeMovePossibility[]) (targetTubeCapacities:TargeTubeCapacity[]) : Move[] =
+    let sourceMoves = sourceMovePossibilities |> Seq.mapi (fun index smp -> 
+                                                                    match smp with
+                                                                        | Upto (n, color) ->
+                                                                            seq { n .. -1 .. 1} |> Seq.map (fun i -> Take (i, color, index))
+                                                                        | NoneTubeIsEmpty -> Seq.empty
+                                                                       )
+                                                                    |> Seq.concat
+                                                                    |> Array.ofSeq
+
+    Array.empty
+
+
 let playGame (game: Game) : Game =
     let sourceMovePossibilities = game.tubes 
                                     |> Seq.map (fun t -> t.colors)
@@ -129,10 +150,12 @@ let playGame (game: Game) : Game =
     then
         game
     else
-        let targetTubeCapacity = game.tubes 
+        let targetTubeCapacities = game.tubes 
                                         |> Seq.map (fun t -> t.colors)
                                         |> Seq.map getTargeTubeCapacity
                                         |> Array.ofSeq
+
+        let possbileMoves = generateAllPossibleMoves sourceMovePossibilities targetTubeCapacities
         game
 
 let initGame (lines:string[]) : Game =
