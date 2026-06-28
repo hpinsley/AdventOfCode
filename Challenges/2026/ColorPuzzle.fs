@@ -29,17 +29,11 @@ type Color =
     | White
     | Yellow
 
-type TubeState =
-    | Filled
-    | Mixed
-    | Empty
-
 type ColorList = (Color option)[]
 
 type Tube = {
     index: INDEX
     colors: ColorList
-    state: TubeState
 }
 
 type SourceTubeMovePossibility = 
@@ -56,7 +50,7 @@ type TargeTubeCapacity =
 
 type Move = MoveTubes of COUNT * Color * INDEX * INDEX
 
-let EmptyTube = { index = -1; colors = [|None; None; None; None|]; state = Empty }
+let EmptyTube = { index = -1; colors = [|None; None; None; None|] }
 
 type Game =
     {
@@ -70,13 +64,6 @@ let allSameColor (colors: Color[]) : bool =
     let colorToMatch= colors[0]
     not (Seq.exists (fun c -> c <> colorToMatch) colors)
 
-let tubeState (colors: ColorList) : TubeState =
-    let filled = colors |> Array.choose id
-    match filled.Length with
-        | 0 -> Empty
-        | 4 -> if (allSameColor filled) then Filled
-               else Mixed
-        | _ -> Mixed
 let getSourceTubeMovePossibility (colors: ColorList) : SourceTubeMovePossibility =
     let actualColors = colors |> Array.choose id
     match actualColors.Length with
@@ -120,14 +107,20 @@ let letterToColor (c: char) : Color =
 
 let mapLineToTube (index: int) (line:string) : Tube =
     let colors = line |> Seq.map letterToColor |> Seq.map Some |> Array.ofSeq
-    let state = tubeState colors
     {
         index = index;
         colors = colors; 
-        state = state
     }
 
-let generateAllPossibleMoves (sourceMovePossibilities:SourceTubeMovePossibility[]) (targetTubeCapacities:TargeTubeCapacity[]) : Move[] =
+let makeMove (game: Game) (move:Move) : Game =
+    // type Move = MoveTubes of COUNT * Color * INDEX * INDEX
+    match move with
+        | MoveTubes (moveCount, color, fromIndex, toIndex) ->
+            let sourceTube = game.tubes[fromIndex]
+            let targetTube = game.tubes[toIndex]
+            game
+
+let generateAllPossibleMoves (sourceMovePossibilities:SourceTubeMovePossibility[]) (targetTubeCapacities:TargeTubeCapacity[]) : Move seq =
     let sourceMoves = sourceMovePossibilities |> Seq.mapi (fun index smp -> 
                                                                     match smp with
                                                                         | Upto (n, color) ->
@@ -153,8 +146,7 @@ let generateAllPossibleMoves (sourceMovePossibilities:SourceTubeMovePossibility[
                                                                     else
                                                                         None
                                                     )
-    Array.empty
-
+    validMoves
 
 let playGame (game: Game) : Game =
     let sourceMovePossibilities = game.tubes 
@@ -172,6 +164,11 @@ let playGame (game: Game) : Game =
                                         |> Array.ofSeq
 
         let possbileMoves = generateAllPossibleMoves sourceMovePossibilities targetTubeCapacities
+                                        |> Array.ofSeq
+
+        let firstMove = possbileMoves[0]
+        let g = makeMove game firstMove
+
         game
 
 let initGame (lines:string[]) : Game =
