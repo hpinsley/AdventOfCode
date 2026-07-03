@@ -104,10 +104,13 @@ let letterToColor (c: char) : Color =
         | _ -> raise(Exception("No such color"))
 
 let mapLineToTube (index: int) (line:string) : Tube =
-    let colors = line |> Seq.map letterToColor |> Seq.map Some |> Array.ofSeq
+    // Pad with None to a full ColorList so partial tubes ("YW") and empty
+    // tubes ("") from intermediate game states are valid engine input.
+    let letters = line |> Seq.map letterToColor |> Seq.map Some |> Array.ofSeq
+    let colors = Array.append letters (Array.create (4 - letters.Length) None)
     {
         index = index;
-        colors = colors; 
+        colors = colors;
     }
 
 let removeColorsFromTube (tube:Tube) (moveCount:int) : Tube =
@@ -266,3 +269,10 @@ let initGame (lines:string[]) : Game =
 // entry, e.g. "YWCB"); empty tubes are padded up to TUBE_COUNT by initGame.
 let solvePuzzle (lines: string[]) : Game option =
     lines |> initGame |> solveGame
+
+// Solve from an intermediate game state: lines may be partial ("YW") or empty
+// (""), and the board is taken exactly as given — no padding to TUBE_COUNT —
+// so move indices in the solution refer to the caller's tube positions.
+let solveFromState (lines: string[]) : Game option =
+    let tubes = lines |> Array.mapi mapLineToTube
+    solveGame { moveCount = 0; tubes = tubes; moveList = [] }

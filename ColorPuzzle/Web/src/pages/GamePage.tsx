@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { SolveError, solvePuzzle } from '../api/solver'
+import { getHint, SolveError, solvePuzzle } from '../api/solver'
 import Board from '../components/Board'
 import type { BoardHandle } from '../components/Board'
 import ControlBar from '../components/ControlBar'
@@ -37,6 +37,8 @@ function GamePage({ initialGame }: { initialGame: SavedGame }) {
   const [mode, setMode] = useState<PlayMode>('manual')
   const [animating, setAnimating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [hint, setHint] = useState<{ move: Move; remainingMoves: number } | null>(null)
+  const [hinting, setHinting] = useState(false)
 
   const boardRef = useRef<BoardHandle>(null)
   const solved = isSolved(tubes)
@@ -90,6 +92,7 @@ function GamePage({ initialGame }: { initialGame: SavedGame }) {
   function handleTubeClick(i: number) {
     if (animating || mode !== 'manual') return
     setError(null)
+    setHint(null)
     if (selected === null) {
       if (tubes[i].length > 0) setSelected(i)
       return
@@ -113,6 +116,7 @@ function GamePage({ initialGame }: { initialGame: SavedGame }) {
     setMoves([])
     setSelected(null)
     setError(null)
+    setHint(null)
   }
 
   function handleUndo() {
@@ -121,10 +125,12 @@ function GamePage({ initialGame }: { initialGame: SavedGame }) {
     setTubes((t) => undoMove(t, last))
     setMoves((m) => m.slice(0, -1))
     setSelected(null)
+    setHint(null)
   }
 
   async function handleReanimate() {
     if (moves.length === 0) return
+    setHint(null)
     setAnimating(true)
     try {
       await runSequence(moves)
@@ -133,8 +139,23 @@ function GamePage({ initialGame }: { initialGame: SavedGame }) {
     }
   }
 
+  async function handleHint() {
+    setError(null)
+    setHint(null)
+    setSelected(null)
+    setHinting(true)
+    try {
+      setHint(await getHint(tubes))
+    } catch (e) {
+      setError(e instanceof SolveError ? e.message : 'Hint failed unexpectedly.')
+    } finally {
+      setHinting(false)
+    }
+  }
+
   async function handleSolve() {
     setError(null)
+    setHint(null)
     setAnimating(true)
     try {
       const solution = await solvePuzzle(game.tubes)
@@ -154,6 +175,13 @@ function GamePage({ initialGame }: { initialGame: SavedGame }) {
   let status: Status
   if (error) {
     status = { kind: 'error', text: error }
+  } else if (hinting) {
+    status = { kind: 'info', text: 'Finding a hint…' }
+  } else if (hint) {
+    status = {
+      kind: 'info',
+      text: `Hint: pour Tube ${hint.move.from + 1} → Tube ${hint.move.to + 1} · solvable in ${hint.remainingMoves} more moves`,
+    }
   } else if (animating) {
     status = { kind: 'info', text: mode === 'auto' ? 'Solving…' : 'Pouring…' }
   } else if (solved && moves.length > 0) {
@@ -172,19 +200,25 @@ function GamePage({ initialGame }: { initialGame: SavedGame }) {
         tubes={tubes}
         selected={selected}
         disabled={animating || mode !== 'manual'}
+        hint={hint ? { from: hint.move.from, to: hint.move.to } : null}
         onTubeClick={handleTubeClick}
       />
       <ControlBar
         mode={mode}
         status={status}
-        busy={animating}
+        busy={animating || hinting}
         canUndo={moves.length > 0}
         canReanimate={moves.length > 0}
-        onModeChange={setMode}
+        canHint={!solved}
+        onModeChange={(m) => {
+          setHint(null)
+          setMode(m)
+        }}
         onRestart={handleRestart}
         onUndo={handleUndo}
         onReanimate={handleReanimate}
         onSolve={handleSolve}
+        onHint={handleHint}
       />
       <Link className="back-link" to="/">
         ← Game library

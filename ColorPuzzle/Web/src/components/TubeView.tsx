@@ -9,6 +9,8 @@ interface TubeViewProps {
   disabled: boolean
   /** Number of top pills currently mid-flight (hidden while the overlay animates them). */
   hiddenTopCount: number
+  /** Role in the currently displayed hint, if any (pulsing glow). */
+  hintRole: 'from' | 'to' | null
   onClick: (index: number) => void
 }
 
@@ -17,7 +19,7 @@ interface TubeViewProps {
  * (tube[0] at the top), so the pour end (last character) is the lowest
  * filled slot and empty slots sit at the bottom — the reddit convention.
  */
-export default function TubeView({ index, tube, selected, disabled, hiddenTopCount, onClick }: TubeViewProps) {
+export default function TubeView({ index, tube, selected, disabled, hiddenTopCount, hintRole, onClick }: TubeViewProps) {
   const slots = []
   for (let s = 0; s < TUBE_CAPACITY; s++) {
     const letter = s < tube.length ? (tube[s] as ColorLetter) : null
@@ -37,7 +39,7 @@ export default function TubeView({ index, tube, selected, disabled, hiddenTopCou
   return (
     <button
       type="button"
-      className={`tube${selected ? ' selected' : ''}`}
+      className={`tube${selected ? ' selected' : ''}${hintRole ? ` hint-${hintRole}` : ''}`}
       disabled={disabled}
       onClick={() => onClick(index)}
       aria-label={`Tube ${index + 1}`}

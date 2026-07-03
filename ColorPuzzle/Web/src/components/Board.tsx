@@ -17,6 +17,7 @@ interface BoardProps {
   tubes: Tube[]
   selected: number | null
   disabled: boolean
+  hint: { from: number; to: number } | null
   onTubeClick: (index: number) => void
 }
 
@@ -25,7 +26,7 @@ const STAGGER_MS = 55
 const SLOT_INSET = 3 // matches .slot padding in index.css
 
 const Board = forwardRef<BoardHandle, BoardProps>(function Board(
-  { tubes, selected, disabled, onTubeClick },
+  { tubes, selected, disabled, hint, onTubeClick },
   ref,
 ) {
   const boardRef = useRef<HTMLDivElement>(null)
@@ -54,6 +55,7 @@ const Board = forwardRef<BoardHandle, BoardProps>(function Board(
           selected={selected === i}
           disabled={disabled}
           hiddenTopCount={flight?.tube === i ? flight.count : 0}
+          hintRole={hint === null ? null : hint.from === i ? 'from' : hint.to === i ? 'to' : null}
           onClick={onTubeClick}
         />
       ))}

@@ -118,6 +118,38 @@ h2 {
   border-color: var(--accent);
 }
 
+.tube.hint-from {
+  animation: hint-pulse-from 1.1s ease-in-out infinite;
+}
+
+.tube.hint-to {
+  animation: hint-pulse-to 1.1s ease-in-out infinite;
+}
+
+@keyframes hint-pulse-from {
+  0%,
+  100% {
+    border-color: var(--accent);
+    box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.55), 0 0 4px 1px rgba(34, 211, 238, 0.35);
+  }
+  50% {
+    border-color: var(--accent);
+    box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.55), 0 0 16px 5px rgba(34, 211, 238, 0.75);
+  }
+}
+
+@keyframes hint-pulse-to {
+  0%,
+  100% {
+    border-color: #30e63c;
+    box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.55), 0 0 4px 1px rgba(48, 230, 60, 0.35);
+  }
+  50% {
+    border-color: #30e63c;
+    box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.55), 0 0 16px 5px rgba(48, 230, 60, 0.75);
+  }
+}
+
 .slot {
   height: 36px;
   padding: 3px; /* keep in sync with SLOT_INSET in Board.tsx */
@@ -172,6 +204,10 @@ h2 {
 
 .action.solve {
   background: #30e63c;
+}
+
+.action.hint-action {
+  background: #ffe81a;
 }
 
 .mode-toggle {

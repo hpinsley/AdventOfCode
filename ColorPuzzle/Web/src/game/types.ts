@@ -41,3 +41,9 @@ export interface SolveResponse {
   moveCount: number
   moves: MoveDto[]
 }
+
+/** Wire format of POST /api/hint. */
+export interface HintResponse {
+  hint: MoveDto
+  remainingMoves: number
+}

@@ -11,11 +11,13 @@ interface ControlBarProps {
   busy: boolean
   canUndo: boolean
   canReanimate: boolean
+  canHint: boolean
   onModeChange: (mode: PlayMode) => void
   onRestart: () => void
   onUndo: () => void
   onReanimate: () => void
   onSolve: () => void
+  onHint: () => void
 }
 
 export default function ControlBar({
@@ -24,11 +26,13 @@ export default function ControlBar({
   busy,
   canUndo,
   canReanimate,
+  canHint,
   onModeChange,
   onRestart,
   onUndo,
   onReanimate,
   onSolve,
+  onHint,
 }: ControlBarProps) {
   return (
     <footer className="control-bar">
@@ -60,6 +64,11 @@ export default function ControlBar({
       <button type="button" className="action" onClick={onReanimate} disabled={busy || !canReanimate}>
         Reanimate
       </button>
+      {mode === 'manual' && (
+        <button type="button" className="action hint-action" onClick={onHint} disabled={busy || !canHint}>
+          Hint
+        </button>
+      )}
       {mode === 'auto' && (
         <button type="button" className="action solve" onClick={onSolve} disabled={busy}>
           Solve
