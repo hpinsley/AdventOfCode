@@ -1,6 +1,7 @@
 {
     "version": "0.2.0",
     "configurations": [
+
         {
             "name": "Driver",
             "type": "coreclr",
@@ -13,7 +14,7 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "ColorPuzzle API",
+            "name": "Color Puzzle API",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build-colorpuzzle-api",

@@ -28,6 +28,76 @@
             "problemMatcher": "$msCompile"
         },
         {
+            "label": "colorpuzzle-web",
+            "command": "npm",
+            "type": "shell",
+            "args": [
+                "run",
+                "dev"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/ColorPuzzle/Web"
+            },
+            "isBackground": true,
+            "presentation": {
+                "panel": "dedicated",
+                "reveal": "always"
+            },
+            "problemMatcher": {
+                "owner": "colorpuzzle-web",
+                "pattern": {
+                    "regexp": "^ThisPatternNeverMatches$",
+                    "file": 1,
+                    "location": 1,
+                    "message": 1
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".*(VITE|vite).*",
+                    "endsPattern": ".*(Local:|ready in).*"
+                }
+            }
+        },
+        {
+            "label": "colorpuzzle-api",
+            "command": "dotnet",
+            "type": "shell",
+            "args": [
+                "run"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/ColorPuzzle/Api"
+            },
+            "isBackground": true,
+            "presentation": {
+                "panel": "dedicated",
+                "reveal": "always"
+            },
+            "problemMatcher": {
+                "owner": "colorpuzzle-api",
+                "pattern": {
+                    "regexp": "^ThisPatternNeverMatches$",
+                    "file": 1,
+                    "location": 1,
+                    "message": 1
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".*(Building|dotnet).*",
+                    "endsPattern": ".*Now listening on.*"
+                }
+            }
+        },
+        {
+            "label": "colorpuzzle-full-stack",
+            "dependsOn": [
+                "colorpuzzle-api",
+                "colorpuzzle-web"
+            ],
+            "dependsOrder": "parallel",
+            "problemMatcher": []
+        },
+        {
             "label": "build tests",
             "command": "dotnet",
             "type": "shell",

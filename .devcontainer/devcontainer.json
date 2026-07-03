@@ -4,7 +4,9 @@
 	"service": "devcontainer",
 	"workspaceFolder": "/workspace",
 	"forwardPorts": [
-		3000
+		3000,
+		5173,
+		5197
 	],
 	"features": {
     	"ghcr.io/anthropics/devcontainer-features/claude-code": {}
