@@ -1,7 +1,10 @@
 import { COLOR_LETTERS, MAX_FILLED_TUBES, TUBE_CAPACITY, TUBE_COUNT } from './types'
 import type { ColorLetter, Move, Tube } from './types'
 
-/** The pourable run of matching colors at the top of a tube (null if empty). */
+/**
+ * The pourable run of matching colors at a tube's pour end — the end of the
+ * string, displayed as the lowest filled slot (null if the tube is empty).
+ */
 export function topStreak(tube: Tube): { letter: ColorLetter; count: number } | null {
   if (tube.length === 0) return null
   const letter = tube[tube.length - 1] as ColorLetter

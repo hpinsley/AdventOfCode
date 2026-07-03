@@ -77,7 +77,8 @@ export default function NewGamePage() {
         <section className="entry-text">
           <h2>Type it</h2>
           <p className="hint">
-            One tube per line, letters {COLOR_LETTERS.join(' ')} (last letter is the top).
+            One tube per line, letters {COLOR_LETTERS.join(' ')} reading top to bottom (first letter is
+            the top).
           </p>
           <textarea
             rows={MAX_FILLED_TUBES}
@@ -113,11 +114,11 @@ export default function NewGamePage() {
               ⌫
             </button>
           </div>
-          <p className="hint">Click a tube to add the selected color (fills bottom-up).</p>
+          <p className="hint">Click a tube to add the selected color (fills top-down).</p>
           <div className="painter-board">
             {tubes.map((tube, i) => (
               <button key={i} type="button" className="tube mini" onClick={() => paintTube(i)}>
-                {Array.from({ length: TUBE_CAPACITY }, (_, s) => TUBE_CAPACITY - 1 - s).map((s) => (
+                {Array.from({ length: TUBE_CAPACITY }, (_, s) => s).map((s) => (
                   <div key={s} className="slot">
                     {s < tube.length && (
                       <div

@@ -13,12 +13,13 @@ interface TubeViewProps {
 }
 
 /**
- * Renders one tube as 4 slots, visually top-to-bottom. Slot `s` (0 = bottom)
- * holds the pill for tube[s]; the last character of the tube string is the top.
+ * Renders one tube as 4 slots. Colors read top-to-bottom in string order
+ * (tube[0] at the top), so the pour end (last character) is the lowest
+ * filled slot and empty slots sit at the bottom — the reddit convention.
  */
 export default function TubeView({ index, tube, selected, disabled, hiddenTopCount, onClick }: TubeViewProps) {
   const slots = []
-  for (let s = TUBE_CAPACITY - 1; s >= 0; s--) {
+  for (let s = 0; s < TUBE_CAPACITY; s++) {
     const letter = s < tube.length ? (tube[s] as ColorLetter) : null
     const hidden = letter !== null && s >= tube.length - hiddenTopCount
     slots.push(

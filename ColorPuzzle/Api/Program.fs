@@ -65,9 +65,9 @@ let main args =
 
     app.MapPost("/api/solve", Func<SolveRequest, IResult>(solveHandler))
         .WithSummary("Solve a color-sort puzzle in the fewest moves")
-        .WithDescription("Each tube is 4 letters (B, C, G, L, M, O, P, R, W, Y — one per color), \
-                          last letter is the top of the tube. Send only the filled tubes; \
-                          empty tubes are added automatically to reach 12 total.")
+        .WithDescription("Each tube is 4 letters (B, C, G, L, M, O, P, R, W, Y — one per color) \
+                          reading top to bottom; colors pour from the last letter. Send only the \
+                          filled tubes; empty tubes are added automatically to reach 12 total.")
         .Produces<SolveResponse>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status400BadRequest)
         .Produces(StatusCodes.Status422UnprocessableEntity)

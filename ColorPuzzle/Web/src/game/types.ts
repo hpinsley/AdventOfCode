@@ -5,7 +5,11 @@ export const TUBE_COUNT = 12
 export const TUBE_CAPACITY = 4
 export const MAX_FILLED_TUBES = 10
 
-/** A tube is a string of 0-4 color letters; the LAST character is the top (file/API format). */
+/**
+ * A tube is a string of 0-4 color letters (file/API format). Colors display
+ * top-to-bottom in string order; the LAST character is the pour end (the
+ * lowest filled slot on screen).
+ */
 export type Tube = string
 
 export interface Move {
