@@ -149,8 +149,12 @@ let makeMove (game: Game) (move:Move) : Game =
 
             let targetTube = game.tubes[toIndex]
             let increasedTargetTube = addColorsToTube targetTube color moveCount
+
+            let updatedTubes = Array.copy game.tubes
+            updatedTubes[fromIndex] <- reducedSourceTube
+            updatedTubes[toIndex] <- increasedTargetTube
             
-            game
+            { game with tubes = updatedTubes; moveCount = game.moveCount + 1; moveList = move :: game.moveList }
 
 let generateAllPossibleMoves (sourceMovePossibilities:SourceTubeMovePossibility[]) (targetTubeCapacities:TargeTubeCapacity[]) : Move seq =
     let sourceMoves = sourceMovePossibilities |> Seq.mapi (fun index smp -> 
@@ -180,28 +184,38 @@ let generateAllPossibleMoves (sourceMovePossibilities:SourceTubeMovePossibility[
                                                     )
     validMoves
 
-let playGame (game: Game) : Game =
-    let sourceMovePossibilities = game.tubes 
-                                    |> Seq.map (fun t -> t.colors)
-                                    |> Seq.map getSourceTubeMovePossibility
-                                    |> Array.ofSeq
+let rec playMultipleGames (games:Game seq) : Game seq =
+    let playedGames = games |> Seq.map playGame
+    let validGames = Seq.choose id playedGames |> Array.ofSeq
+    validGames
 
-    if gameSolved sourceMovePossibilities
-    then
-        game
-    else
-        let targetTubeCapacities = game.tubes 
+and
+    playGame (game: Game) : Game option =
+        let sourceMovePossibilities = game.tubes 
                                         |> Seq.map (fun t -> t.colors)
-                                        |> Seq.mapi getTargeTubeCapacity
+                                        |> Seq.map getSourceTubeMovePossibility
                                         |> Array.ofSeq
 
-        let possbileMoves = generateAllPossibleMoves sourceMovePossibilities targetTubeCapacities
-                                        |> Array.ofSeq
+        if sourceMovePossibilities.Length = 0
+        then
+            None
+        elif gameSolved sourceMovePossibilities
+        then
+            Some game
+        else
+            let targetTubeCapacities = game.tubes 
+                                            |> Seq.map (fun t -> t.colors)
+                                            |> Seq.mapi getTargeTubeCapacity
+                                            |> Array.ofSeq
 
-        let firstMove = possbileMoves[0]
-        let g = makeMove game firstMove
+            let possibleMoves = generateAllPossibleMoves sourceMovePossibilities targetTubeCapacities
 
-        game
+            let postMoveGames = possibleMoves
+                                                    |> Seq.map (makeMove game)
+
+            let final = playMultipleGames postMoveGames
+            Some game
+
 
 let initGame (lines:string[]) : Game =
     let tubes = lines |> Array.mapi mapLineToTube
