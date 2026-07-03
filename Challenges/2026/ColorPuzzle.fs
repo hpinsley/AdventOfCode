@@ -156,9 +156,18 @@ let makeMove (game: Game) (move:Move) : Game =
             
             { game with tubes = updatedTubes; moveCount = game.moveCount + 1; moveList = move :: game.moveList }
 
-let generateAllPossibleMoves (sourceMovePossibilities:SourceTubeMovePossibility[]) (targetTubeCapacities:TargeTubeCapacity[]) : Move seq =
-    let sourceMoves = sourceMovePossibilities |> Seq.mapi (fun index smp -> 
+let generateAllPossibleMoves (sourceMovePossibilities:SourceTubeMovePossibility[]) (targetTubeCapacities:TargeTubeCapacity[]) (colorCounts:int[]) : Move seq =
+    // A tube whose streak spans its entire contents is single-colored; pouring it
+    // into an empty tube just relocates it, and a full one (streak of 4) is done.
+    let isSingleColored = Array.map2 (fun smp count ->
+                                            match smp with
+                                                | Upto (streak, _) -> streak = count
+                                                | NoneTubeIsEmpty -> false)
+                                     sourceMovePossibilities colorCounts
+
+    let sourceMoves = sourceMovePossibilities |> Seq.mapi (fun index smp ->
                                                                     match smp with
+                                                                        | Upto (4, _) -> Seq.empty   // completed tube; never a useful source
                                                                         | Upto (n, color) ->
                                                                             seq { n .. -1 .. 1} |> Seq.map (fun i -> Take (i, color, index))
                                                                         | NoneTubeIsEmpty -> Seq.empty
@@ -169,14 +178,18 @@ let generateAllPossibleMoves (sourceMovePossibilities:SourceTubeMovePossibility[
                                                         |> Array.ofSeq
 
     let validMoves = pairs |> Seq.choose (fun (sp, ttc) ->
-                                                    match sp with 
+                                                    match sp with
                                                         | Take (sourceCount, sourceColor, sourceIndex) ->
                                                             match ttc with
                                                                 | NoneTubeIsFull _ -> None
-                                                                | FourOfAnyColor targetIndex -> 
-                                                                    Some (MoveTubes (sourceCount, sourceColor, sourceIndex, targetIndex))
+                                                                | FourOfAnyColor targetIndex ->
+                                                                    if targetIndex = sourceIndex || isSingleColored[sourceIndex]
+                                                                    then
+                                                                        None
+                                                                    else
+                                                                        Some (MoveTubes (sourceCount, sourceColor, sourceIndex, targetIndex))
                                                                 | AsManyAs (targetIndex, targetCapacity, targetColor) ->
-                                                                    if sourceColor = targetColor && sourceCount <= targetCapacity
+                                                                    if targetIndex <> sourceIndex && sourceColor = targetColor && sourceCount <= targetCapacity
                                                                     then
                                                                         Some (MoveTubes (sourceCount, sourceColor, sourceIndex, targetIndex))
                                                                     else
@@ -184,37 +197,63 @@ let generateAllPossibleMoves (sourceMovePossibilities:SourceTubeMovePossibility[
                                                     )
     validMoves
 
-let rec playMultipleGames (games:Game seq) : Game seq =
-    let playedGames = games |> Seq.map playGame
-    let validGames = Seq.choose id playedGames |> Array.ofSeq
-    validGames
+let colorToLetter (c: Color) : char =
+    match c with
+        | Blue -> 'B'
+        | Cyan -> 'C'
+        | Green -> 'G'
+        | Lavender -> 'L'
+        | Magenta -> 'M'
+        | Orange -> 'O'
+        | Purple -> 'P'
+        | Red -> 'R'
+        | White -> 'W'
+        | Yellow -> 'Y'
 
-and
-    playGame (game: Game) : Game option =
-        let sourceMovePossibilities = game.tubes 
-                                        |> Seq.map (fun t -> t.colors)
-                                        |> Seq.map getSourceTubeMovePossibility
-                                        |> Array.ofSeq
+// Canonical key: tubes are interchangeable, so sorting their encodings makes
+// permutations of the same position hash identically.
+let gameToKey (game: Game) : string =
+    game.tubes
+        |> Array.map (fun t -> t.colors
+                                |> Array.map (fun c -> match c with
+                                                        | Some color -> colorToLetter color
+                                                        | None -> '.')
+                                |> System.String)
+        |> Array.sort
+        |> String.concat ""
 
-        if sourceMovePossibilities.Length = 0
+// Breadth-first search: states are visited in move-count order, so the first
+// solved state found uses the fewest moves.
+let solveGame (initial: Game) : Game option =
+    let visited = HashSet<string>()
+    let queue = Queue<Game>()
+    visited.Add(gameToKey initial) |> ignore
+    queue.Enqueue initial
+
+    let mutable solution = None
+    while Option.isNone solution && queue.Count > 0 do
+        let game = queue.Dequeue()
+
+        let sourceMovePossibilities = game.tubes
+                                        |> Array.map (fun t -> getSourceTubeMovePossibility t.colors)
+
+        if gameSolved sourceMovePossibilities
         then
-            None
-        elif gameSolved sourceMovePossibilities
-        then
-            Some game
+            solution <- Some game
         else
-            let targetTubeCapacities = game.tubes 
-                                            |> Seq.map (fun t -> t.colors)
-                                            |> Seq.mapi getTargeTubeCapacity
-                                            |> Array.ofSeq
+            let targetTubeCapacities = game.tubes
+                                            |> Array.mapi (fun i t -> getTargeTubeCapacity i t.colors)
+            let colorCounts = game.tubes
+                                            |> Array.map (fun t -> getColorCount t.colors)
 
-            let possibleMoves = generateAllPossibleMoves sourceMovePossibilities targetTubeCapacities
+            let possibleMoves = generateAllPossibleMoves sourceMovePossibilities targetTubeCapacities colorCounts
 
-            let postMoveGames = possibleMoves
-                                                    |> Seq.map (makeMove game)
+            for move in possibleMoves do
+                let nextGame = makeMove game move
+                if visited.Add(gameToKey nextGame) then
+                    queue.Enqueue nextGame
 
-            let final = playMultipleGames postMoveGames
-            Some game
+    solution
 
 
 let initGame (lines:string[]) : Game =
@@ -232,11 +271,25 @@ let solve =
     let stopWatch = Stopwatch.StartNew()
 
     let currentFolder = Environment.CurrentDirectory
-    let puzzleInput = "cp-2026-06-25.txt"
+    let puzzleInput = "cp-2026-06-26.txt"
     let inputFilespec = Path.Combine(currentFolder, "Challenges", "2026", puzzleInput)
     let lines = File.ReadAllLines inputFilespec
     printfn "%A" lines
 
     let game = initGame lines
-    playGame game
+
+    match solveGame game with
+        | Some solved ->
+            let moves = List.rev solved.moveList
+            printfn "Solved in %d moves (%.2fs):" solved.moveCount stopWatch.Elapsed.TotalSeconds
+            moves |> List.iteri (fun i (MoveTubes (count, color, fromIndex, toIndex)) ->
+                                        printfn "%2d. Move %d %A from tube %d to tube %d" (i + 1) count color fromIndex toIndex)
+
+            let replayed = moves |> List.fold makeMove game
+            let replayedSolved = replayed.tubes
+                                    |> Array.map (fun t -> getSourceTubeMovePossibility t.colors)
+                                    |> gameSolved
+            printfn "Replay check - move list solves the puzzle: %b" replayedSolved
+        | None ->
+            printfn "No solution found (%.2fs)" stopWatch.Elapsed.TotalSeconds
     ()
