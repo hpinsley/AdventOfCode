@@ -132,7 +132,7 @@ let addColorsToTube (tube:Tube) (color:Color) (moveCount:int) : Tube =
     let increasedColorCount = colorCount + moveCount
     let paddingNullCount = 4 - increasedColorCount
 
-    let segment1 = colors
+    let segment1 = if colorCount = 0 then Array.empty else colors[0..colorCount - 1]
     let segment2 = Array.create moveCount (Some color)
     let segment3 = Array.create paddingNullCount None
 
@@ -148,8 +148,8 @@ let makeMove (game: Game) (move:Move) : Game =
             let reducedSourceTube = removeColorsFromTube sourceTube moveCount
 
             let targetTube = game.tubes[toIndex]
-            let targetColors = targetTube.colors
-
+            let increasedTargetTube = addColorsToTube targetTube color moveCount
+            
             game
 
 let generateAllPossibleMoves (sourceMovePossibilities:SourceTubeMovePossibility[]) (targetTubeCapacities:TargeTubeCapacity[]) : Move seq =
