@@ -82,6 +82,9 @@ let getTargeTubeCapacity (index: INDEX) (colors: ColorList) : TargeTubeCapacity 
             let bottomColor = actualColors[actualColors.Length - 1]
             AsManyAs (index, colors.Length - actualColors.Length, actualColors[actualColors.Length-1])
 
+let getColorCount (colors:ColorList) : int =
+    Array.choose id colors |> Array.length
+
 let gameSolved (source: SourceTubeMovePossibility seq) : bool =
     let completedTubes = source |> Seq.sumBy (fun stmp -> 
                                                         match stmp with
@@ -112,12 +115,41 @@ let mapLineToTube (index: int) (line:string) : Tube =
         colors = colors; 
     }
 
+let removeColorsFromTube (tube:Tube) (moveCount:int) : Tube =
+    let colors = tube.colors
+    let colorCount = getColorCount colors
+    let reducedColorCount = colorCount - moveCount
+    let paddingNullCount = 4 - reducedColorCount
+
+    let reducedColors = Array.append 
+                                colors[0..reducedColorCount - 1]
+                                (Array.create paddingNullCount None)
+    { tube with colors = reducedColors }
+
+let addColorsToTube (tube:Tube) (color:Color) (moveCount:int) : Tube =
+    let colors = tube.colors
+    let colorCount = getColorCount colors
+    let increasedColorCount = colorCount + moveCount
+    let paddingNullCount = 4 - increasedColorCount
+
+    let segment1 = colors
+    let segment2 = Array.create moveCount (Some color)
+    let segment3 = Array.create paddingNullCount None
+
+    let increasedColors = seq { segment1; segment2; segment3 } |> Array.concat
+
+    { tube with colors = increasedColors }
+
 let makeMove (game: Game) (move:Move) : Game =
     // type Move = MoveTubes of COUNT * Color * INDEX * INDEX
     match move with
         | MoveTubes (moveCount, color, fromIndex, toIndex) ->
             let sourceTube = game.tubes[fromIndex]
+            let reducedSourceTube = removeColorsFromTube sourceTube moveCount
+
             let targetTube = game.tubes[toIndex]
+            let targetColors = targetTube.colors
+
             game
 
 let generateAllPossibleMoves (sourceMovePossibilities:SourceTubeMovePossibility[]) (targetTubeCapacities:TargeTubeCapacity[]) : Move seq =
