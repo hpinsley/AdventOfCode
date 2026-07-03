@@ -8,8 +8,10 @@ open System.Text.RegularExpressions
 let main (argv: string array) =
     printfn "Main driver"
 
-    let x = ColorPuzzle.solve
-    
+    // ColorPuzzle moved to its own solution: /ColorPuzzle/ColorPuzzle.sln
+    // let x = ColorPuzzle.solve
+    let x = ()
+
     // let x = Year2025Day1_Part1.solve
     // let x = Year2025Day2_Part1.solve
     // let x = Year2025Day4_Part1.solve

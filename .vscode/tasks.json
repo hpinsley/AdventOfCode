@@ -14,6 +14,20 @@
             "problemMatcher": "$msCompile"
         },
         {
+            "label": "build-colorpuzzle-api",
+            "command": "dotnet",
+            "type": "shell",
+            "args": [
+                "build",
+                "${workspaceFolder}/ColorPuzzle/Api/Api.fsproj"
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "silent"
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
             "label": "build tests",
             "command": "dotnet",
             "type": "shell",

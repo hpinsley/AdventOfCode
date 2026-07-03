@@ -1,12 +1,8 @@
 ﻿module ColorPuzzle
 
 open System
-open System.IO
-open Common
-open System.Text.RegularExpressions
 open Microsoft.FSharp.Core.Operators.Checked
 open System.Collections.Generic
-open System.Diagnostics
 
 let TUBE_COUNT = 12
 let INITIAL_EMPTY_COUNT = 2
@@ -85,14 +81,13 @@ let getTargeTubeCapacity (index: INDEX) (colors: ColorList) : TargeTubeCapacity 
 let getColorCount (colors:ColorList) : int =
     Array.choose id colors |> Array.length
 
+// Solved when every tube is either empty or completely filled with one color
+// (a streak of 4 spans the whole tube). Works for any number of filled tubes.
 let gameSolved (source: SourceTubeMovePossibility seq) : bool =
-    let completedTubes = source |> Seq.sumBy (fun stmp -> 
-                                                        match stmp with
-                                                            | Upto (count, _) -> 
-                                                                if count = 4 then 1 else 0
-                                                            | NoneTubeIsEmpty -> 0
-                                                    )
-    completedTubes = INITIAL_NON_EMPTY_COUNT
+    source |> Seq.forall (fun stmp ->
+                                match stmp with
+                                    | Upto (count, _) -> count = 4
+                                    | NoneTubeIsEmpty -> true)
 
 let letterToColor (c: char) : Color =
     match c with
@@ -267,29 +262,7 @@ let initGame (lines:string[]) : Game =
     game
 
 
-let solve =
-    let stopWatch = Stopwatch.StartNew()
-
-    let currentFolder = Environment.CurrentDirectory
-    let puzzleInput = "cp-2026-06-26.txt"
-    let inputFilespec = Path.Combine(currentFolder, "Challenges", "2026", puzzleInput)
-    let lines = File.ReadAllLines inputFilespec
-    printfn "%A" lines
-
-    let game = initGame lines
-
-    match solveGame game with
-        | Some solved ->
-            let moves = List.rev solved.moveList
-            printfn "Solved in %d moves (%.2fs):" solved.moveCount stopWatch.Elapsed.TotalSeconds
-            moves |> List.iteri (fun i (MoveTubes (count, color, fromIndex, toIndex)) ->
-                                        printfn "%2d. Move %d %A from tube %d to tube %d" (i + 1) count color fromIndex toIndex)
-
-            let replayed = moves |> List.fold makeMove game
-            let replayedSolved = replayed.tubes
-                                    |> Array.map (fun t -> getSourceTubeMovePossibility t.colors)
-                                    |> gameSolved
-            printfn "Replay check - move list solves the puzzle: %b" replayedSolved
-        | None ->
-            printfn "No solution found (%.2fs)" stopWatch.Elapsed.TotalSeconds
-    ()
+// Entry point for callers: lines in puzzle-file format (one 4-letter tube per
+// entry, e.g. "YWCB"); empty tubes are padded up to TUBE_COUNT by initGame.
+let solvePuzzle (lines: string[]) : Game option =
+    lines |> initGame |> solveGame

@@ -13,6 +13,26 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "ColorPuzzle API",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-colorpuzzle-api",
+            "program": "${workspaceFolder}/ColorPuzzle/Api/bin/Debug/net10.0/Api.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/ColorPuzzle/Api",
+            "stopAtEntry": false,
+            "console": "integratedTerminal",
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "http://localhost:5197"
+            },
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+                "uriFormat": "%s/swagger"
+            }
+        },
+        {
             "name": ".NET Core Attach",
             "type": "coreclr",
             "request": "attach",
